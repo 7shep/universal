@@ -1,0 +1,32 @@
+:root {
+  color: oklch(0.2 0.02 250);
+  background: oklch(0.97 0.005 250);
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+main {
+  display: grid;
+  place-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+}
+p {
+  color: oklch(0.45 0.08 250);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+h1 {
+  margin: 0.5rem 0;
+  font-size: clamp(2.5rem, 6vw, 5rem);
+  letter-spacing: -0.04em;
+}
+span {
+  max-width: 38rem;
+  color: oklch(0.42 0.02 250);
+  line-height: 1.5;
+}

@@ -1,0 +1,20 @@
+{
+  "name": "@design-studio/design-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@design-studio/composition-library": "workspace:*",
+    "@design-studio/design-linter": "workspace:*",
+    "@design-studio/prompts": "workspace:*",
+    "@design-studio/shared": "workspace:*"
+  }
+}
