@@ -1,4 +1,4 @@
-# Design Studio
+# Universal
 > An AI Art Director for React applications.
 
 ---
@@ -19,7 +19,7 @@ Three-column feature grid.
 
 Another CTA.
 
-Design Studio exists to fix that.
+Universal exists to fix that.
 
 Instead of generating another website, it generates an art-directed experience.
 

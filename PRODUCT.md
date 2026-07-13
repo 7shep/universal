@@ -10,7 +10,7 @@ Developers working locally with coding agents who need to turn a rough product i
 
 ## Product Purpose
 
-Design Studio is an AI Art Director for React applications. It will guide a design-first workflow that produces design specifications, compositions, critique, and previewable output for existing coding agents. Success is an interface that feels specifically composed rather than statistically generated.
+Universal is an AI Art Director for React applications. It guides a design-first workflow that produces design specifications, compositions, critique, and previewable output for existing coding agents. Success is an interface that feels specifically composed rather than statistically generated.
 
 ## Brand Personality
 

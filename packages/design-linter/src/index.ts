@@ -1,4 +1,4 @@
-import type { Composition } from '@design-studio/composition-library';
+import type { Composition } from '@universal/composition-library';
 
 export type FindingSeverity = 'info' | 'warning' | 'error';
 

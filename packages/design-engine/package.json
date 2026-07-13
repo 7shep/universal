@@ -1,5 +1,5 @@
 {
-  "name": "@design-studio/design-engine",
+  "name": "@universal/design-engine",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -12,9 +12,9 @@
     "lint": "eslint src"
   },
   "dependencies": {
-    "@design-studio/composition-library": "workspace:*",
-    "@design-studio/design-linter": "workspace:*",
-    "@design-studio/prompts": "workspace:*",
-    "@design-studio/shared": "workspace:*"
+    "@universal/composition-library": "workspace:*",
+    "@universal/design-linter": "workspace:*",
+    "@universal/prompts": "workspace:*",
+    "@universal/shared": "workspace:*"
   }
 }

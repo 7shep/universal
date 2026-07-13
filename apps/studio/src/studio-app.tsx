@@ -1,4 +1,4 @@
-import { Button } from '@design-studio/ui';
+import { Button } from '@universal/ui';
 
 const stages = ['Brief', 'Direction', 'Composition', 'Critique', 'Preview'];
 
@@ -7,7 +7,7 @@ export function StudioApp() {
     <main className="studio-shell">
       <header className="topbar">
         <a className="wordmark" href="/">
-          Design Studio
+          Universal
         </a>
         <span>Design before code.</span>
       </header>

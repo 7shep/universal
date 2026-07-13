@@ -1,6 +1,6 @@
-# Design Studio
+# Universal
 
-Design Studio is an open-source AI Art Director for developers building React interfaces with coding agents. It establishes composition and visual direction before implementation.
+Universal is an open-source AI Art Director for developers building React interfaces with coding agents. It establishes composition and visual direction before implementation.
 
 ## Workspace
 
@@ -12,6 +12,10 @@ Design Studio is an open-source AI Art Director for developers building React in
 - `packages/prompts` — versioned prompt templates and prompt assembly
 - `packages/shared` — cross-cutting domain types and result utilities
 - `packages/ui` — small shared React UI primitives
+
+## MCP prototype
+
+The local stdio server lives in `packages/design-mcp`; the demo React/Vite app lives in `examples/demo-site`. See [Codex MCP setup](docs/CODEX_MCP_SETUP.md) for the connection configuration and walkthrough.
 
 ## Getting started
 

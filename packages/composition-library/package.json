@@ -1,5 +1,5 @@
 {
-  "name": "@design-studio/composition-library",
+  "name": "@universal/composition-library",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -12,6 +12,6 @@
     "lint": "eslint src"
   },
   "dependencies": {
-    "@design-studio/shared": "workspace:*"
+    "@universal/shared": "workspace:*"
   }
 }

@@ -1,4 +1,4 @@
-import type { Identifiable } from '@design-studio/shared';
+import type { Identifiable } from '@universal/shared';
 
 /** A page-level spatial idea, deliberately independent from rendering technology. */
 export interface Composition extends Identifiable {
