@@ -1,5 +1,5 @@
 {
-  "name": "@design-studio/design-linter",
+  "name": "@universal/design-linter",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -12,6 +12,6 @@
     "lint": "eslint src"
   },
   "dependencies": {
-    "@design-studio/composition-library": "workspace:*"
+    "@universal/composition-library": "workspace:*"
   }
 }

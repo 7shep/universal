@@ -1,5 +1,5 @@
-import type { Composition } from '@design-studio/composition-library';
-import type { DesignFinding } from '@design-studio/design-linter';
+import type { Composition } from '@universal/composition-library';
+import type { DesignFinding } from '@universal/design-linter';
 
 export interface DesignBrief {
   prompt: string;

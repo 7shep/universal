@@ -1,5 +1,5 @@
 {
-  "name": "@design-studio/studio",
+  "name": "@universal/studio",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -10,8 +10,8 @@
     "lint": "eslint src"
   },
   "dependencies": {
-    "@design-studio/design-engine": "workspace:*",
-    "@design-studio/ui": "workspace:*",
+    "@universal/design-engine": "workspace:*",
+    "@universal/ui": "workspace:*",
     "@vitejs/plugin-react": "^4.6.0",
     "vite": "^6.3.5",
     "react": "^19.1.0",
