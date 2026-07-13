@@ -6,7 +6,7 @@ import { reviewImplementation } from './review.js';
 
 const server = new McpServer({ name: 'universal', version: '0.1.0' });
 
-server.tool('create_design_plan', 'Create a structured visual direction for a website before implementation.', {
+server.tool('create_design_plan', 'Create a structured visual direction for a website before implementation, including opt-in scroll-driven motion direction when requested.', {
   prompt: z.string().min(1).describe('Natural-language website request.'),
   websiteType: z.string().optional(),
   preferences: z.array(z.string()).optional(),
@@ -17,9 +17,14 @@ server.tool('get_design_rules', 'Return Universal composition principles and ant
   category: z.string().optional()
 }, async ({ category }) => ({ content: [{ type: 'text', text: JSON.stringify(getDesignRules(category), null, 2) }] }));
 
-server.tool('review_implementation', 'Statically review React and CSS source text for generic visual anti-patterns.', {
-  files: z.array(z.object({ path: z.string().min(1), content: z.string() })).min(1)
-}, async ({ files }) => ({ content: [{ type: 'text', text: JSON.stringify(reviewImplementation(files), null, 2) }] }));
+server.tool('review_implementation', 'Review React and CSS for generic visual anti-patterns. Before shipping, attach desktop and mobile screenshot evidence and confirm checks for empty space and missing media or marks.', {
+  files: z.array(z.object({ path: z.string().min(1), content: z.string() })).min(1),
+  visualEvidence: z.object({
+    screenshots: z.array(z.object({ viewport: z.string().min(1), location: z.string().optional(), notes: z.string().optional() })).min(1),
+    checkedForEmptySpace: z.boolean(),
+    checkedForMissingMedia: z.boolean()
+  }).optional()
+}, async ({ files, visualEvidence }) => ({ content: [{ type: 'text', text: JSON.stringify(reviewImplementation(files, visualEvidence), null, 2) }] }));
 
 async function main(): Promise<void> {
   await server.connect(new StdioServerTransport());

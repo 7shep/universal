@@ -21,10 +21,18 @@ test('returns a complete, chosen plan', () => {
   assert.equal(plan.pageStructure.length, 4);
   assert.ok(plan.avoid.includes('nested cards'));
 });
+test('adds an accessible layered scroll-motion direction when requested', () => {
+  const plan = createDesignPlan({ prompt: 'A premium mechanical keyboard with a layered parallax exploded view on scroll' });
+  assert.equal(plan.motionDirection?.trigger, 'scroll-driven');
+  assert.match(plan.motionDirection?.signature ?? '', /exploded view/i);
+  assert.match(plan.motionDirection?.reducedMotion ?? '', /static/i);
+  assert.ok(plan.implementationNotes.some((note) => note.includes('prefers-reduced-motion')));
+});
 test('returns global design rules', () => {
   const rules = getDesignRules('landing page');
   assert.equal(rules.category, 'landing page');
   assert.ok(rules.antiPatterns.includes('nested cards'));
+  assert.ok(rules.motionPrinciples.some((principle) => principle.includes('scroll-jack')));
 });
 test('warns about purple gradients', () => {
   const review = reviewImplementation([{ path: 'styles.css', content: '.hero { background: radial-gradient(circle, #8b5cf6, #111); }' }]);
@@ -37,8 +45,19 @@ test('warns about repeated large radii and three-column grids', () => {
 });
 test('a clean editorial sample passes several rules', () => {
   const review = reviewImplementation([{ path: 'styles.css', content: '.hero { display:grid; grid-template-columns: 1.2fr .8fr; } .panel { border-radius: 6px; }' }]);
-  assert.equal(review.status, 'pass');
+  assert.equal(review.status, 'revision_recommended');
   assert.ok(review.passedRules.length >= 4);
+});
+
+test('requires desktop and mobile visual evidence before a review can pass', () => {
+  const files = [{ path: 'page.tsx', content: '<main><section className="hero">Direction</section></main>' }];
+  const review = reviewImplementation(files, { screenshots: [{ viewport: 'desktop', location: 'hero-desktop.png' }], checkedForEmptySpace: true, checkedForMissingMedia: true });
+  assert.ok(review.findings.some((finding) => finding.rule === 'visual-evidence-required'));
+});
+
+test('flags large visual regions without a purposeful visual asset', () => {
+  const review = reviewImplementation([{ path: 'styles.css', content: '.hero-diagram { min-height: 440px; }' }], { screenshots: [{ viewport: 'desktop' }, { viewport: 'mobile' }], checkedForEmptySpace: true, checkedForMissingMedia: true });
+  assert.ok(review.findings.some((finding) => finding.rule === 'likely-empty-visual-region'));
 });
 
 test('serves design tools over stdio', async () => {

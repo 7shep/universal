@@ -51,11 +51,13 @@ Use the Universal MCP to design and implement a one-page website for a premium m
 
 The design should feel industrial, tactile, precise, and editorial.
 
+Create one scroll-driven exploded-view sequence for the keyboard. Start with the assembled keyboard, then as the reader scrolls, separate the keycaps, switch plate, switches, PCB, and aluminum chassis into restrained depth layers. Use subtle parallax, map progress to transform and opacity, preserve normal scrolling, and provide a complete static exploded state for `prefers-reduced-motion`.
+
 Do not add backend functionality.
 
 Generate static React code only.
 
-After implementation, run the project and use the MCP review tool before finishing.
+After implementation, run the project and capture screenshots at desktop and mobile widths. Check every major section for unearned empty space, blank logo or media regions, and placeholder-like visual areas. Pass those observations to the MCP review tool before finishing.
 ```
 
 Run the result with:
