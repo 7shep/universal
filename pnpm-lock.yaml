@@ -130,9 +130,15 @@ importers:
       '@universal/design-linter':
         specifier: workspace:*
         version: link:../design-linter
+      '@universal/design-engine':
+        specifier: workspace:*
+        version: link:../design-engine
       '@universal/prompts':
         specifier: workspace:*
         version: link:../prompts
+      '@universal/shared':
+        specifier: workspace:*
+        version: link:../shared
       zod:
         specifier: ^3.24.0
         version: 3.25.76
