@@ -6,7 +6,22 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['**/dist/**', '**/node_modules/**', '**/.turbo/**'] },
+  {
+    // Keep repository-level linting focused on tracked Universal source. These
+    // paths contain external tools, worktrees, dependencies, or generated output.
+    ignores: [
+      '.gstack/**',
+      '.worktrees/**',
+      'frontend/**',
+      '**/build/**',
+      '**/coverage/**',
+      '**/dist/**',
+      '**/generated/**',
+      '**/node_modules/**',
+      '**/.pnpm-store/**',
+      '**/.turbo/**'
+    ]
+  },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
