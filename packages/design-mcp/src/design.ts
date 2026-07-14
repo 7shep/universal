@@ -12,10 +12,12 @@ import {
   type DesignPlan,
   type MotionDirection
 } from '@universal/design-engine';
+import { createTasteDirection, getActiveTasteProfile } from '@universal/design-taste';
 import { compositionImplementationPrompt, interpolatePrompt } from '@universal/prompts';
 import { presetList, type DesignPreset } from './presets.js';
 
 export type { CreateDesignPlanInput, DesignPlan, MotionDirection } from '@universal/design-engine';
+export { getActiveTasteProfile } from '@universal/design-taste';
 
 const recentPlanSignatures: CompositionSignature[] = [];
 const normalize = (value: string): string => value.toLowerCase();
@@ -27,17 +29,44 @@ const hash = (value: string): number => {
 };
 const seededFraction = (seed: number, salt: string): number => hash(`${seed}:${salt}`) / 0xffffffff;
 
-function requestsLayeredScrollMotion(input: CreateDesignPlanInput): boolean {
+function requestsSignatureMotion(input: CreateDesignPlanInput): boolean {
+  const avoid = (input.avoid ?? []).map(normalize).join(' ');
   const terms = [input.prompt, input.websiteType ?? '', ...(input.preferences ?? [])]
     .map(normalize)
     .join(' ');
+  if (/no (?:animation|motion)|avoid (?:animation|motion)|static only/.test(`${terms} ${avoid}`))
+    return false;
+  if (terms.includes('cursor')) return false;
   return ['animation', 'animated', 'scroll', 'parallax', 'exploded', 'layered', 'motion'].some(
     (term) => terms.includes(term)
   );
 }
 
 function createMotionDirection(input: CreateDesignPlanInput): MotionDirection | undefined {
-  if (!requestsLayeredScrollMotion(input)) return undefined;
+  if (!requestsSignatureMotion(input)) return undefined;
+  const terms = [input.prompt, input.websiteType ?? '', ...(input.preferences ?? [])]
+    .map(normalize)
+    .join(' ');
+  const isLayeredProduct = /product|hardware|keyboard|device|layer|explod|mechanical/.test(terms);
+  if (!isLayeredProduct)
+    return {
+      signature: 'Scroll-driven narrative index that marks the active content chapter.',
+      trigger: 'scroll-driven',
+      technique:
+        'Keep a compact index sticky while normal document scroll updates only its active state.',
+      layers: ['chapter label', 'primary content', 'supporting evidence'],
+      behavior: [
+        'Preserve normal document order and make every chapter available without animation.',
+        'Update the index only when a chapter becomes the current reading context.',
+        'Use one short transition for active-state continuity rather than repeated entrance reveals.'
+      ],
+      performance: [
+        'Animate transform and opacity only.',
+        'Do not intercept or remap normal scrolling.'
+      ],
+      reducedMotion:
+        'Keep the index and every chapter visible, updating active state without animated transitions.'
+    };
   return {
     signature:
       'Scroll-driven exploded view that reveals the product as a sequence of physical layers.',
@@ -147,6 +176,36 @@ export function createDesignPlan(input: CreateDesignPlanInput): DesignPlan {
   const preset = selectPreset(input);
   const selected = chooseComposition(input, preset);
   const motionDirection = createMotionDirection(input);
+  const preferredVisualTreatments = [
+    ...new Set([...preset.visualTreatments, ...(input.preferences ?? [])])
+  ];
+  const tasteDirection = createTasteDirection({
+    brief: input.prompt,
+    audience: input.audience,
+    preferences: input.preferences,
+    avoid: input.avoid,
+    presetName: preset.name,
+    brandAttributes: preset.brandAttributes,
+    artDirection: preset.artDirection,
+    displayStyle: preset.designTokens.typography.displayStyle,
+    bodyStyle: preset.designTokens.typography.bodyStyle,
+    backgroundColor: preset.designTokens.colors.background,
+    accentColor: preset.designTokens.colors.accent,
+    visualTreatments: preferredVisualTreatments,
+    hero: selected.hero,
+    navigation: selected.navigation,
+    ...(motionDirection
+      ? {
+          motion: {
+            concept: motionDirection.signature,
+            purpose: /exploded view/i.test(motionDirection.signature)
+              ? 'Reveal product hierarchy as a short narrative sequence while preserving normal reading order.'
+              : 'Communicate the active narrative chapter without changing normal document order.',
+            reducedMotionBehavior: motionDirection.reducedMotion
+          }
+        }
+      : {})
+  });
   const sectionSequence = preset.pageStructure.map((section) => section.pattern);
   const compositionSignature: CompositionSignature = {
     heroArchetype: selected.hero.id,
@@ -193,15 +252,16 @@ export function createDesignPlan(input: CreateDesignPlanInput): DesignPlan {
     implementationPrompt,
     prohibitedPatterns,
     designTokens: preset.designTokens,
-    preferredVisualTreatments: preset.visualTreatments,
+    preferredVisualTreatments,
+    tasteDirection,
     ...(motionDirection ? { motionDirection } : {}),
     implementationNotes: [
       'Treat heroComposition regions as coordinates and relationships, not optional inspiration.',
       'Preserve the selected navigation relationship; do not replace it with a standard horizontal navbar.',
       'Edit copy length before changing the composition contract.',
       'Use semantic React components and CSS Grid for the specified composition.',
-      requestsLayeredScrollMotion(input)
-        ? 'Implement only the specified signature motion; respect prefers-reduced-motion and keep the rest static.'
+      tasteDirection.signatureInteraction
+        ? 'Implement only the specified signature interaction; honor its purpose and prefers-reduced-motion behavior, and keep the rest static.'
         : 'Keep this prototype static and avoid a component library.',
       'Before shipping, capture desktop and mobile screenshots and check every major visual region.'
     ],
@@ -218,6 +278,7 @@ export function createDesignPlan(input: CreateDesignPlanInput): DesignPlan {
 
 export interface DesignRules {
   category: string;
+  tasteProfile: { id: string; version: string };
   compositionPrinciples: readonly string[];
   typographyPrinciples: readonly string[];
   spacingPrinciples: readonly string[];
@@ -227,8 +288,10 @@ export interface DesignRules {
   implementationConstraints: readonly string[];
 }
 export function getDesignRules(category = 'general'): DesignRules {
+  const tasteProfile = getActiveTasteProfile();
   return {
     category,
+    tasteProfile: { id: tasteProfile.id, version: tasteProfile.version },
     compositionPrinciples: [
       'Select geometry before aesthetics.',
       'Follow the selected spatial coordinates and relationships.',
@@ -257,6 +320,7 @@ export function getDesignRules(category = 'general'): DesignRules {
       'Never hide content before an animation completes.'
     ],
     antiPatterns: [
+      ...tasteProfile.antiPatterns.map((pattern) => pattern.description),
       'left-copy/right-media as a default',
       'standard logo-links-CTA navbar',
       'gradients without conceptual justification',

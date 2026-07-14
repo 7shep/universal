@@ -5,6 +5,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import {
   createDesignPlan,
+  getActiveTasteProfile,
   getCompositionHistory,
   getDesignRules,
   resetCompositionHistory,
@@ -35,7 +36,22 @@ test('returns a complete, chosen plan', () => {
   assert.ok(plan.navigation.id);
   assert.match(plan.implementationPrompt, /Follow the coordinates and relationships/i);
   assert.ok(plan.prohibitedPatterns.length > 0);
+  assert.equal(plan.tasteDirection.profileId, 'anti-slop-craft-v1');
+  assert.ok(plan.tasteDirection.designThesis.length > 40);
+  assert.ok(plan.tasteDirection.decisions.length >= 3 && plan.tasteDirection.decisions.length <= 5);
   assert.equal(validateDesignPlan(plan).ok, true);
+});
+test('rejects a malformed taste direction with an actionable typed path', () => {
+  const plan = createDesignPlan({ prompt: 'An editorial archive' });
+  const validation = validateDesignPlan({
+    ...plan,
+    tasteDirection: { ...plan.tasteDirection, decisions: [] }
+  });
+  assert.equal(validation.ok, false);
+  if (!validation.ok) {
+    assert.equal(validation.error.path, 'tasteDirection.decisions');
+    assert.match(validation.error.message, /three to five/i);
+  }
 });
 test('rejects incomplete untrusted design plans', () => {
   const validation = validateDesignPlan({ preset: 'editorial', concept: 'Incomplete' });
@@ -76,6 +92,29 @@ test('returns global design rules', () => {
   assert.equal(rules.category, 'landing page');
   assert.ok(rules.antiPatterns.includes('nested cards'));
   assert.ok(rules.motionPrinciples.some((principle) => principle.includes('scroll-jack')));
+});
+test('carries preferences and avoid constraints into taste planning', () => {
+  const plan = createDesignPlan({
+    prompt: 'A quiet editorial research archive',
+    preferences: ['paper-like image treatment'],
+    avoid: ['no animation']
+  });
+  assert.ok(plan.preferredVisualTreatments.includes('paper-like image treatment'));
+  assert.ok(plan.tasteDirection.rejectedDefaultPatterns.includes('no animation'));
+  assert.equal(plan.motionDirection, undefined);
+});
+test('selects at most one signature interaction', () => {
+  const plan = createDesignPlan({
+    prompt: 'A media archive with a revealing cursor and scroll motion'
+  });
+  assert.match(plan.tasteDirection.signatureInteraction?.concept ?? '', /cursor/i);
+  assert.equal(plan.motionDirection, undefined);
+  assert.ok(plan.implementationNotes.some((note) => note.includes('signature interaction')));
+});
+test('returns the active taste profile', () => {
+  const profile = getActiveTasteProfile();
+  assert.equal(profile.id, 'anti-slop-craft-v1');
+  assert.ok(profile.principles.some((principle) => principle.id === 'coherent-visual-world'));
 });
 test('warns about purple gradients', () => {
   const review = reviewImplementation([
@@ -181,6 +220,7 @@ test('serves design tools over stdio', async () => {
   try {
     const tools = await client.listTools();
     assert.ok(tools.tools.some((tool) => tool.name === 'create_design_plan'));
+    assert.ok(tools.tools.some((tool) => tool.name === 'get_taste_profile'));
     const response = await client.callTool({
       name: 'create_design_plan',
       arguments: { prompt: 'Mechanical keyboard' }
