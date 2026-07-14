@@ -3,8 +3,8 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import { createDesignPlan, getDesignRules, selectPreset } from './design.js';
-import { reviewImplementation } from './review.js';
+import { createDesignPlan, getCompositionHistory, getDesignRules, resetCompositionHistory, selectPreset } from './design.js';
+import { extractStructuralSignature, reviewImplementation } from './review.js';
 
 test('selects industrial for a mechanical keyboard', () => {
   assert.equal(selectPreset({ prompt: 'A premium mechanical keyboard brand' }).name, 'industrial');
@@ -16,10 +16,29 @@ test('selects technical for developer infrastructure', () => {
   assert.equal(selectPreset({ prompt: 'Developer infrastructure for cloud teams' }).name, 'technical');
 });
 test('returns a complete, chosen plan', () => {
+  resetCompositionHistory();
   const plan = createDesignPlan({ prompt: 'An editorial portfolio for an architect' });
   assert.equal(plan.preset, 'editorial');
   assert.equal(plan.pageStructure.length, 4);
   assert.ok(plan.avoid.includes('nested cards'));
+  assert.ok(plan.heroComposition.regions.length >= 3);
+  assert.ok(plan.navigation.id);
+  assert.match(plan.implementationPrompt, /Follow the coordinates and relationships/i);
+  assert.ok(plan.prohibitedPatterns.length > 0);
+});
+test('uses composition seeds deterministically when history is reset', () => {
+  resetCompositionHistory();
+  const first = createDesignPlan({ prompt:'A student AI organization', compositionSeed:42 });
+  resetCompositionHistory();
+  const second = createDesignPlan({ prompt:'A student AI organization', compositionSeed:42 });
+  assert.deepEqual(first.compositionSignature, second.compositionSignature);
+});
+test('penalizes recent structural signatures', () => {
+  resetCompositionHistory();
+  const first = createDesignPlan({ prompt:'An editorial culture organization', compositionSeed:7 });
+  const second = createDesignPlan({ prompt:'An editorial culture organization', compositionSeed:7 });
+  assert.notDeepEqual(first.compositionSignature, second.compositionSignature);
+  assert.equal(getCompositionHistory().length, 2);
 });
 test('adds an accessible layered scroll-motion direction when requested', () => {
   const plan = createDesignPlan({ prompt: 'A premium mechanical keyboard with a layered parallax exploded view on scroll' });
@@ -42,6 +61,22 @@ test('warns about repeated large radii and three-column grids', () => {
   const review = reviewImplementation([{ path: 'styles.css', content: '.a{border-radius:32px}.b{border-radius:32px}.c{border-radius:32px}.grid{display:grid;grid-template-columns:repeat(3,1fr)}' }]);
   assert.ok(review.findings.some((finding) => finding.rule === 'excessive-rounded-containers'));
   assert.ok(review.findings.some((finding) => finding.rule === 'standard-feature-grid'));
+});
+test('detects a default split hero and standard navigation', () => {
+  const files = [{ path:'page.tsx', content:'<nav><div className="brand"/><div className="nav-links"/><a className="cta"/></nav><section className="hero"><div className="hero-copy"/><div className="hero-media"/></section>' },{path:'styles.css',content:'.hero{display:grid;grid-template-columns:1.2fr .8fr}.nav{display:flex}.nav-links{margin-left:auto}'}];
+  const signature = extractStructuralSignature(files);
+  assert.equal(signature.heroArchetype, 'split-screen');
+  assert.equal(signature.navigationMode, 'standard-horizontal');
+  const review = reviewImplementation(files);
+  assert.ok(review.findings.some((finding) => finding.rule === 'default-split-hero'));
+  assert.ok(review.findings.some((finding) => finding.rule === 'default-horizontal-navigation'));
+});
+test('compares the implementation with the expected composition contract', () => {
+  const files = [{path:'page.tsx',content:'<section className="hero"><div className="hero-copy"/><div className="hero-media"/></section>'},{path:'styles.css',content:'.hero{display:grid;grid-template-columns:1fr 1fr}'}];
+  const expected = { heroArchetype:'poster', navigationMode:'perimeter' as const, sectionSequence:['poster','story'], preset:'editorial' as const };
+  const review = reviewImplementation(files, undefined, { expectedSignature: expected, recentSignatures:[expected] });
+  assert.ok(review.findings.some((finding) => finding.rule === 'composition-contract-hero-mismatch'));
+  assert.ok(review.findings.some((finding) => finding.rule === 'cross-run-structural-repetition'));
 });
 test('a clean editorial sample passes several rules', () => {
   const review = reviewImplementation([{ path: 'styles.css', content: '.hero { display:grid; grid-template-columns: 1.2fr .8fr; } .panel { border-radius: 6px; }' }]);

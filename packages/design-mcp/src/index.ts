@@ -11,6 +11,13 @@ server.tool('create_design_plan', 'Create a structured visual direction for a we
   websiteType: z.string().optional(),
   preferences: z.array(z.string()).optional(),
   avoid: z.array(z.string()).optional()
+  ,compositionSeed: z.number().int().nonnegative().optional()
+  ,recentSignatures: z.array(z.object({
+    heroArchetype: z.string(),
+    navigationMode: z.enum(['standard-horizontal','corner-controls','perimeter','overlay-minimal','vertical-rail','masthead','embedded-index','utility-dock']),
+    sectionSequence: z.array(z.string()),
+    preset: z.enum(['editorial','industrial','minimal','playful','technical','luxury'])
+  })).optional()
 }, async (input) => ({ content: [{ type: 'text', text: JSON.stringify(createDesignPlan(input), null, 2) }] }));
 
 server.tool('get_design_rules', 'Return Universal composition principles and anti-pattern constraints.', {
@@ -23,8 +30,16 @@ server.tool('review_implementation', 'Review React and CSS for generic visual an
     screenshots: z.array(z.object({ viewport: z.string().min(1), location: z.string().optional(), notes: z.string().optional() })).min(1),
     checkedForEmptySpace: z.boolean(),
     checkedForMissingMedia: z.boolean()
+  }).optional(),
+  compositionContext: z.object({
+    expectedSignature: z.object({
+      heroArchetype: z.string(), navigationMode: z.enum(['standard-horizontal','corner-controls','perimeter','overlay-minimal','vertical-rail','masthead','embedded-index','utility-dock']), sectionSequence: z.array(z.string()), preset: z.enum(['editorial','industrial','minimal','playful','technical','luxury'])
+    }).optional(),
+    recentSignatures: z.array(z.object({
+      heroArchetype: z.string(), navigationMode: z.enum(['standard-horizontal','corner-controls','perimeter','overlay-minimal','vertical-rail','masthead','embedded-index','utility-dock']), sectionSequence: z.array(z.string()), preset: z.enum(['editorial','industrial','minimal','playful','technical','luxury'])
+    })).optional()
   }).optional()
-}, async ({ files, visualEvidence }) => ({ content: [{ type: 'text', text: JSON.stringify(reviewImplementation(files, visualEvidence), null, 2) }] }));
+}, async ({ files, visualEvidence, compositionContext }) => ({ content: [{ type: 'text', text: JSON.stringify(reviewImplementation(files, visualEvidence, compositionContext), null, 2) }] }));
 
 async function main(): Promise<void> {
   await server.connect(new StdioServerTransport());
