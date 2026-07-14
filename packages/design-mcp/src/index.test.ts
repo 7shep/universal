@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { createDesignPlan, getCompositionHistory, getDesignRules, resetCompositionHistory, selectPreset } from './design.js';
-import { extractStructuralSignature, reviewImplementation } from './review.js';
+import { extractStructuralSignature, reviewImplementation } from '@universal/design-linter';
 
 test('selects industrial for a mechanical keyboard', () => {
   assert.equal(selectPreset({ prompt: 'A premium mechanical keyboard brand' }).name, 'industrial');
