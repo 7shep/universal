@@ -2,7 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { createDesignPlan, getDesignRules } from './design.js';
-import { reviewImplementation } from './review.js';
+import { reviewImplementation } from '@universal/design-linter';
 
 const server = new McpServer({ name: 'universal', version: '0.1.0' });
 
