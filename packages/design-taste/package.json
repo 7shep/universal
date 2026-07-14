@@ -1,5 +1,5 @@
 {
-  "name": "@universal/design-linter",
+  "name": "@universal/design-taste",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -11,9 +11,5 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
     "test": "node --experimental-strip-types --test src/index.test.ts"
-  },
-  "dependencies": {
-    "@universal/composition-library": "workspace:*",
-    "@universal/design-taste": "workspace:*"
   }
 }

@@ -17,6 +17,7 @@
     "@universal/composition-library": "workspace:*",
     "@universal/design-linter": "workspace:*",
     "@universal/design-engine": "workspace:*",
+    "@universal/design-taste": "workspace:*",
     "@universal/prompts": "workspace:*",
     "@universal/shared": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.12.0",

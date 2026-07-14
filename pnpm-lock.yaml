@@ -106,6 +106,9 @@ importers:
       '@universal/design-linter':
         specifier: workspace:*
         version: link:../design-linter
+      '@universal/design-taste':
+        specifier: workspace:*
+        version: link:../design-taste
       '@universal/prompts':
         specifier: workspace:*
         version: link:../prompts
@@ -118,6 +121,9 @@ importers:
       '@universal/composition-library':
         specifier: workspace:*
         version: link:../composition-library
+      '@universal/design-taste':
+        specifier: workspace:*
+        version: link:../design-taste
 
   packages/design-mcp:
     dependencies:
@@ -127,12 +133,15 @@ importers:
       '@universal/composition-library':
         specifier: workspace:*
         version: link:../composition-library
-      '@universal/design-linter':
-        specifier: workspace:*
-        version: link:../design-linter
       '@universal/design-engine':
         specifier: workspace:*
         version: link:../design-engine
+      '@universal/design-linter':
+        specifier: workspace:*
+        version: link:../design-linter
+      '@universal/design-taste':
+        specifier: workspace:*
+        version: link:../design-taste
       '@universal/prompts':
         specifier: workspace:*
         version: link:../prompts
@@ -142,6 +151,8 @@ importers:
       zod:
         specifier: ^3.24.0
         version: 3.25.76
+
+  packages/design-taste: {}
 
   packages/prompts: {}
 
