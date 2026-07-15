@@ -1,0 +1,749 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;1,600&family=Manrope:wght@400;500;600;700&display=swap');
+
+:root {
+  --void: oklch(0.12 0.01 75);
+  --slate: oklch(0.18 0.012 75);
+  --steel: oklch(0.31 0.013 75);
+  --line: oklch(0.37 0.012 75);
+  --ink: oklch(0.94 0.01 85);
+  --mute: oklch(0.65 0.012 78);
+  --oxide: oklch(0.63 0.17 38);
+  --body: Manrope, Arial, sans-serif;
+  --display: 'Barlow Condensed', Impact, sans-serif;
+  background: var(--void);
+  color: var(--ink);
+  font-family: var(--body);
+}
+* {
+  box-sizing: border-box;
+}
+html {
+  scroll-behavior: smooth;
+}
+body {
+  margin: 0;
+  overflow-x: hidden;
+}
+a {
+  color: inherit;
+}
+.nav {
+  height: 5rem;
+  padding: 0 3.5vw;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+.wordmark,
+.nav a {
+  text-decoration: none;
+}
+.wordmark {
+  font-size: 1rem;
+  letter-spacing: 0.16em;
+}
+.wordmark span {
+  color: var(--oxide);
+}
+.nav-links {
+  display: flex;
+  gap: 2.4rem;
+  color: var(--mute);
+}
+.nav-order {
+  color: var(--oxide);
+}
+.eyebrow,
+.manifesto > p,
+.exploded-heading p,
+.material-copy > p,
+.specification header p,
+.edition > p {
+  margin: 0;
+  color: var(--oxide);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+h1,
+h2 {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 0.84;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+em {
+  color: var(--oxide);
+  font-style: italic;
+}
+.hero {
+  min-height: calc(100vh - 5rem);
+  padding: clamp(3rem, 7vw, 7rem) 3.5vw 2rem;
+  display: grid;
+  grid-template-columns: minmax(16rem, 0.82fr) minmax(28rem, 1.6fr) 7rem;
+  align-items: center;
+  gap: 3vw;
+}
+.hero-copy {
+  position: relative;
+  z-index: 1;
+}
+h1 {
+  margin: 1.2rem 0 1.7rem;
+  font-size: clamp(4.8rem, 8.8vw, 8.8rem);
+}
+.hero-copy > p:not(.eyebrow) {
+  max-width: 29rem;
+  margin: 0;
+  color: oklch(0.77 0.012 78);
+  font-size: 0.91rem;
+  line-height: 1.8;
+}
+.inline-link {
+  display: inline-flex;
+  gap: 3rem;
+  margin-top: 2rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid var(--oxide);
+  color: var(--ink);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+.inline-link:hover {
+  color: var(--oxide);
+}
+.hero-object {
+  position: relative;
+  min-height: min(38vw, 33rem);
+  display: grid;
+  place-items: center;
+  background: oklch(0.2 0.012 75);
+}
+.hero-keyboard {
+  width: min(100%, 46rem);
+  transform: perspective(900px) rotateX(58deg) rotateZ(-15deg);
+  filter: drop-shadow(1.2rem 1.4rem 1rem oklch(0.05 0 0 / 0.55));
+}
+.hero-measure {
+  position: absolute;
+  left: 7%;
+  right: 7%;
+  bottom: 7%;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--mute);
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+.hero-measure i {
+  height: 1px;
+  flex: 1;
+  background: var(--line);
+}
+.hero-note {
+  align-self: end;
+  margin-bottom: 2rem;
+  color: var(--mute);
+  font-size: 0.59rem;
+  line-height: 1.6;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+.hero-note b {
+  margin-top: 1.5rem;
+  color: var(--ink);
+}
+.keyboard-shape {
+  aspect-ratio: 2.35 / 1;
+  position: relative;
+  transform-style: preserve-3d;
+}
+.keyboard-body {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border: 1px solid oklch(0.54 0.01 75);
+  border-radius: 0.28rem;
+  background: oklch(0.23 0.012 75);
+  box-shadow:
+    inset 0 1px 0 oklch(0.5 0.008 75 / 0.6),
+    inset 0 -1.3rem 1.8rem oklch(0.08 0.005 75 / 0.5);
+}
+.key-field,
+.plate-cutouts,
+.switch-field {
+  height: 76%;
+  margin: 6.5% 4%;
+  display: grid;
+  grid-template-columns: repeat(14, 1fr);
+  grid-template-rows: repeat(5, 1fr);
+  gap: 3.5%;
+}
+.key {
+  min-width: 0;
+  border: 1px solid oklch(0.65 0.008 80);
+  border-radius: 0.14rem;
+  background: oklch(0.83 0.01 80);
+  box-shadow:
+    inset 0 -0.22rem 0 oklch(0.55 0.008 80),
+    0 0.14rem 0.1rem oklch(0.05 0 0 / 0.4);
+}
+.key:nth-child(13n),
+.key:nth-child(14n) {
+  background: oklch(0.56 0.13 38);
+  border-color: oklch(0.68 0.15 38);
+}
+.key:nth-child(57) {
+  grid-column: span 5;
+}
+.key:nth-child(61) {
+  grid-column: span 2;
+}
+.chassis {
+  background: oklch(0.22 0.01 75);
+  border-color: oklch(0.55 0.01 75);
+}
+.chassis-well {
+  position: absolute;
+  inset: 10% 5%;
+  border: 1px solid oklch(0.06 0 0);
+  border-radius: 0.18rem;
+  box-shadow:
+    inset 0 0 0 0.4rem oklch(0.17 0.012 75),
+    inset 0 0.6rem 1rem oklch(0.05 0 0 / 0.55);
+}
+.chassis-mark {
+  position: absolute;
+  right: 7%;
+  bottom: 8%;
+  color: oklch(0.48 0.008 75);
+  font-size: 0.42rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+.plate {
+  background: oklch(0.49 0.008 75);
+}
+.plate-cutouts {
+  gap: 3.5%;
+}
+.plate-cutouts i {
+  border-radius: 0.11rem;
+  background: oklch(0.12 0.004 75);
+  box-shadow: inset 0 0 0 1px oklch(0.62 0.006 75);
+}
+.plate-cutouts i:nth-child(57) {
+  grid-column: span 5;
+}
+.plate-cutouts i:nth-child(61) {
+  grid-column: span 2;
+}
+.switches {
+  background: oklch(0.18 0.009 75);
+}
+.switch-field i {
+  border-radius: 0.11rem;
+  background: var(--oxide);
+  box-shadow:
+    inset 0 -0.18rem 0 oklch(0.45 0.13 38),
+    0 0 0.3rem oklch(0.65 0.16 38 / 0.25);
+}
+.switch-field i:nth-child(57) {
+  grid-column: span 5;
+}
+.switch-field i:nth-child(61) {
+  grid-column: span 2;
+}
+.pcb {
+  background: oklch(0.25 0.05 155);
+  border-color: oklch(0.42 0.07 155);
+}
+.circuit-lines {
+  position: absolute;
+  inset: 10%;
+  border-top: 1px solid oklch(0.64 0.12 130 / 0.6);
+  border-bottom: 1px solid oklch(0.64 0.12 130 / 0.6);
+  opacity: 0.8;
+}
+.pcb-chip {
+  position: absolute;
+  background: oklch(0.08 0.01 155);
+  border: 1px solid oklch(0.45 0.07 155);
+}
+.chip-a {
+  width: 10%;
+  height: 24%;
+  top: 30%;
+  left: 42%;
+}
+.chip-b {
+  width: 6%;
+  height: 14%;
+  right: 14%;
+  bottom: 18%;
+}
+.manifesto {
+  padding: clamp(5rem, 11vw, 10rem) 13vw;
+  display: grid;
+  grid-template-columns: 0.6fr 1.45fr;
+  gap: 4rem;
+  background: var(--ink);
+  color: var(--void);
+}
+.manifesto > p {
+  color: oklch(0.4 0.01 75);
+}
+.manifesto h2,
+.exploded-heading h2,
+.material-copy h2,
+.specification h2,
+.edition h2 {
+  font-size: clamp(3.3rem, 6.3vw, 6.5rem);
+}
+.manifesto div > p {
+  max-width: 37rem;
+  margin: 2rem 0 0;
+  color: oklch(0.36 0.012 75);
+  font-size: 0.95rem;
+  line-height: 1.85;
+}
+.exploded-section {
+  height: 260vh;
+  background: var(--slate);
+  border-top: 1px solid var(--line);
+}
+.exploded-pin {
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  overflow: hidden;
+}
+.exploded-heading {
+  position: absolute;
+  z-index: 2;
+  top: clamp(2rem, 5vw, 4rem);
+  left: 3.5vw;
+}
+.exploded-heading h2 {
+  margin-top: 0.8rem;
+}
+.keyboard-stage {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  width: min(62vw, 58rem);
+  transform: translate(-50%, -50%);
+  perspective: 1000px;
+}
+.layer {
+  width: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: center;
+  transition:
+    transform 80ms linear,
+    opacity 80ms linear;
+}
+.chassis-layer {
+  transform: translate3d(0, calc(var(--progress) * 9rem), calc(var(--progress) * -5rem))
+    rotateX(55deg) rotateZ(-8deg);
+}
+.pcb-layer {
+  transform: translate3d(0, calc(var(--progress) * 4rem), 0) rotateX(55deg) rotateZ(-8deg);
+  opacity: calc(0.45 + var(--progress) * 0.55);
+}
+.switches-layer {
+  transform: translate3d(0, calc(var(--progress) * -1rem), calc(var(--progress) * 2rem))
+    rotateX(55deg) rotateZ(-8deg);
+  opacity: calc(0.25 + var(--progress) * 0.75);
+}
+.plate-layer {
+  transform: translate3d(0, calc(var(--progress) * -7rem), calc(var(--progress) * 4rem))
+    rotateX(55deg) rotateZ(-8deg);
+  opacity: calc(0.35 + var(--progress) * 0.65);
+}
+.caps-layer {
+  transform: translate3d(0, calc(var(--progress) * -14rem), calc(var(--progress) * 7rem))
+    rotateX(55deg) rotateZ(-8deg);
+}
+.stage-orbit {
+  position: absolute;
+  z-index: -1;
+  left: 18%;
+  right: 18%;
+  top: 45%;
+  border-top: 1px solid oklch(0.55 0.012 75 / 0.6);
+  opacity: var(--progress);
+  transform: scaleX(calc(0.3 + var(--progress) * 0.7));
+}
+.layer-labels {
+  position: absolute;
+  top: 22%;
+  right: 3.5vw;
+  width: 11.5rem;
+}
+.layer-label {
+  position: absolute;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid var(--line);
+  color: var(--mute);
+  font-size: 0.54rem;
+  letter-spacing: 0.08em;
+  opacity: calc(0.25 + var(--progress) * 0.75);
+  transition: opacity 80ms linear;
+}
+.layer-label b {
+  color: var(--ink);
+  font-weight: 600;
+}
+.label-caps {
+  top: 0;
+  transform: translateY(calc(var(--progress) * -2rem));
+}
+.label-plate {
+  top: 4rem;
+  transform: translateY(calc(var(--progress) * -1rem));
+}
+.label-switches {
+  top: 8rem;
+}
+.label-pcb {
+  top: 12rem;
+  transform: translateY(calc(var(--progress) * 1rem));
+}
+.label-chassis {
+  top: 16rem;
+  transform: translateY(calc(var(--progress) * 2rem));
+}
+.scroll-cue {
+  position: absolute;
+  bottom: 2rem;
+  left: 3.5vw;
+  margin: 0;
+  color: var(--mute);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.scroll-cue span {
+  margin-left: 0.7rem;
+  color: var(--oxide);
+}
+.material-story {
+  padding: clamp(5rem, 10vw, 10rem) 8vw 8vw 13vw;
+  display: grid;
+  grid-template-columns: 0.85fr 1.15fr;
+  align-items: center;
+  gap: 7vw;
+}
+.material-copy h2 {
+  margin: 1rem 0 2rem;
+}
+.material-copy > p:last-child {
+  max-width: 32rem;
+  color: var(--mute);
+  font-size: 0.92rem;
+  line-height: 1.85;
+}
+.material-block {
+  min-height: 34rem;
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: oklch(0.35 0.01 75);
+}
+.material-block::before {
+  content: '';
+  position: absolute;
+  inset: 8%;
+  border-top: 1px solid oklch(0.62 0.01 75 / 0.45);
+  border-bottom: 1px solid oklch(0.17 0.01 75 / 0.9);
+  transform: rotate(-22deg) scale(1.5);
+}
+.milled-corner {
+  width: 70%;
+  aspect-ratio: 1;
+  position: relative;
+  border: 2.4rem solid oklch(0.16 0.01 75);
+  box-shadow:
+    inset 0 0 0 1.3rem oklch(0.47 0.01 75),
+    1rem 1rem 0 oklch(0.1 0.01 75 / 0.3);
+  transform: rotate(28deg);
+}
+.milled-corner i {
+  position: absolute;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background: oklch(0.09 0 0);
+  border: 0.22rem solid oklch(0.55 0.01 75);
+}
+.milled-corner i:nth-child(1) {
+  top: 0.7rem;
+  left: 0.7rem;
+}
+.milled-corner i:nth-child(2) {
+  top: 0.7rem;
+  right: 0.7rem;
+}
+.milled-corner i:nth-child(3) {
+  bottom: 0.7rem;
+  right: 0.7rem;
+}
+.material-block > span {
+  position: absolute;
+  left: 1rem;
+  bottom: 1rem;
+  color: var(--ink);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+.specification {
+  padding: clamp(5rem, 10vw, 9rem) 13vw;
+  display: grid;
+  grid-template-columns: 0.85fr 1.15fr;
+  gap: 8vw;
+  background: oklch(0.1 0.007 75);
+}
+.specification h2 {
+  margin-top: 1rem;
+}
+dl {
+  margin: 0;
+}
+dl > div {
+  display: grid;
+  grid-template-columns: 8.5rem 1fr;
+  padding: 1.1rem 0;
+  border-top: 1px solid var(--line);
+}
+dt {
+  color: var(--oxide);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+dd {
+  margin: 0;
+  color: oklch(0.82 0.01 80);
+  font-size: 0.92rem;
+}
+.edition {
+  min-height: 72vh;
+  padding: clamp(5rem, 10vw, 10rem) 13vw;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  background: var(--oxide);
+  color: var(--void);
+}
+.edition > p {
+  color: var(--void);
+}
+.edition h2 {
+  margin: 1rem 0 2rem;
+  font-size: clamp(4.5rem, 10vw, 10rem);
+}
+.edition em {
+  color: var(--ink);
+}
+.edition div {
+  display: flex;
+  align-items: center;
+  gap: 3rem;
+}
+.edition div > p {
+  margin: 0;
+  line-height: 1.7;
+}
+.edition-link {
+  padding: 1rem 1.2rem;
+  background: var(--void);
+  color: var(--ink);
+  font-size: 0.67rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+.edition-link:hover {
+  background: var(--ink);
+  color: var(--void);
+}
+footer {
+  padding: 1.4rem 3.5vw;
+  display: flex;
+  justify-content: space-between;
+  color: var(--mute);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+footer a {
+  color: var(--ink);
+}
+@media (max-width: 48rem) {
+  .nav {
+    padding: 0 1.25rem;
+  }
+  .nav-links {
+    display: none;
+  }
+  .hero {
+    min-height: auto;
+    padding: 3.5rem 1.25rem 2rem;
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+  h1 {
+    font-size: clamp(4.5rem, 18vw, 6.5rem);
+  }
+  .hero-object {
+    min-height: 19rem;
+  }
+  .hero-note {
+    display: none;
+  }
+  .manifesto,
+  .material-story,
+  .specification {
+    grid-template-columns: 1fr;
+    padding: 5rem 1.5rem;
+    gap: 2.5rem;
+  }
+  .exploded-section {
+    height: 220vh;
+  }
+  .exploded-heading {
+    left: 1.25rem;
+  }
+  .keyboard-stage {
+    top: 48%;
+    width: 135vw;
+  }
+  .layer-labels {
+    top: auto;
+    bottom: 3.5rem;
+    left: 1.25rem;
+    right: auto;
+    width: calc(100% - 2.5rem);
+  }
+  .layer-label {
+    display: none;
+  }
+  .label-caps,
+  .label-switches,
+  .label-chassis {
+    display: flex;
+  }
+  .label-caps {
+    top: 0;
+  }
+  .label-switches {
+    top: 2.5rem;
+  }
+  .label-chassis {
+    top: 5rem;
+  }
+  .scroll-cue {
+    left: 1.25rem;
+  }
+  .material-block {
+    min-height: 23rem;
+  }
+  .edition {
+    min-height: 35rem;
+    padding: 5rem 1.5rem;
+  }
+  .edition div {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  footer {
+    padding: 1.4rem 1.25rem;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+  .exploded-section {
+    height: 100vh;
+  }
+  .chassis-layer {
+    transform: translate3d(0, 9rem, -5rem) rotateX(55deg) rotateZ(-8deg);
+  }
+  .pcb-layer {
+    transform: translate3d(0, 4rem, 0) rotateX(55deg) rotateZ(-8deg);
+    opacity: 1;
+  }
+  .switches-layer {
+    transform: translate3d(0, -1rem, 2rem) rotateX(55deg) rotateZ(-8deg);
+    opacity: 1;
+  }
+  .plate-layer {
+    transform: translate3d(0, -7rem, 4rem) rotateX(55deg) rotateZ(-8deg);
+    opacity: 1;
+  }
+  .caps-layer {
+    transform: translate3d(0, -14rem, 7rem) rotateX(55deg) rotateZ(-8deg);
+  }
+  .stage-orbit {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+  .layer-label {
+    opacity: 1;
+  }
+  .label-caps {
+    transform: translateY(-2rem);
+  }
+  .label-plate {
+    transform: translateY(-1rem);
+  }
+  .label-pcb {
+    transform: translateY(1rem);
+  }
+  .label-chassis {
+    transform: translateY(2rem);
+  }
+  .scroll-cue {
+    display: none;
+  }
+}
