@@ -9,6 +9,7 @@ import type {
 import type { DesignFinding } from '@universal/design-linter';
 import type { TasteCategory, TasteDirection } from '@universal/design-taste';
 import { failure, success, type DesignBrief, type Result } from '@universal/shared';
+import { developDeterministicDesignPlan } from './planning.ts';
 
 export type { TasteDecision, TasteDirection } from '@universal/design-taste';
 
@@ -268,12 +269,91 @@ export interface DesignDirection {
 }
 
 export interface DesignEngine {
-  develop(brief: DesignBrief): Promise<DesignPlan>;
+  develop(input: CreateDesignPlanInput): Promise<DesignPlan>;
 }
 
-/** TODO: Compose prompt, model adapter, composition selector, and linter here. */
-export const createDesignEngine = (): DesignEngine => ({
-  async develop(): Promise<DesignPlan> {
-    throw new Error('Design Engine is not implemented yet.');
+/** Explicit state boundary for composition novelty across plans in one engine session. */
+export interface CompositionHistoryStore {
+  read(): readonly CompositionSignature[];
+  append(signature: CompositionSignature): void;
+}
+
+/** Context supplied to deterministic or model-backed planning providers. */
+export interface DesignPlanProviderContext {
+  recentSignatures: readonly CompositionSignature[];
+}
+
+/** Provider-neutral port. Implementations may be deterministic, local, or model-backed. */
+export interface DesignPlanProvider {
+  develop(
+    input: CreateDesignPlanInput,
+    context: DesignPlanProviderContext
+  ): Promise<unknown> | unknown;
+}
+
+export interface DesignEngineDependencies {
+  provider?: DesignPlanProvider | undefined;
+  compositionHistory?: CompositionHistoryStore | undefined;
+}
+
+/** Create isolated in-memory history suitable for a runtime session or a deterministic test. */
+export function createInMemoryCompositionHistory(
+  initial: readonly CompositionSignature[] = [],
+  limit = 12
+): CompositionHistoryStore {
+  const signatures = initial.slice(-limit);
+  return {
+    read: () => [...signatures],
+    append(signature): void {
+      signatures.push(signature);
+      if (signatures.length > limit) signatures.splice(0, signatures.length - limit);
+    }
+  };
+}
+
+/** Offline default provider preserving Universal's deterministic planning behavior. */
+export const createDeterministicDesignPlanProvider = (): DesignPlanProvider => ({
+  develop(input, context): DesignPlan {
+    return developDeterministicDesignPlan(input, context.recentSignatures);
   }
 });
+
+/** Compose a validated provider with explicit per-engine composition history. */
+export const createDesignEngine = (dependencies: DesignEngineDependencies = {}): DesignEngine => {
+  const provider = dependencies.provider ?? createDeterministicDesignPlanProvider();
+  const compositionHistory = dependencies.compositionHistory ?? createInMemoryCompositionHistory();
+  let planningQueue: Promise<void> = Promise.resolve();
+
+  return {
+    develop(input): Promise<DesignPlan> {
+      const run = async (): Promise<DesignPlan> => {
+        const candidate = await provider.develop(input, {
+          recentSignatures: compositionHistory.read()
+        });
+        const validation = validateDesignPlan(candidate);
+        if (!validation.ok)
+          throw new Error(
+            `Planning provider returned an invalid design plan at ${validation.error.path}: ${validation.error.message}`
+          );
+        compositionHistory.append(validation.value.compositionSignature);
+        return validation.value;
+      };
+      const result = planningQueue.then(run, run);
+      planningQueue = result.then(
+        () => undefined,
+        () => undefined
+      );
+      return result;
+    }
+  };
+};
+
+export {
+  DESIGN_RULE_CATEGORIES,
+  developDeterministicDesignPlan,
+  getDesignRules,
+  selectPreset,
+  type DesignRuleCategory,
+  type DesignRules
+} from './planning.ts';
+export { presetList, presets, type DesignPreset } from './presets.ts';
