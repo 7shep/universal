@@ -4,26 +4,42 @@ import { fileURLToPath } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import {
-  developDeterministicDesignPlan,
+  DESIGN_ORCHESTRATION_API_VERSION,
+  validateDesignPlan,
   type CreateDesignPlanInput,
-  type DesignEngine
+  type DesignOrchestrator
 } from '@universal/design-engine';
+import { fixturePlan } from '@universal/design-engine/fixtures';
 import { createDesignMcpAdapter } from './design.js';
 
 test('design adapter delegates plan development to the injected engine', async () => {
-  const expected = developDeterministicDesignPlan({ prompt: 'Fixture plan' });
-  let received: CreateDesignPlanInput | undefined;
-  const engine: DesignEngine = {
-    async develop(input) {
-      received = input;
-      return expected;
+  const expected = fixturePlan;
+  let received: unknown;
+  const orchestrator: DesignOrchestrator = {
+    version: DESIGN_ORCHESTRATION_API_VERSION,
+    validatePlan: validateDesignPlan,
+    async developPlan(request) {
+      received = request;
+      return {
+        plan: expected,
+        session: {
+          compositionHistory: [...request.session.compositionHistory, expected.compositionSignature]
+        }
+      };
     }
   };
-  const adapter = createDesignMcpAdapter(engine);
-  const input = { prompt: 'Mechanical keyboard', compositionSeed: 42 };
+  const adapter = createDesignMcpAdapter(orchestrator);
+  const input: CreateDesignPlanInput = {
+    prompt: 'Mechanical keyboard',
+    compositionSeed: 42,
+    recentSignatures: [expected.compositionSignature]
+  };
 
   assert.equal(await adapter.createDesignPlan(input), expected);
-  assert.deepEqual(received, input);
+  assert.deepEqual(received, {
+    brief: { prompt: 'Mechanical keyboard', compositionSeed: 42 },
+    session: { compositionHistory: [expected.compositionSignature] }
+  });
 });
 
 test('serves compatible public design tools over stdio', async () => {

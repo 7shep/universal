@@ -1,7 +1,7 @@
 import {
-  createDesignEngine,
+  createDesignOrchestrator,
   type CreateDesignPlanInput,
-  type DesignEngine,
+  type DesignOrchestrator,
   type DesignPlan
 } from '@universal/design-engine';
 
@@ -22,9 +22,16 @@ export interface DesignMcpAdapter {
 }
 
 export const createDesignMcpAdapter = (
-  engine: DesignEngine = createDesignEngine()
+  orchestrator: DesignOrchestrator = createDesignOrchestrator()
 ): DesignMcpAdapter => ({
-  createDesignPlan: (input) => engine.develop(input)
+  async createDesignPlan(input) {
+    const { recentSignatures = [], ...brief } = input;
+    const result = await orchestrator.developPlan({
+      brief,
+      session: { compositionHistory: recentSignatures }
+    });
+    return result.plan;
+  }
 });
 
 const defaultAdapter = createDesignMcpAdapter();
