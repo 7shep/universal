@@ -12,6 +12,12 @@ export type NavigationId =
   | 'embedded-index'
   | 'utility-dock';
 
+export type SpatialSlot = 'headline' | 'body' | 'media' | 'actions' | 'metadata' | 'navigation';
+/** Stable catalog identity. Runtime section records receive their own opaque `section_` UUID. */
+export type SectionId = `section:${string}`;
+/** Stable address for a region within a catalog section template. */
+export type RegionId = `region:${string}:${SpatialSlot}`;
+
 /** Page-level composition retained for design-engine and linter consumers. */
 export interface Composition extends Identifiable {
   name: string;
@@ -20,19 +26,23 @@ export interface Composition extends Identifiable {
   sections: readonly CompositionSection[];
 }
 export interface CompositionSection extends Identifiable {
+  id: SectionId;
   kind: 'hero' | 'narrative' | 'gallery' | 'proof' | 'cta' | 'footer';
   purpose: string;
   emphasis: 'primary' | 'supporting' | 'quiet';
-  slots: readonly SpatialRegion['slot'][];
+  slots: readonly SpatialSlot[];
 }
 
 export interface SpatialRegion {
-  slot: 'headline' | 'body' | 'media' | 'actions' | 'metadata' | 'navigation';
+  id: RegionId;
+  slot: SpatialSlot;
   desktop: string;
   mobile: string;
 }
 
 export interface HeroArchetype extends Identifiable {
+  /** Stable identity of the hero section template used by generation and targeted revision. */
+  sectionId: SectionId;
   name: string;
   intent: string;
   rhythm: 'dense' | 'balanced' | 'spacious';
@@ -66,13 +76,23 @@ export interface CompositionContract {
   signature: CompositionSignature;
 }
 
-const region = (slot: SpatialRegion['slot'], desktop: string, mobile: string): SpatialRegion => ({
+interface SpatialRegionDefinition {
+  slot: SpatialSlot;
+  desktop: string;
+  mobile: string;
+}
+
+type HeroArchetypeDefinition = Omit<HeroArchetype, 'sectionId' | 'regions'> & {
+  regions: readonly SpatialRegionDefinition[];
+};
+
+const region = (slot: SpatialSlot, desktop: string, mobile: string): SpatialRegionDefinition => ({
   slot,
   desktop,
   mobile
 });
 
-export const compositionCatalog: readonly HeroArchetype[] = [
+const heroDefinitions: readonly HeroArchetypeDefinition[] = [
   {
     id: 'poster',
     name: 'Typographic poster',
@@ -190,6 +210,7 @@ export const compositionCatalog: readonly HeroArchetype[] = [
     viewportBehavior: 'Headline, media, proof, and navigation each own a non-equal module.',
     contentOrder: ['navigation', 'headline', 'media', 'metadata', 'actions'],
     regions: [
+      region('navigation', 'embedded in perimeter modules', 'compact top module'),
       region('headline', 'columns 1–5, rows 2–4', 'top two modules'),
       region('media', 'columns 6–8, rows 1–3 plus col 1–2 row 5', 'single wide crop'),
       region('metadata', 'small modules across perimeter', 'inline below copy'),
@@ -391,6 +412,15 @@ export const compositionCatalog: readonly HeroArchetype[] = [
   }
 ];
 
+export const compositionCatalog: readonly HeroArchetype[] = heroDefinitions.map((hero) => ({
+  ...hero,
+  sectionId: `section:${hero.id}`,
+  regions: hero.regions.map((item) => ({
+    ...item,
+    id: `region:${hero.id}:${item.slot}`
+  }))
+}));
+
 export const navigationCatalog: readonly NavigationDefinition[] = [
   {
     id: 'standard-horizontal',
@@ -434,6 +464,7 @@ export const navigationCatalog: readonly NavigationDefinition[] = [
       'cinematic-full-bleed',
       'editorial-masthead',
       'type-staircase',
+      'bottom-loaded',
       'framed-stage',
       'radial-core',
       'horizontal-sequence',
@@ -524,3 +555,576 @@ export const signatureSimilarity = (a: CompositionSignature, b: CompositionSigna
   const preset = a.preset === b.preset ? 0.1 : 0;
   return Number((hero + nav + sequence + preset).toFixed(3));
 };
+
+export interface CompositionCatalogData {
+  heroes: readonly HeroArchetype[];
+  navigation: readonly NavigationDefinition[];
+}
+
+export interface CompositionValidationIssue {
+  path: string;
+  message: string;
+}
+
+export type CompositionValidationResult<T> =
+  | { readonly ok: true; readonly value: T }
+  | { readonly ok: false; readonly errors: readonly CompositionValidationIssue[] };
+
+const visualPresets: readonly VisualPreset[] = [
+  'editorial',
+  'industrial',
+  'minimal',
+  'playful',
+  'technical',
+  'luxury'
+];
+const navigationIds: readonly NavigationId[] = [
+  'standard-horizontal',
+  'corner-controls',
+  'perimeter',
+  'overlay-minimal',
+  'vertical-rail',
+  'masthead',
+  'embedded-index',
+  'utility-dock'
+];
+const spatialSlots: readonly SpatialSlot[] = [
+  'headline',
+  'body',
+  'media',
+  'actions',
+  'metadata',
+  'navigation'
+];
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+const isNonEmptyString = (value: unknown): value is string =>
+  typeof value === 'string' && value.trim().length > 0;
+const isStringArray = (value: unknown): value is readonly string[] =>
+  Array.isArray(value) && value.every(isNonEmptyString);
+
+function validationResult<T>(
+  value: unknown,
+  errors: readonly CompositionValidationIssue[]
+): CompositionValidationResult<T> {
+  return errors.length === 0 ? { ok: true, value: value as T } : { ok: false, errors: [...errors] };
+}
+
+function requireString(
+  value: Record<string, unknown>,
+  key: string,
+  path: string,
+  errors: CompositionValidationIssue[]
+): void {
+  if (!isNonEmptyString(value[key]))
+    errors.push({ path: `${path}.${key}`, message: `${key} must be a non-empty string.` });
+}
+
+/** Validate an untrusted spatial region without relying on TypeScript types at runtime. */
+export function validateSpatialRegion(
+  value: unknown,
+  path = 'region'
+): CompositionValidationResult<SpatialRegion> {
+  const errors: CompositionValidationIssue[] = [];
+  if (!isRecord(value))
+    return { ok: false, errors: [{ path, message: 'Spatial region must be an object.' }] };
+  requireString(value, 'id', path, errors);
+  if (typeof value.slot !== 'string' || !spatialSlots.includes(value.slot as SpatialSlot))
+    errors.push({ path: `${path}.slot`, message: 'Region slot is not supported.' });
+  requireString(value, 'desktop', path, errors);
+  requireString(value, 'mobile', path, errors);
+  return validationResult<SpatialRegion>(value, errors);
+}
+
+/** Validate a stable, serializable section template used by generation and revision. */
+export function validateCompositionSection(
+  value: unknown,
+  path = 'section'
+): CompositionValidationResult<CompositionSection> {
+  const errors: CompositionValidationIssue[] = [];
+  if (!isRecord(value))
+    return { ok: false, errors: [{ path, message: 'Composition section must be an object.' }] };
+  requireString(value, 'id', path, errors);
+  requireString(value, 'purpose', path, errors);
+  if (!isNonEmptyString(value.id) || !value.id.startsWith('section:'))
+    errors.push({ path: `${path}.id`, message: 'Section id must start with "section:".' });
+  if (!['hero', 'narrative', 'gallery', 'proof', 'cta', 'footer'].includes(String(value.kind)))
+    errors.push({ path: `${path}.kind`, message: 'Section kind is not supported.' });
+  if (!['primary', 'supporting', 'quiet'].includes(String(value.emphasis)))
+    errors.push({ path: `${path}.emphasis`, message: 'Section emphasis is not supported.' });
+  if (
+    !Array.isArray(value.slots) ||
+    value.slots.length === 0 ||
+    !value.slots.every(
+      (slot) => typeof slot === 'string' && spatialSlots.includes(slot as SpatialSlot)
+    )
+  )
+    errors.push({ path: `${path}.slots`, message: 'Section slots must contain supported slots.' });
+  else if (new Set(value.slots).size !== value.slots.length)
+    errors.push({ path: `${path}.slots`, message: 'Section slots must not repeat.' });
+  return validationResult<CompositionSection>(value, errors);
+}
+
+/** Validate a page-level composition and its stable section identities. */
+export function validateComposition(
+  value: unknown,
+  path = 'composition'
+): CompositionValidationResult<Composition> {
+  const errors: CompositionValidationIssue[] = [];
+  if (!isRecord(value))
+    return { ok: false, errors: [{ path, message: 'Composition must be an object.' }] };
+  for (const field of ['id', 'name', 'intent'] as const) requireString(value, field, path, errors);
+  if (!['dense', 'balanced', 'spacious'].includes(String(value.rhythm)))
+    errors.push({ path: `${path}.rhythm`, message: 'Composition rhythm is not supported.' });
+  if (!Array.isArray(value.sections) || value.sections.length === 0)
+    errors.push({ path: `${path}.sections`, message: 'Composition must contain sections.' });
+  else {
+    const ids = new Set<string>();
+    for (const [index, section] of value.sections.entries()) {
+      const result = validateCompositionSection(section, `${path}.sections.${index}`);
+      if (!result.ok) errors.push(...result.errors);
+      if (isRecord(section) && isNonEmptyString(section.id)) {
+        if (ids.has(section.id))
+          errors.push({
+            path: `${path}.sections.${index}.id`,
+            message: `Duplicate section id "${section.id}".`
+          });
+        ids.add(section.id);
+      }
+    }
+  }
+  return validationResult<Composition>(value, errors);
+}
+
+/** Validate an untrusted hero archetype, including stable section and region coordinates. */
+export function validateHeroArchetype(
+  value: unknown,
+  path = 'hero'
+): CompositionValidationResult<HeroArchetype> {
+  const errors: CompositionValidationIssue[] = [];
+  if (!isRecord(value))
+    return { ok: false, errors: [{ path, message: 'Hero archetype must be an object.' }] };
+  for (const field of ['id', 'sectionId', 'name', 'intent', 'grid', 'viewportBehavior'] as const)
+    requireString(value, field, path, errors);
+  if (isNonEmptyString(value.id) && value.sectionId !== `section:${value.id}`)
+    errors.push({
+      path: `${path}.sectionId`,
+      message: `sectionId must be the stable catalog id "section:${value.id}".`
+    });
+  if (!['dense', 'balanced', 'spacious'].includes(String(value.rhythm)))
+    errors.push({ path: `${path}.rhythm`, message: 'Hero rhythm is not supported.' });
+  for (const field of ['requires', 'prohibitedPatterns', 'keywords'] as const) {
+    if (!isStringArray(value[field]) || value[field].length === 0)
+      errors.push({
+        path: `${path}.${field}`,
+        message: `${field} must contain at least one non-empty string.`
+      });
+  }
+  if (
+    !Array.isArray(value.compatiblePresets) ||
+    value.compatiblePresets.length === 0 ||
+    !value.compatiblePresets.every(
+      (preset) => typeof preset === 'string' && visualPresets.includes(preset as VisualPreset)
+    )
+  )
+    errors.push({
+      path: `${path}.compatiblePresets`,
+      message: 'compatiblePresets must contain supported preset ids.'
+    });
+  if (
+    !Array.isArray(value.compatibleNavigation) ||
+    value.compatibleNavigation.length === 0 ||
+    !value.compatibleNavigation.every(
+      (id) => typeof id === 'string' && navigationIds.includes(id as NavigationId)
+    )
+  )
+    errors.push({
+      path: `${path}.compatibleNavigation`,
+      message: 'compatibleNavigation must contain supported navigation ids.'
+    });
+  if (
+    !Array.isArray(value.contentOrder) ||
+    value.contentOrder.length === 0 ||
+    !value.contentOrder.every(
+      (slot) => typeof slot === 'string' && spatialSlots.includes(slot as SpatialSlot)
+    )
+  )
+    errors.push({ path: `${path}.contentOrder`, message: 'contentOrder contains invalid slots.' });
+  else if (new Set(value.contentOrder).size !== value.contentOrder.length)
+    errors.push({ path: `${path}.contentOrder`, message: 'contentOrder must not repeat slots.' });
+
+  if (!Array.isArray(value.regions) || value.regions.length === 0)
+    errors.push({ path: `${path}.regions`, message: 'Hero must define spatial regions.' });
+  else {
+    const regionIds = new Set<string>();
+    const regionSlots = new Set<string>();
+    for (const [index, item] of value.regions.entries()) {
+      const regionPath = `${path}.regions.${index}`;
+      const result = validateSpatialRegion(item, regionPath);
+      if (!result.ok) errors.push(...result.errors);
+      if (!isRecord(item)) continue;
+      if (isNonEmptyString(item.id)) {
+        if (regionIds.has(item.id))
+          errors.push({ path: `${regionPath}.id`, message: `Duplicate region id "${item.id}".` });
+        regionIds.add(item.id);
+      }
+      if (typeof item.slot === 'string') {
+        if (regionSlots.has(item.slot))
+          errors.push({
+            path: `${regionPath}.slot`,
+            message: `Duplicate region slot "${item.slot}".`
+          });
+        regionSlots.add(item.slot);
+        if (isNonEmptyString(value.id) && item.id !== `region:${value.id}:${item.slot}`)
+          errors.push({
+            path: `${regionPath}.id`,
+            message: `Region id must be "region:${value.id}:${item.slot}".`
+          });
+      }
+    }
+    if (!regionSlots.has('headline'))
+      errors.push({ path: `${path}.regions`, message: 'Hero must define a headline region.' });
+    if (Array.isArray(value.contentOrder))
+      for (const slot of value.contentOrder)
+        if (typeof slot === 'string' && !regionSlots.has(slot))
+          errors.push({
+            path: `${path}.contentOrder`,
+            message: `Content-order slot "${slot}" has no spatial region.`
+          });
+  }
+  return validationResult<HeroArchetype>(value, errors);
+}
+
+/** Validate an untrusted navigation definition. */
+export function validateNavigationDefinition(
+  value: unknown,
+  path = 'navigation'
+): CompositionValidationResult<NavigationDefinition> {
+  const errors: CompositionValidationIssue[] = [];
+  if (!isRecord(value))
+    return { ok: false, errors: [{ path, message: 'Navigation definition must be an object.' }] };
+  for (const field of [
+    'id',
+    'name',
+    'placement',
+    'relationshipToHero',
+    'desktop',
+    'mobile'
+  ] as const)
+    requireString(value, field, path, errors);
+  if (typeof value.id !== 'string' || !navigationIds.includes(value.id as NavigationId))
+    errors.push({ path: `${path}.id`, message: `Unknown navigation id "${String(value.id)}".` });
+  if (!['minimal', 'compact', 'full'].includes(String(value.density)))
+    errors.push({ path: `${path}.density`, message: 'Navigation density is not supported.' });
+  if (!isStringArray(value.compatibleHeroes))
+    errors.push({ path: `${path}.compatibleHeroes`, message: 'compatibleHeroes must be strings.' });
+  if (!isStringArray(value.prohibitedPatterns) || value.prohibitedPatterns.length === 0)
+    errors.push({
+      path: `${path}.prohibitedPatterns`,
+      message: 'Navigation must define at least one prohibited pattern.'
+    });
+  return validationResult<NavigationDefinition>(value, errors);
+}
+
+/** Validate a structural signature before persistence or comparison. */
+export function validateCompositionSignature(
+  value: unknown,
+  path = 'signature'
+): CompositionValidationResult<CompositionSignature> {
+  const errors: CompositionValidationIssue[] = [];
+  if (!isRecord(value))
+    return { ok: false, errors: [{ path, message: 'Composition signature must be an object.' }] };
+  requireString(value, 'heroArchetype', path, errors);
+  if (
+    typeof value.navigationMode !== 'string' ||
+    !navigationIds.includes(value.navigationMode as NavigationId)
+  )
+    errors.push({
+      path: `${path}.navigationMode`,
+      message: 'Signature navigation mode is invalid.'
+    });
+  if (typeof value.preset !== 'string' || !visualPresets.includes(value.preset as VisualPreset))
+    errors.push({ path: `${path}.preset`, message: 'Signature preset is invalid.' });
+  if (!isStringArray(value.sectionSequence) || value.sectionSequence.length === 0)
+    errors.push({
+      path: `${path}.sectionSequence`,
+      message: 'Signature sectionSequence must contain non-empty section patterns.'
+    });
+  return validationResult<CompositionSignature>(value, errors);
+}
+
+/** Validate the selected contract and its cross-field compatibility. */
+export function validateCompositionContract(
+  value: unknown,
+  path = 'composition'
+): CompositionValidationResult<CompositionContract> {
+  const errors: CompositionValidationIssue[] = [];
+  if (!isRecord(value))
+    return { ok: false, errors: [{ path, message: 'Composition contract must be an object.' }] };
+  const hero = validateHeroArchetype(value.hero, `${path}.hero`);
+  const navigation = validateNavigationDefinition(value.navigation, `${path}.navigation`);
+  const signature = validateCompositionSignature(value.signature, `${path}.signature`);
+  if (!hero.ok) errors.push(...hero.errors);
+  if (!navigation.ok) errors.push(...navigation.errors);
+  if (!signature.ok) errors.push(...signature.errors);
+  if (hero.ok && navigation.ok) {
+    if (!hero.value.compatibleNavigation.includes(navigation.value.id))
+      errors.push({
+        path: `${path}.navigation.id`,
+        message: `Navigation "${navigation.value.id}" is not compatible with hero "${hero.value.id}".`
+      });
+    if (!navigation.value.compatibleHeroes.includes(hero.value.id))
+      errors.push({
+        path: `${path}.navigation.compatibleHeroes`,
+        message: `Navigation "${navigation.value.id}" does not reference hero "${hero.value.id}".`
+      });
+  }
+  if (hero.ok && signature.ok) {
+    if (signature.value.heroArchetype !== hero.value.id)
+      errors.push({
+        path: `${path}.signature.heroArchetype`,
+        message: 'Signature hero does not match.'
+      });
+    if (!hero.value.compatiblePresets.includes(signature.value.preset))
+      errors.push({
+        path: `${path}.signature.preset`,
+        message: 'Signature preset is incompatible.'
+      });
+  }
+  if (navigation.ok && signature.ok && signature.value.navigationMode !== navigation.value.id)
+    errors.push({
+      path: `${path}.signature.navigationMode`,
+      message: 'Signature navigation does not match.'
+    });
+  return validationResult<CompositionContract>(value, errors);
+}
+
+/** Validate catalog-wide uniqueness and bidirectional references. */
+export function validateCompositionCatalog(
+  value: unknown
+): CompositionValidationResult<CompositionCatalogData> {
+  const errors: CompositionValidationIssue[] = [];
+  if (!isRecord(value))
+    return { ok: false, errors: [{ path: 'catalog', message: 'Catalog must be an object.' }] };
+  if (!Array.isArray(value.heroes))
+    errors.push({ path: 'catalog.heroes', message: 'Catalog heroes must be an array.' });
+  if (!Array.isArray(value.navigation))
+    errors.push({ path: 'catalog.navigation', message: 'Catalog navigation must be an array.' });
+  if (!Array.isArray(value.heroes) || !Array.isArray(value.navigation))
+    return { ok: false, errors };
+
+  const heroIds = new Set<string>();
+  for (const [index, hero] of value.heroes.entries()) {
+    const result = validateHeroArchetype(hero, `catalog.heroes.${index}`);
+    if (!result.ok) errors.push(...result.errors);
+    if (isRecord(hero) && isNonEmptyString(hero.id)) {
+      if (heroIds.has(hero.id))
+        errors.push({
+          path: `catalog.heroes.${index}.id`,
+          message: `Duplicate hero id "${hero.id}".`
+        });
+      heroIds.add(hero.id);
+    }
+  }
+  const navigationById = new Map<string, Record<string, unknown>>();
+  for (const [index, navigation] of value.navigation.entries()) {
+    const result = validateNavigationDefinition(navigation, `catalog.navigation.${index}`);
+    if (!result.ok) errors.push(...result.errors);
+    if (isRecord(navigation) && isNonEmptyString(navigation.id)) {
+      if (navigationById.has(navigation.id))
+        errors.push({
+          path: `catalog.navigation.${index}.id`,
+          message: `Duplicate navigation id "${navigation.id}".`
+        });
+      navigationById.set(navigation.id, navigation);
+    }
+  }
+  for (const [heroIndex, hero] of value.heroes.entries()) {
+    if (!isRecord(hero) || !isNonEmptyString(hero.id) || !Array.isArray(hero.compatibleNavigation))
+      continue;
+    for (const navigationId of hero.compatibleNavigation) {
+      const navigation = navigationById.get(String(navigationId));
+      if (!navigation)
+        errors.push({
+          path: `catalog.heroes.${heroIndex}.compatibleNavigation`,
+          message: `Hero "${hero.id}" references missing navigation "${String(navigationId)}".`
+        });
+      else if (
+        !Array.isArray(navigation.compatibleHeroes) ||
+        !navigation.compatibleHeroes.includes(hero.id)
+      )
+        errors.push({
+          path: `catalog.heroes.${heroIndex}.compatibleNavigation`,
+          message: `Hero "${hero.id}" and navigation "${String(navigationId)}" must reference each other.`
+        });
+    }
+  }
+  for (const [navigationIndex, navigation] of value.navigation.entries()) {
+    if (
+      !isRecord(navigation) ||
+      !isNonEmptyString(navigation.id) ||
+      !Array.isArray(navigation.compatibleHeroes)
+    )
+      continue;
+    for (const heroId of navigation.compatibleHeroes) {
+      const hero = value.heroes.find((candidate) => isRecord(candidate) && candidate.id === heroId);
+      if (!hero)
+        errors.push({
+          path: `catalog.navigation.${navigationIndex}.compatibleHeroes`,
+          message: `Navigation "${navigation.id}" references missing hero "${String(heroId)}".`
+        });
+      else if (
+        !Array.isArray(hero.compatibleNavigation) ||
+        !hero.compatibleNavigation.includes(navigation.id)
+      )
+        errors.push({
+          path: `catalog.navigation.${navigationIndex}.compatibleHeroes`,
+          message: `Navigation "${navigation.id}" and hero "${String(heroId)}" must reference each other.`
+        });
+    }
+  }
+  return validationResult<CompositionCatalogData>(value, errors);
+}
+
+export class CompositionCatalogValidationError extends Error {
+  readonly issues: readonly CompositionValidationIssue[];
+
+  constructor(issues: readonly CompositionValidationIssue[]) {
+    super(
+      `Invalid composition catalog:\n${issues.map((issue) => `- ${issue.path}: ${issue.message}`).join('\n')}`
+    );
+    this.name = 'CompositionCatalogValidationError';
+    this.issues = [...issues];
+  }
+}
+
+export function assertValidCompositionCatalog(value: unknown): CompositionCatalogData {
+  const result = validateCompositionCatalog(value);
+  if (!result.ok) throw new CompositionCatalogValidationError(result.errors);
+  return result.value;
+}
+
+export interface CompositionSelectionBrief {
+  prompt: string;
+  audience?: string | undefined;
+  websiteType?: string | undefined;
+  preferences?: readonly string[] | undefined;
+  constraints?: readonly string[] | undefined;
+}
+
+/** JSON-safe, complete input to deterministic selection; no module state is consulted. */
+export interface CompositionSelectionInput {
+  brief: CompositionSelectionBrief;
+  preset: VisualPreset;
+  sectionSequence: readonly string[];
+  seed: number;
+  recentSignatures: readonly CompositionSignature[];
+  history: readonly CompositionSignature[];
+}
+
+export interface CompositionSelection {
+  hero: HeroArchetype;
+  navigation: NavigationDefinition;
+  signature: CompositionSignature;
+  seed: number;
+  noveltyScore: number;
+  fallback: 'none' | 'history-exhausted';
+}
+
+const hash = (value: string): number => {
+  let result = 2166136261;
+  for (let index = 0; index < value.length; index += 1)
+    result = Math.imul(result ^ value.charCodeAt(index), 16777619);
+  return result >>> 0;
+};
+const seededFraction = (seed: number, salt: string): number => hash(`${seed}:${salt}`) / 0xffffffff;
+
+/** Select a composition deterministically from only the supplied input and catalog. */
+export function selectComposition(
+  input: CompositionSelectionInput,
+  catalog: CompositionCatalogData = compositionDomainCatalog
+): CompositionSelection {
+  const validatedCatalog = assertValidCompositionCatalog(catalog);
+  if (!Number.isSafeInteger(input.seed) || input.seed < 0)
+    throw new TypeError('Composition selection seed must be a non-negative safe integer.');
+  if (!isNonEmptyString(input.brief.prompt))
+    throw new TypeError('Composition selection brief.prompt must be a non-empty string.');
+  if (!visualPresets.includes(input.preset)) throw new TypeError('Composition preset is invalid.');
+  if (!isStringArray(input.sectionSequence) || input.sectionSequence.length === 0)
+    throw new TypeError('Composition sectionSequence must contain non-empty patterns.');
+  const history = [...input.history, ...input.recentSignatures].slice(-12);
+  for (const [index, signature] of history.entries()) {
+    const result = validateCompositionSignature(signature, `history.${index}`);
+    if (!result.ok) throw new CompositionCatalogValidationError(result.errors);
+  }
+  const terms = [
+    input.brief.prompt,
+    input.brief.audience ?? '',
+    input.brief.websiteType ?? '',
+    ...(input.brief.preferences ?? []),
+    ...(input.brief.constraints ?? [])
+  ]
+    .join(' ')
+    .toLowerCase();
+  const candidates = validatedCatalog.heroes
+    .filter((hero) => hero.compatiblePresets.includes(input.preset))
+    .flatMap((hero) =>
+      hero.compatibleNavigation.flatMap((navigationId) => {
+        const navigation = validatedCatalog.navigation.find((item) => item.id === navigationId);
+        if (!navigation || !navigation.compatibleHeroes.includes(hero.id)) return [];
+        const signature: CompositionSignature = {
+          heroArchetype: hero.id,
+          navigationMode: navigation.id,
+          sectionSequence: [...input.sectionSequence],
+          preset: input.preset
+        };
+        const maxSimilarity = history.reduce(
+          (maximum, previous) => Math.max(maximum, signatureSimilarity(signature, previous)),
+          0
+        );
+        const noveltyScore = Number((1 - maxSimilarity).toFixed(3));
+        const keywordScore = hero.keywords.reduce(
+          (score, keyword) => score + (terms.includes(keyword.toLowerCase()) ? 0.12 : 0),
+          0
+        );
+        return [
+          {
+            hero,
+            navigation,
+            signature,
+            maxSimilarity,
+            noveltyScore,
+            score:
+              keywordScore +
+              noveltyScore * 0.65 +
+              seededFraction(input.seed, `${hero.id}:${navigation.id}`) * 0.35
+          }
+        ];
+      })
+    );
+  if (candidates.length === 0)
+    throw new Error(`No compatible composition found for preset ${input.preset}.`);
+  const novel = candidates.filter((candidate) => candidate.maxSimilarity < 0.75);
+  const fallback = novel.length === 0 && history.length > 0 ? 'history-exhausted' : 'none';
+  const selected = [...(novel.length > 0 ? novel : candidates)].sort(
+    (a, b) =>
+      b.score - a.score ||
+      a.hero.id.localeCompare(b.hero.id) ||
+      a.navigation.id.localeCompare(b.navigation.id)
+  )[0]!;
+  return {
+    hero: selected.hero,
+    navigation: selected.navigation,
+    signature: selected.signature,
+    seed: input.seed,
+    noveltyScore: selected.noveltyScore,
+    fallback
+  };
+}
+
+/** Validated, serialization-friendly catalog exported for generator and persistence consumers. */
+export const compositionDomainCatalog = assertValidCompositionCatalog({
+  heroes: compositionCatalog,
+  navigation: navigationCatalog
+});
