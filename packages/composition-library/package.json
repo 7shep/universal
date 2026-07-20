@@ -8,6 +8,7 @@
   },
   "scripts": {
     "build": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test src/index.test.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src"
   },
