@@ -9,7 +9,8 @@
   "scripts": {
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src"
+    "lint": "eslint src",
+    "test": "node --experimental-strip-types --test src/index.test.ts"
   },
   "dependencies": {
     "@universal/composition-library": "workspace:*",
