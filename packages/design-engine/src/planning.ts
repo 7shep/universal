@@ -6,17 +6,12 @@ import {
   type HeroArchetype,
   type NavigationDefinition
 } from '@universal/composition-library';
-import {
-  validateDesignPlan,
-  type CreateDesignPlanInput,
-  type DesignPlan,
-  type MotionDirection
-} from './index.ts';
+import type { DesignPlan, DesignPlanBrief, MotionDirection } from './contracts.ts';
 import { createTasteDirection, getActiveTasteProfile } from '@universal/design-taste';
 import { compositionImplementationPrompt, interpolatePrompt } from '@universal/prompts';
 import { presetList, type DesignPreset } from './presets.ts';
 
-export type { CreateDesignPlanInput, DesignPlan, MotionDirection } from './index.ts';
+export type { DesignPlan, DesignPlanBrief, MotionDirection } from './contracts.ts';
 export { getActiveTasteProfile } from '@universal/design-taste';
 
 const normalize = (value: string): string => value.toLowerCase();
@@ -38,7 +33,7 @@ const hash = (value: string): number => {
 };
 const seededFraction = (seed: number, salt: string): number => hash(`${seed}:${salt}`) / 0xffffffff;
 
-function requestsSignatureMotion(input: CreateDesignPlanInput): boolean {
+function requestsSignatureMotion(input: DesignPlanBrief): boolean {
   const avoid = (input.avoid ?? []).map(normalize).join(' ');
   const terms = [input.prompt, input.websiteType ?? '', ...(input.preferences ?? [])]
     .map(normalize)
@@ -51,7 +46,7 @@ function requestsSignatureMotion(input: CreateDesignPlanInput): boolean {
   );
 }
 
-function createMotionDirection(input: CreateDesignPlanInput): MotionDirection | undefined {
+function createMotionDirection(input: DesignPlanBrief): MotionDirection | undefined {
   if (!requestsSignatureMotion(input)) return undefined;
   const terms = [input.prompt, input.websiteType ?? '', ...(input.preferences ?? [])]
     .map(normalize)
@@ -104,7 +99,7 @@ function createMotionDirection(input: CreateDesignPlanInput): MotionDirection | 
   };
 }
 
-export function selectPreset(input: CreateDesignPlanInput): DesignPreset {
+export function selectPreset(input: DesignPlanBrief): DesignPreset {
   const terms = [input.prompt, input.websiteType ?? '', ...(input.preferences ?? [])]
     .map(normalize)
     .join(' ');
@@ -122,14 +117,14 @@ export function selectPreset(input: CreateDesignPlanInput): DesignPreset {
 }
 
 function chooseComposition(
-  input: CreateDesignPlanInput,
+  input: DesignPlanBrief,
   preset: DesignPreset,
   storedSignatures: readonly CompositionSignature[]
 ): { hero: HeroArchetype; navigation: NavigationDefinition; seed: number; noveltyScore: number } {
   const terms = [input.prompt, input.websiteType ?? '', ...(input.preferences ?? [])]
     .map(normalize)
     .join(' ');
-  const history = [...storedSignatures, ...(input.recentSignatures ?? [])].slice(-12);
+  const history = storedSignatures.slice(-12);
   const seed = input.compositionSeed ?? hash(`${terms}:${storedSignatures.length}`);
   const candidates = compositionCatalog.filter((hero) =>
     hero.compatiblePresets.includes(preset.name)
@@ -172,7 +167,7 @@ function chooseComposition(
 
 /** Deterministic provider implementation used for offline planning and tests. */
 export function developDeterministicDesignPlan(
-  input: CreateDesignPlanInput,
+  input: DesignPlanBrief,
   storedSignatures: readonly CompositionSignature[] = []
 ): DesignPlan {
   const preset = selectPreset(input);
@@ -269,12 +264,7 @@ export function developDeterministicDesignPlan(
     ],
     avoid: prohibitedPatterns
   };
-  const validation = validateDesignPlan(plan);
-  if (!validation.ok)
-    throw new Error(
-      `Generated an invalid design plan at ${validation.error.path}: ${validation.error.message}`
-    );
-  return validation.value;
+  return plan;
 }
 
 export interface DesignRules {
