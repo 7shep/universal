@@ -79,7 +79,7 @@ server.tool(
       .optional()
   },
   async (input) => ({
-    content: [{ type: 'text', text: JSON.stringify(createDesignPlan(input), null, 2) }]
+    content: [{ type: 'text', text: JSON.stringify(await createDesignPlan(input), null, 2) }]
   })
 );
 
