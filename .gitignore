@@ -1,11 +1,15 @@
 node_modules
 dist
+build
+coverage
+generated
 .turbo
 .pnpm-store
 *.tsbuildinfo
+*.log
 .env
 .env.*
 !.env.example
-examples/*
+.worktrees/
 .gstack/
 frontend/

@@ -5,6 +5,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import {
   createDesignPlan,
+  DESIGN_RULE_CATEGORIES,
   getActiveTasteProfile,
   getCompositionHistory,
   getDesignRules,
@@ -87,11 +88,32 @@ test('adds an accessible layered scroll-motion direction when requested', () => 
   assert.match(plan.motionDirection?.reducedMotion ?? '', /static/i);
   assert.ok(plan.implementationNotes.some((note) => note.includes('prefers-reduced-motion')));
 });
-test('returns global design rules', () => {
-  const rules = getDesignRules('landing page');
-  assert.equal(rules.category, 'landing page');
+test('returns global principles with category-specific design rules', () => {
+  const categoryGuidance = new Set<string>();
+  for (const category of DESIGN_RULE_CATEGORIES) {
+    const rules = getDesignRules(category);
+    assert.equal(rules.category, category);
+    assert.ok(rules.categoryPrinciples.length >= 2);
+    assert.ok(rules.compositionPrinciples.includes('Select geometry before aesthetics.'));
+    assert.ok(rules.antiPatterns.includes('nested cards'));
+    assert.ok(rules.motionPrinciples.some((principle) => principle.includes('scroll-jack')));
+    categoryGuidance.add(rules.categoryPrinciples.join('\n'));
+  }
+
+  assert.equal(categoryGuidance.size, DESIGN_RULE_CATEGORIES.length);
+});
+
+test('rejects unsupported design rule categories with supported choices', () => {
+  assert.throws(
+    () => getDesignRules('landing-page' as never),
+    /Unsupported design rule category "landing-page".*general, website, typography/
+  );
+});
+
+test('keeps general design rules as the no-category default', () => {
+  const rules = getDesignRules();
+  assert.equal(rules.category, 'general');
   assert.ok(rules.antiPatterns.includes('nested cards'));
-  assert.ok(rules.motionPrinciples.some((principle) => principle.includes('scroll-jack')));
 });
 test('carries preferences and avoid constraints into taste planning', () => {
   const plan = createDesignPlan({

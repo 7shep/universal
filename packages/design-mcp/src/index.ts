@@ -1,7 +1,12 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import { createDesignPlan, getActiveTasteProfile, getDesignRules } from './design.js';
+import {
+  createDesignPlan,
+  DESIGN_RULE_CATEGORIES,
+  getActiveTasteProfile,
+  getDesignRules
+} from './design.js';
 import { reviewImplementation } from '@universal/design-linter';
 
 const server = new McpServer({ name: 'universal', version: '0.2.0' });
@@ -80,9 +85,12 @@ server.tool(
 
 server.tool(
   'get_design_rules',
-  'Return Universal composition principles and anti-pattern constraints.',
+  'Return Universal global principles plus guidance for a supported design category.',
   {
-    category: z.string().optional()
+    category: z
+      .enum(DESIGN_RULE_CATEGORIES)
+      .optional()
+      .describe(`Guidance category: ${DESIGN_RULE_CATEGORIES.join(', ')}.`)
   },
   async ({ category }) => ({
     content: [{ type: 'text', text: JSON.stringify(getDesignRules(category), null, 2) }]

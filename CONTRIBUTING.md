@@ -201,13 +201,11 @@ pnpm lint
 pnpm typecheck
 pnpm build
 pnpm format:check
+pnpm test
 ```
 
-Run the current automated MCP test suite with:
-
-```bash
-pnpm --filter @universal/design-mcp test
-```
+`pnpm test` is the complete automated test gate. It runs the maintained MCP,
+design-linter, and design-taste policy suites.
 
 For changes limited to one workspace, filtered checks can speed up iteration:
 
