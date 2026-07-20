@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState } from 'react';
 
 /**
  * Fixture data for the Preview app's lifecycle states, inlined here so the
@@ -9,13 +9,9 @@ import { useState } from "react";
  * else needs to change.
  */
 
-type PreviewSeverity = "idle" | "progress" | "warning" | "error";
+type PreviewSeverity = 'idle' | 'progress' | 'warning' | 'error';
 
-type PreviewStateKey =
-  | "no-project"
-  | "loading"
-  | "build-unavailable"
-  | "runtime-error";
+type PreviewStateKey = 'no-project' | 'loading' | 'build-unavailable' | 'runtime-error';
 
 interface PreviewStateAction {
   label: string;
@@ -33,54 +29,54 @@ interface PreviewStateFixture {
 }
 
 const PREVIEW_STATE_ORDER: PreviewStateKey[] = [
-  "no-project",
-  "loading",
-  "build-unavailable",
-  "runtime-error",
+  'no-project',
+  'loading',
+  'build-unavailable',
+  'runtime-error'
 ];
 
 const PREVIEW_STATE_FIXTURES: Record<PreviewStateKey, PreviewStateFixture> = {
-  "no-project": {
-    key: "no-project",
-    eyebrow: "Universal / Preview",
-    statusLabel: "Status: Idle",
-    severity: "idle",
-    heading: "No project selected",
+  'no-project': {
+    key: 'no-project',
+    eyebrow: 'Universal / Preview',
+    statusLabel: 'Status: Idle',
+    severity: 'idle',
+    heading: 'No project selected',
     description:
-      "This isolated surface will render generated React projects in a future milestone. Choose a project to see its preview here.",
+      'This isolated surface will render generated React projects in a future milestone. Choose a project to see its preview here.'
   },
   loading: {
-    key: "loading",
-    eyebrow: "Universal / Preview",
-    statusLabel: "Status: Loading",
-    severity: "progress",
-    heading: "Preparing preview…",
+    key: 'loading',
+    eyebrow: 'Universal / Preview',
+    statusLabel: 'Status: Loading',
+    severity: 'progress',
+    heading: 'Preparing preview…',
     description:
-      "We're bundling the generated project so it can render here. This usually takes a few seconds.",
+      "We're bundling the generated project so it can render here. This usually takes a few seconds."
   },
-  "build-unavailable": {
-    key: "build-unavailable",
-    eyebrow: "Universal / Preview",
-    statusLabel: "Status: Unavailable",
-    severity: "warning",
-    heading: "Build unavailable",
+  'build-unavailable': {
+    key: 'build-unavailable',
+    eyebrow: 'Universal / Preview',
+    statusLabel: 'Status: Unavailable',
+    severity: 'warning',
+    heading: 'Build unavailable',
     description:
       "This project doesn't have a build we can preview yet. Finish the build step, then check again.",
-    diagnostic: "Diagnostic: no build artifact found for this project.",
-    action: { label: "Check again" },
+    diagnostic: 'Diagnostic: no build artifact found for this project.',
+    action: { label: 'Check again' }
   },
-  "runtime-error": {
-    key: "runtime-error",
-    eyebrow: "Universal / Preview",
-    statusLabel: "Status: Error",
-    severity: "error",
+  'runtime-error': {
+    key: 'runtime-error',
+    eyebrow: 'Universal / Preview',
+    statusLabel: 'Status: Error',
+    severity: 'error',
     heading: "Preview couldn't start",
     description:
-      "Something in the generated project stopped the preview from running. Fix the error below, then try again.",
+      'Something in the generated project stopped the preview from running. Fix the error below, then try again.',
     diagnostic:
       "Diagnostic: TypeError — Cannot read properties of undefined (reading 'map') at src/App.tsx:42",
-    action: { label: "Try again" },
-  },
+    action: { label: 'Try again' }
+  }
 };
 
 /**
@@ -90,13 +86,21 @@ const PREVIEW_STATE_FIXTURES: Record<PreviewStateKey, PreviewStateFixture> = {
  */
 function StatusGlyph({ severity }: { severity: PreviewSeverity }) {
   switch (severity) {
-    case "idle":
+    case 'idle':
       return (
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" className="status-glyph">
-          <circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="3 3.2" />
+          <circle
+            cx="12"
+            cy="12"
+            r="7"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeDasharray="3 3.2"
+          />
         </svg>
       );
-    case "progress":
+    case 'progress':
       return (
         <svg
           viewBox="0 0 24 24"
@@ -117,15 +121,29 @@ function StatusGlyph({ severity }: { severity: PreviewSeverity }) {
           />
         </svg>
       );
-    case "warning":
+    case 'warning':
       return (
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" className="status-glyph">
-          <path d="M12 3 L21.5 20 H2.5 Z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
-          <line x1="12" y1="9" x2="12" y2="14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <path
+            d="M12 3 L21.5 20 H2.5 Z"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinejoin="round"
+          />
+          <line
+            x1="12"
+            y1="9"
+            x2="12"
+            y2="14"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
           <circle cx="12" cy="17.2" r="1" fill="currentColor" />
         </svg>
       );
-    case "error":
+    case 'error':
       return (
         <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" className="status-glyph">
           <path
@@ -135,8 +153,24 @@ function StatusGlyph({ severity }: { severity: PreviewSeverity }) {
             strokeWidth="2"
             strokeLinejoin="round"
           />
-          <line x1="9" y1="9" x2="15" y2="15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-          <line x1="15" y1="9" x2="9" y2="15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <line
+            x1="9"
+            y1="9"
+            x2="15"
+            y2="15"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+          <line
+            x1="15"
+            y1="9"
+            x2="9"
+            y2="15"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
         </svg>
       );
     default:
@@ -150,9 +184,9 @@ export function PreviewApp() {
   // project/build/runtime status and compute a `PreviewStateKey` (plus a
   // diagnostic string for errors). Every fixture below already renders from
   // `state`, so nothing else here has to change.
-  const [state, setState] = useState<PreviewStateKey>("no-project");
+  const [state, setState] = useState<PreviewStateKey>('no-project');
   const fixture = PREVIEW_STATE_FIXTURES[state];
-  const isErrorLike = fixture.severity === "error";
+  const isErrorLike = fixture.severity === 'error';
 
   // Intentionally inert. This issue only adds fixture-driven UI states — no
   // process execution, URL loading, or runtime communication. A future
@@ -164,8 +198,8 @@ export function PreviewApp() {
       <div
         className="preview-panel"
         data-severity={fixture.severity}
-        role={isErrorLike ? "alert" : "status"}
-        aria-live={isErrorLike ? "assertive" : "polite"}
+        role={isErrorLike ? 'alert' : 'status'}
+        aria-live={isErrorLike ? 'assertive' : 'polite'}
       >
         <p className="eyebrow">{fixture.eyebrow}</p>
 

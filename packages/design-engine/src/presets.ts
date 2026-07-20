@@ -1,6 +1,6 @@
-import type { DesignTokens, PageSection, PresetName } from './index.ts';
+import type { DesignTokens, PageSection, PresetName } from './contracts.ts';
 
-export type { DesignTokens, PageSection, PresetName } from './index.ts';
+export type { DesignTokens, PageSection, PresetName } from './contracts.ts';
 
 export interface DesignPreset {
   name: PresetName;

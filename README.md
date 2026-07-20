@@ -56,6 +56,9 @@ See the [roadmap](ROADMAP.md) for planned milestones and [product principles](PR
 
 ## Quick Start
 
+Downstream product agents should use the canonical [orchestration API](docs/DOWNSTREAM_API.md)
+instead of importing MCP transport internals.
+
 ### Prerequisites
 
 - Node.js 22 or newer
