@@ -21,6 +21,16 @@ export { getActiveTasteProfile } from '@universal/design-taste';
 
 const recentPlanSignatures: CompositionSignature[] = [];
 const normalize = (value: string): string => value.toLowerCase();
+export const DESIGN_RULE_CATEGORIES = [
+  'general',
+  'website',
+  'typography',
+  'composition',
+  'imagery',
+  'motion'
+] as const;
+export type DesignRuleCategory = (typeof DESIGN_RULE_CATEGORIES)[number];
+
 const hash = (value: string): number => {
   let result = 2166136261;
   for (let index = 0; index < value.length; index += 1)
@@ -277,8 +287,9 @@ export function createDesignPlan(input: CreateDesignPlanInput): DesignPlan {
 }
 
 export interface DesignRules {
-  category: string;
+  category: DesignRuleCategory;
   tasteProfile: { id: string; version: string };
+  categoryPrinciples: readonly string[];
   compositionPrinciples: readonly string[];
   typographyPrinciples: readonly string[];
   spacingPrinciples: readonly string[];
@@ -287,11 +298,45 @@ export interface DesignRules {
   antiPatterns: readonly string[];
   implementationConstraints: readonly string[];
 }
-export function getDesignRules(category = 'general'): DesignRules {
+
+const categoryPrinciples: Record<DesignRuleCategory, readonly string[]> = {
+  general: [
+    'Establish one coherent visual thesis before selecting components.',
+    'Use the global principles as constraints throughout implementation and review.'
+  ],
+  website: [
+    'Make the first viewport communicate hierarchy, purpose, and a deliberate entry point.',
+    'Vary section composition while preserving one visual system across the whole page.'
+  ],
+  typography: [
+    'Choose display and body faces for a specific contrast in voice, scale, and density.',
+    'Define a compact type scale and line-length limits before styling individual components.'
+  ],
+  composition: [
+    'Assign every major region a spatial role before deciding its visual treatment.',
+    'Create rhythm through changes in alignment, density, and scale instead of repeated grids.'
+  ],
+  imagery: [
+    'Specify subject, crop, aspect ratio, and treatment so imagery carries design intent.',
+    'Use one image system consistently and remove media regions that lack purposeful assets.'
+  ],
+  motion: [
+    'Give each animation a single communicative purpose tied to hierarchy or state.',
+    'Design the reduced-motion experience first so content and navigation never depend on animation.'
+  ]
+};
+
+export function getDesignRules(category: DesignRuleCategory = 'general'): DesignRules {
+  if (!DESIGN_RULE_CATEGORIES.includes(category)) {
+    throw new Error(
+      `Unsupported design rule category "${category}". Choose one of: ${DESIGN_RULE_CATEGORIES.join(', ')}.`
+    );
+  }
   const tasteProfile = getActiveTasteProfile();
   return {
     category,
     tasteProfile: { id: tasteProfile.id, version: tasteProfile.version },
+    categoryPrinciples: categoryPrinciples[category],
     compositionPrinciples: [
       'Select geometry before aesthetics.',
       'Follow the selected spatial coordinates and relationships.',
