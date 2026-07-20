@@ -80,13 +80,11 @@ pnpm lint
 pnpm typecheck
 pnpm build
 pnpm format:check
+pnpm test
 ```
 
-To run the MCP package tests:
-
-```bash
-pnpm --filter @universal/design-mcp test
-```
+`pnpm test` runs every maintained automated suite, including the MCP,
+design-linter, and design-taste policy tests.
 
 ## MCP Prototype
 
@@ -132,6 +130,7 @@ universal/
 - `pnpm build` builds every workspace package through Turborepo.
 - `pnpm lint` runs ESLint across the repository.
 - `pnpm typecheck` type-checks all workspaces.
+- `pnpm test` runs every maintained workspace test suite.
 - `pnpm format` formats supported files with Prettier.
 - `pnpm format:check` checks formatting without changing files.
 

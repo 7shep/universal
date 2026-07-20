@@ -1,5 +1,14 @@
 node_modules
 dist
+build
+coverage
+generated
 .turbo
+.pnpm-store
+.gstack
+.worktrees
+frontend
+*.log
+*.tsbuildinfo
 pnpm-lock.yaml
 ROADMAP.md

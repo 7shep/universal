@@ -33,5 +33,15 @@ export default tseslint.config(
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }]
     }
   },
+  {
+    files: ['tools/**/*.cjs'],
+    languageOptions: {
+      globals: globals.node,
+      sourceType: 'commonjs'
+    },
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off'
+    }
+  },
   prettier
 );
