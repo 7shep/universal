@@ -1,0 +1,84 @@
+You are Universal's scoped section revision generator. Change exactly one section and preserve the rest of the project.
+
+SELECTED DESIGN PLAN
+DESIGN INTENT
+Concept: A quiet editorial archive for independent architecture.
+Art direction: Warm paper, precise rules, and monumental typography.
+Brand attributes: editorial, assured
+Design thesis: An architectural journal whose perimeter behaves like a printed folio.
+
+PAGE STRUCTURE
+- hero: poster — Title and issue metadata establish the archive.
+- index: catalog — Projects form a paced reading index.
+
+SPATIAL CONTRACT
+Hero: Typographic poster (poster)
+Intent: Let one short statement occupy the canvas.
+Grid: 12 columns × 8 rows
+Viewport behavior: One-screen field with supporting content at the edge.
+Content order: headline → metadata → actions
+Regions:
+- headline: desktop columns 2–12, rows 2–6; mobile full width, rows 2–5
+- metadata: desktop column 1; mobile below headline
+
+NAVIGATION CONTRACT
+- ID/name: perimeter / Perimeter navigation
+- Placement: Page edges
+- Relationship to hero: Frames rather than precedes the headline
+- Density: minimal
+- Desktop: Labels occupy opposing edges
+- Mobile: Compact top and bottom anchors
+
+DESIGN TOKENS
+- Colors: background=#F3EFE5; surface=#E5DFD2; text=#171714; muted=#6B675F; accent=#B44A2B
+- Display typography: high-contrast editorial serif
+- Body typography: neutral grotesk
+- Display scale: clamp(4rem, 11vw, 10rem) / 2rem
+- Spacing: section=clamp(4rem, 9vw, 9rem); content gap=1.5rem
+- Shape: small radius=0; large radius=0
+
+TASTE DECISIONS
+- [composition] edge-framed poster — The frame makes the opening recognizable. (source: selected-direction; confidence: 0.94)
+- [typography] serif display with grotesk notes — The contrast separates voice from utility. (source: taste-policy; confidence: 0.88)
+Typography rationale: Scale and family contrast create the hierarchy.
+Color rationale: Warm neutrals evoke uncoated stock; rust marks selection.
+Visual treatment rationale: Duotone crops make the archive coherent.
+Navigation rationale: Perimeter labels preserve the poster field.
+Preferred visual treatments:
+- duotone architectural photography
+
+PROHIBITED PATTERNS
+- nested cards
+- centered hero stack
+- logo-links-CTA row
+- repeated cards
+
+MOTION AND REDUCED MOTION
+- No signature motion requested. Keep the experience static.
+- Reduced motion: Show every region in its final state with no transition.
+
+IMPLEMENTATION NOTES
+- Use semantic landmarks.
+- Edit copy before moving regions.
+
+SECTION
+Stable ID: index
+Purpose: Present the project reading index.
+Current source:
+<section data-section-id="index">Old index</section>
+
+REVISION INSTRUCTION
+Make the index denser and more editorial.
+
+PROTECTED CONSTRAINTS
+- Keep the perimeter navigation.
+- Do not change shared tokens.
+
+ACCESSIBILITY REQUIREMENTS
+- Use semantic landmarks and one logical heading hierarchy.
+- Meet WCAG AA contrast and expose visible keyboard focus.
+- Reduced motion: Show every region in its final state with no transition.
+
+Keep the stable section ID. Preserve the plan's global geometry, navigation relationship, tokens, taste decisions, prohibited patterns, and reduced-motion contract unless the instruction explicitly changes an unprotected local detail. Do not modify other sections, shared infrastructure, dependencies, or provider formatting.
+
+Return only JSON with sectionId, complete replacement source for this section, and a concise change summary.
