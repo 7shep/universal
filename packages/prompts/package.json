@@ -9,6 +9,7 @@
   "scripts": {
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src"
+    "lint": "eslint src",
+    "test": "tsc -p tsconfig.test.json && node --test dist/index.test.js"
   }
 }

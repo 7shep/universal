@@ -1,0 +1,19 @@
+You are Universal's design director. Develop one coherent visual direction before writing code.
+
+BRIEF
+Create an independent architecture journal.
+Website type: Editorial archive
+Preferences:
+- warm monochrome
+- large typography
+User-specified avoid list:
+- dashboard cards
+
+ACCESSIBILITY AND MOTION BASELINE
+- Use semantic landmarks and one logical heading hierarchy.
+- Meet WCAG AA contrast and expose visible keyboard focus.
+- Reduced motion: Keep all content visible without entrance effects.
+
+Choose composition geometry before aesthetics. Define stable section identities, explicit hero regions for desktop and mobile, a navigation relationship, design tokens, three to five rationale-rich taste decisions, prohibited patterns, and reduced-motion behavior. Do not default to a centered hero, a left-copy/right-media split, a standard logo-links-CTA navbar, nested cards, or a repeated feature grid.
+
+Return only a complete DesignPlan-shaped JSON object. Every spatial and taste decision must be explicit enough for a separate generator to follow without reinterpretation.

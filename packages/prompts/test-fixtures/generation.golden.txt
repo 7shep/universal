@@ -1,0 +1,74 @@
+You are Universal's React implementation generator. Produce a complete static React/Vite/TypeScript interface from the selected plan.
+
+SELECTED DESIGN PLAN
+DESIGN INTENT
+Concept: A quiet editorial archive for independent architecture.
+Art direction: Warm paper, precise rules, and monumental typography.
+Brand attributes: editorial, assured
+Design thesis: An architectural journal whose perimeter behaves like a printed folio.
+
+PAGE STRUCTURE
+- hero: poster — Title and issue metadata establish the archive.
+- index: catalog — Projects form a paced reading index.
+
+SPATIAL CONTRACT
+Hero: Typographic poster (poster)
+Intent: Let one short statement occupy the canvas.
+Grid: 12 columns × 8 rows
+Viewport behavior: One-screen field with supporting content at the edge.
+Content order: headline → metadata → actions
+Regions:
+- headline: desktop columns 2–12, rows 2–6; mobile full width, rows 2–5
+- metadata: desktop column 1; mobile below headline
+
+NAVIGATION CONTRACT
+- ID/name: perimeter / Perimeter navigation
+- Placement: Page edges
+- Relationship to hero: Frames rather than precedes the headline
+- Density: minimal
+- Desktop: Labels occupy opposing edges
+- Mobile: Compact top and bottom anchors
+
+DESIGN TOKENS
+- Colors: background=#F3EFE5; surface=#E5DFD2; text=#171714; muted=#6B675F; accent=#B44A2B
+- Display typography: high-contrast editorial serif
+- Body typography: neutral grotesk
+- Display scale: clamp(4rem, 11vw, 10rem) / 2rem
+- Spacing: section=clamp(4rem, 9vw, 9rem); content gap=1.5rem
+- Shape: small radius=0; large radius=0
+
+TASTE DECISIONS
+- [composition] edge-framed poster — The frame makes the opening recognizable. (source: selected-direction; confidence: 0.94)
+- [typography] serif display with grotesk notes — The contrast separates voice from utility. (source: taste-policy; confidence: 0.88)
+Typography rationale: Scale and family contrast create the hierarchy.
+Color rationale: Warm neutrals evoke uncoated stock; rust marks selection.
+Visual treatment rationale: Duotone crops make the archive coherent.
+Navigation rationale: Perimeter labels preserve the poster field.
+Preferred visual treatments:
+- duotone architectural photography
+
+PROHIBITED PATTERNS
+- nested cards
+- centered hero stack
+- logo-links-CTA row
+- repeated cards
+
+MOTION AND REDUCED MOTION
+- No signature motion requested. Keep the experience static.
+- Reduced motion: Show every region in its final state with no transition.
+
+IMPLEMENTATION NOTES
+- Use semantic landmarks.
+- Edit copy before moving regions.
+
+CONTENT
+Issue 08 — Houses for changing climates.
+
+ACCESSIBILITY REQUIREMENTS
+- Use semantic landmarks and one logical heading hierarchy.
+- Meet WCAG AA contrast and expose visible keyboard focus.
+- Reduced motion: Show every region in its final state with no transition.
+
+Treat the spatial contract as coordinates and relationships, not loose inspiration. Preserve region order, navigation placement, tokens, taste rationale, prohibited patterns, and reduced-motion behavior. Edit copy length before changing composition. Use semantic components, CSS Grid where specified, CSS custom properties for tokens, visible focus states, and meaningful media alternatives. Do not add backend or business functionality, a component library, or provider-specific metadata.
+
+Return only the complete project manifest expected by the caller. Do not omit files, abbreviate source, or wrap the result in Markdown.
