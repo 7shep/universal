@@ -23,8 +23,15 @@ export interface BenchmarkSuiteManifest {
     readonly required: true;
     readonly network: 'disabled';
     readonly live_preview: 'disabled';
+    readonly file_encoding: 'utf-8';
+    readonly line_endings: 'lf';
     readonly path_order: 'lexicographic';
+    readonly path_separator: '/';
+    readonly ignore: readonly string[];
+    readonly include: readonly string[];
     readonly digest: 'sha256';
+    readonly required_checks: readonly string[];
+    readonly timestamps: 'excluded';
   };
   readonly rendered_evidence: {
     readonly available: boolean;
@@ -52,6 +59,7 @@ export interface BenchmarkRubricManifest {
   readonly aggregation: {
     readonly method: 'weighted_mean';
     readonly source_weight_sum: number;
+    readonly minimum_evaluable_source_weight: number;
     readonly exclude_statuses: readonly ['not_evaluable'];
   };
 }
@@ -93,6 +101,8 @@ export function assertBenchmarkSuiteManifest(
   if (!isRecord(value)) throw new TypeError('suite must be an object.');
   for (const field of ['suite_id', 'suite_version', 'rubric_version'] as const)
     if (!isText(value[field])) throw new TypeError(`suite.${field} must be a non-empty string.`);
+  if (value.suite_id !== 'design-quality' || !/^1\./.test(value.suite_version as string))
+    throw new TypeError('suite id and version must identify design-quality v1.');
   if (value.execution_mode !== 'offline_source_only')
     throw new TypeError('suite.execution_mode must be offline_source_only.');
   if (!Number.isInteger(value.content_revision) || Number(value.content_revision) < 1)
@@ -103,16 +113,71 @@ export function assertBenchmarkSuiteManifest(
   const armIds = value.arms.map((arm) => (isRecord(arm) ? arm.id : undefined));
   if (BENCHMARK_ARMS.some((arm) => !armIds.includes(arm)) || armIds.length !== 2)
     throw new TypeError('suite.arms must define unguided and universal_guided exactly once.');
+  for (const [index, arm] of value.arms.entries()) {
+    if (
+      !isRecord(arm) ||
+      !isText(arm.label) ||
+      arm.brief_input !== 'verbatim' ||
+      !isText(arm.workflow) ||
+      !isText(arm.universal_tools)
+    )
+      throw new TypeError(`suite.arms[${index}] is incomplete.`);
+  }
+  const armById = new Map(value.arms.filter(isRecord).map((arm) => [arm.id, arm] as const));
+  if (
+    armById.get('unguided')?.workflow !== 'isolated_brief_only' ||
+    armById.get('unguided')?.universal_tools !== 'not_provided' ||
+    armById.get('universal_guided')?.workflow !== 'universal_design_workflow' ||
+    armById.get('universal_guided')?.universal_tools !==
+      'create_design_plan,get_design_rules,review_implementation'
+  )
+    throw new TypeError(
+      'suite.arms must preserve isolated unguided and Universal-guided workflows.'
+    );
+  const pairing = value.pairing;
+  if (
+    !isRecord(pairing) ||
+    !Array.isArray(pairing.required_arm_ids) ||
+    pairing.required_arm_ids.length !== 2 ||
+    !BENCHMARK_ARMS.every((arm) => (pairing.required_arm_ids as readonly unknown[]).includes(arm))
+  )
+    throw new TypeError('suite.pairing must require both benchmark arms.');
   const source = value.source_evidence;
   if (
     !isRecord(source) ||
     source.required !== true ||
     source.network !== 'disabled' ||
     source.live_preview !== 'disabled' ||
+    source.file_encoding !== 'utf-8' ||
+    source.line_endings !== 'lf' ||
     source.path_order !== 'lexicographic' ||
-    source.digest !== 'sha256'
+    source.path_separator !== '/' ||
+    !isTextArray(source.include) ||
+    !isTextArray(source.ignore) ||
+    !isTextArray(source.required_checks) ||
+    source.digest !== 'sha256' ||
+    source.timestamps !== 'excluded'
   )
     throw new TypeError('suite.source_evidence must be deterministic, offline, and preview-free.');
+  const blind = value.blind_scoring;
+  if (
+    !isRecord(blind) ||
+    !Array.isArray(blind.artifact_labels) ||
+    blind.artifact_labels.length !== 2 ||
+    blind.artifact_labels[0] !== 'candidate_a' ||
+    blind.artifact_labels[1] !== 'candidate_b' ||
+    blind.assignment !== 'sha256(pair_id + scorer_seed) low-bit swap' ||
+    blind.record_assignment_digest !== true ||
+    blind.reveal_after_score_lock !== true
+  )
+    throw new TypeError('suite.blind_scoring must define deterministic hidden assignment.');
+  const reports = value.reports;
+  if (
+    !isRecord(reports) ||
+    !isRecord(reports.regression) ||
+    reports.regression.compare_only_matching_versions !== true
+  )
+    throw new TypeError('suite.reports must require matching regression versions.');
   const rendered = value.rendered_evidence;
   if (
     !isRecord(rendered) ||
@@ -130,18 +195,50 @@ export function assertBenchmarkRubricManifest(
 ): asserts value is BenchmarkRubricManifest {
   if (!isRecord(value) || !isText(value.rubric_id) || !isText(value.rubric_version))
     throw new TypeError('rubric id and version are required.');
+  if (value.rubric_id !== 'design-quality' || !/^1\./.test(value.rubric_version))
+    throw new TypeError('rubric id and version must identify design-quality v1.');
+  const scoreScale = value.score_scale;
+  if (
+    !isRecord(scoreScale) ||
+    scoreScale.minimum !== 1 ||
+    scoreScale.maximum !== 5 ||
+    !isRecord(scoreScale.anchors) ||
+    !['1', '2', '3', '4', '5'].every((anchor) =>
+      isText((scoreScale.anchors as Record<string, unknown>)[anchor])
+    )
+  )
+    throw new TypeError('rubric.score_scale must define the complete 1..5 scale.');
+  if (
+    !Array.isArray(value.statuses) ||
+    value.statuses.length !== 2 ||
+    value.statuses[0] !== 'evaluable' ||
+    value.statuses[1] !== 'not_evaluable'
+  )
+    throw new TypeError('rubric.statuses must define evaluable and not_evaluable.');
   if (!Array.isArray(value.dimensions) || value.dimensions.length === 0)
     throw new TypeError('rubric.dimensions must be a non-empty array.');
   const ids = new Set<string>();
   let sourceWeight = 0;
   for (const [index, dimension] of value.dimensions.entries()) {
-    if (!isRecord(dimension) || !isText(dimension.id) || !isText(dimension.title))
+    if (
+      !isRecord(dimension) ||
+      !isText(dimension.id) ||
+      !isText(dimension.title) ||
+      !isText(dimension.question)
+    )
       throw new TypeError(`rubric.dimensions[${index}] requires id and title.`);
+    if (!/^[a-z][a-z0-9_]*$/.test(dimension.id))
+      throw new TypeError(`Invalid rubric dimension id: ${dimension.id}.`);
     if (ids.has(dimension.id)) throw new TypeError(`Duplicate rubric dimension: ${dimension.id}.`);
     ids.add(dimension.id);
     if (dimension.evidence_kind !== 'source' && dimension.evidence_kind !== 'rendered')
       throw new TypeError(`rubric dimension ${dimension.id} has an invalid evidence_kind.`);
-    if (typeof dimension.weight !== 'number' || dimension.weight < 0)
+    if (
+      typeof dimension.weight !== 'number' ||
+      !Number.isFinite(dimension.weight) ||
+      dimension.weight < 0 ||
+      dimension.weight > 1
+    )
       throw new TypeError(`rubric dimension ${dimension.id} has an invalid weight.`);
     if (dimension.evidence_kind === 'source') sourceWeight += dimension.weight;
     else if (dimension.weight !== 0 || dimension.when_rendered_evidence_missing !== 'not_evaluable')
@@ -151,6 +248,21 @@ export function assertBenchmarkRubricManifest(
   }
   if (Math.abs(sourceWeight - 1) > Number.EPSILON * 10)
     throw new TypeError('Source rubric dimension weights must total 1.');
+  const aggregation = value.aggregation;
+  if (
+    !isRecord(aggregation) ||
+    aggregation.method !== 'weighted_mean' ||
+    aggregation.source_weight_sum !== 1 ||
+    !Array.isArray(aggregation.exclude_statuses) ||
+    aggregation.exclude_statuses.length !== 1 ||
+    aggregation.exclude_statuses[0] !== 'not_evaluable' ||
+    typeof aggregation.minimum_evaluable_source_weight !== 'number' ||
+    aggregation.minimum_evaluable_source_weight < 0 ||
+    aggregation.minimum_evaluable_source_weight > 1
+  )
+    throw new TypeError('rubric.aggregation is invalid.');
+  if (!isRecord(value.blind_score_format))
+    throw new TypeError('rubric.blind_score_format must be an object.');
 }
 
 export function assertBenchmarkBriefDefinition(
@@ -171,7 +283,8 @@ export function assertBenchmarkBriefDefinition(
   if (
     !isRecord(value.content) ||
     !isText(value.content.brand) ||
-    !isText(value.content.primary_heading)
+    !isText(value.content.primary_heading) ||
+    !Array.isArray(value.content.sections)
   )
     throw new TypeError(`${path}.content requires brand and primary_heading.`);
   for (const field of ['requirements', 'constraints', 'evaluation_focus'] as const)

@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 const compareText = (left: string, right: string): number =>
   left < right ? -1 : left > right ? 1 : 0;
 
@@ -41,4 +43,8 @@ export function roundScore(value: number, precision = 6): number {
   if (!Number.isFinite(value)) throw new TypeError('Score must be finite.');
   const factor = 10 ** precision;
   return Math.round((value + Number.EPSILON) * factor) / factor;
+}
+
+export function sha256(value: string): string {
+  return createHash('sha256').update(value, 'utf8').digest('hex');
 }

@@ -9,6 +9,8 @@ export interface ScoringCriterion {
   label: string;
   description: string;
   maxScore: number;
+  /** Relative contribution to the aggregate score. */
+  weight: number;
   evidenceKind: CriterionEvidenceKind;
   scoringGuidance: readonly string[];
 }
@@ -17,6 +19,8 @@ export interface ScoringRubric {
   id: string;
   version: string;
   criteria: readonly ScoringCriterion[];
+  /** Minimum scored source weight required to publish a comparable total. */
+  minimumEvaluableSourceWeight: number;
 }
 
 export interface SourceEvidenceReference {
@@ -56,6 +60,7 @@ export interface BlindAllocation {
 export interface BlindScoringPacket {
   format: 'universal.design-benchmark.blind-scoring';
   formatVersion: '1';
+  assignmentDigest: string;
   rubric: ScoringRubric;
   submissions: readonly BlindSubmission[];
 }
@@ -97,6 +102,22 @@ export interface SubmissionScore {
   rubricMaxScore: number;
   normalizedScore: number | null;
   evaluableFraction: number;
+  evaluableSourceWeight: number;
+  minimumEvaluableSourceWeight: number;
+}
+
+export interface ArmSubmission {
+  briefId: string;
+  suiteVersion: string;
+  arm: BenchmarkArm;
+  sourceEvidence: readonly SourceEvidenceReference[];
+  renderedEvidence: readonly RenderedEvidenceArtifact[];
+}
+
+export interface BlindAssignment {
+  packet: BlindScoringPacket;
+  allocations: readonly BlindAllocation[];
+  assignmentDigest: string;
 }
 
 export interface UnblindedSubmissionScore extends SubmissionScore {

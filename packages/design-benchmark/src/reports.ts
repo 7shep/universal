@@ -149,6 +149,8 @@ export function createRegressionReport(
     throw new RangeError('regressionThreshold must be a non-negative finite number.');
   const baselineMetadata = assertCompatibleScores(baseline);
   const currentMetadata = assertCompatibleScores(current);
+  if (baselineMetadata.suiteVersion !== currentMetadata.suiteVersion)
+    throw new Error('Regression reports require matching suite versions.');
   if (
     baselineMetadata.rubricId !== currentMetadata.rubricId ||
     baselineMetadata.rubricVersion !== currentMetadata.rubricVersion

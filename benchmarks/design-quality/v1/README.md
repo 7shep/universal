@@ -15,10 +15,13 @@ access or a live preview.
 
 Each brief is executed twice from the same clean starter state:
 
-- `unguided`: the implementation agent receives only the brief and ordinary
-  repository instructions.
-- `universal_guided`: the implementation agent receives the same brief and must
-  use Universal's design-plan, design-rules, and implementation-review workflow.
+- `unguided`: the runner copies only the starter fixture and verbatim brief into
+  an isolated workspace. It must not copy or expose repository `AGENTS.md` files,
+  Universal skills, design plans, design rules, or implementation reviews. The
+  runner supplies only the neutral build/test instructions shared by both arms.
+- `universal_guided`: the implementation agent receives the same starter fixture,
+  verbatim brief, and neutral build/test instructions, then must use Universal's
+  design-plan, design-rules, and implementation-review workflow.
 
 The arm label must never be exposed to scorers. Runners assign opaque artifact
 labels (`candidate_a` and `candidate_b`) using a recorded deterministic swap.

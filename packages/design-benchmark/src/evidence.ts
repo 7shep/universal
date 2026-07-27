@@ -17,9 +17,17 @@ export interface RenderedEvidenceReference {
   readonly sha256?: string;
 }
 
+export interface SourceEvidencePolicy {
+  readonly include: readonly string[];
+  readonly ignore: readonly string[];
+  readonly requiredChecks: readonly string[];
+}
+
 export interface CollectSourceEvidenceInput {
   readonly files: readonly EvidenceSourceFile[];
   readonly renderedEvidence?: readonly RenderedEvidenceReference[];
+  readonly policy: SourceEvidencePolicy;
+  readonly completedChecks: readonly string[];
 }
 
 export type SourceLanguage =
@@ -83,13 +91,52 @@ const occurrences = (source: string, expression: RegExp): number =>
   Array.from(source.matchAll(expression)).length;
 
 const normalizedPath = (path: string): string => {
-  const normalized = path.replaceAll('\\', '/').replace(/^\.\/+/, '');
-  if (!normalized || normalized.startsWith('/') || /^[a-z]:\//i.test(normalized))
+  const slashPath = path.replaceAll('\\', '/').replace(/^\.\/+/, '');
+  if (!slashPath || slashPath.startsWith('/') || /^[a-z]:\//i.test(slashPath))
     throw new Error(`Evidence paths must be non-empty project-relative paths: ${path}`);
-  if (normalized.split('/').some((segment) => segment === '..'))
+  const segments = slashPath.split('/');
+  if (segments.some((segment) => segment === '..'))
     throw new Error(`Evidence paths cannot traverse outside the project: ${path}`);
+  const normalized = segments.filter((segment) => segment !== '' && segment !== '.').join('/');
+  if (!normalized) throw new Error(`Evidence paths must be non-empty: ${path}`);
   return normalized;
 };
+
+const normalizeLf = (content: string): string => content.replace(/\r\n?/g, '\n');
+
+function globExpression(pattern: string): RegExp {
+  const normalized = normalizedPath(pattern);
+  let expression = pattern.includes('/') ? '^' : '^(?:.*/)?';
+  for (let index = 0; index < normalized.length; index += 1) {
+    const character = normalized[index]!;
+    if (character === '*' && normalized[index + 1] === '*') {
+      index += 1;
+      if (normalized[index + 1] === '/') {
+        index += 1;
+        expression += '(?:.*/)?';
+      } else expression += '.*';
+    } else if (character === '*') expression += '[^/]*';
+    else if (character === '?') expression += '[^/]';
+    else expression += character.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&');
+  }
+  return new RegExp(`${expression}$`);
+}
+
+function enforcePolicy(input: CollectSourceEvidenceInput, paths: readonly string[]): void {
+  const include = input.policy.include.map(globExpression);
+  const ignore = input.policy.ignore.map(globExpression);
+  if (include.length === 0) throw new Error('Evidence policy must declare include patterns.');
+  for (const path of paths) {
+    if (!include.some((expression) => expression.test(path)))
+      throw new Error(`Evidence source path is not included by policy: ${path}`);
+    if (ignore.some((expression) => expression.test(path)))
+      throw new Error(`Evidence source path is ignored by policy: ${path}`);
+  }
+  const completed = new Set(input.completedChecks);
+  const missing = input.policy.requiredChecks.filter((check) => !completed.has(check));
+  if (missing.length > 0)
+    throw new Error(`Required evidence checks did not complete: ${missing.join(', ')}`);
+}
 
 const languageFor = (path: string): SourceLanguage => {
   const extension = path.slice(path.lastIndexOf('.')).toLowerCase();
@@ -179,7 +226,7 @@ function canonicalRenderedEvidence(
  */
 export function collectSourceEvidence(input: CollectSourceEvidenceInput): SourceEvidence {
   const canonicalFiles = input.files
-    .map((file) => ({ path: normalizedPath(file.path), content: file.content }))
+    .map((file) => ({ path: normalizedPath(file.path), content: normalizeLf(file.content) }))
     .sort((left, right) => compareText(left.path, right.path));
   const seenPaths = new Set<string>();
   for (const file of canonicalFiles) {
@@ -187,6 +234,11 @@ export function collectSourceEvidence(input: CollectSourceEvidenceInput): Source
       throw new Error(`Duplicate evidence source path after normalization: ${file.path}`);
     seenPaths.add(file.path);
   }
+
+  enforcePolicy(
+    input,
+    canonicalFiles.map((file) => file.path)
+  );
 
   const files = canonicalFiles.map((file): FileSourceEvidence => ({
     path: file.path,

@@ -2,8 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { SOURCE_EVIDENCE_VERSION, collectSourceEvidence } from '../src/evidence.ts';
 import {
+  completedEvidenceChecks,
   renderedEvidenceReferences,
   representativeSourceFiles,
+  sourceEvidencePolicy,
   sourceOnlyEvidenceInput
 } from '../fixtures/evidence-fixture.ts';
 
@@ -12,8 +14,10 @@ test('collects stable source facts without rendered or network dependencies', ()
   const second = collectSourceEvidence({
     files: [...representativeSourceFiles].reverse().map((file) => ({
       path: `./${file.path.replaceAll('/', '\\')}`,
-      content: file.content
-    }))
+      content: file.content.replaceAll('\n', '\r\n')
+    })),
+    policy: sourceEvidencePolicy,
+    completedChecks: completedEvidenceChecks
   });
 
   assert.deepEqual(second, first);
@@ -51,7 +55,9 @@ test('marks every visual-only criterion not evaluable without rendered evidence'
 test('records rendered references without producing visual conclusions', () => {
   const evidence = collectSourceEvidence({
     files: representativeSourceFiles,
-    renderedEvidence: [...renderedEvidenceReferences].reverse()
+    renderedEvidence: [...renderedEvidenceReferences].reverse(),
+    policy: sourceEvidencePolicy,
+    completedChecks: completedEvidenceChecks
   });
 
   assert.deepEqual(
@@ -68,12 +74,18 @@ test('source digest changes with content but ignores caller ordering', () => {
   const changed = collectSourceEvidence({
     files: representativeSourceFiles.map((file) =>
       file.path === 'src/styles.css' ? { ...file, content: `${file.content}\nfooter {}` } : file
-    )
+    ),
+    policy: sourceEvidencePolicy,
+    completedChecks: completedEvidenceChecks
   });
 
   assert.notEqual(changed.sourceDigest, baseline.sourceDigest);
   assert.equal(
-    collectSourceEvidence({ files: [...representativeSourceFiles].reverse() }).sourceDigest,
+    collectSourceEvidence({
+      files: [...representativeSourceFiles].reverse(),
+      policy: sourceEvidencePolicy,
+      completedChecks: completedEvidenceChecks
+    }).sourceDigest,
     baseline.sourceDigest
   );
 });
@@ -85,16 +97,58 @@ test('rejects ambiguous, absolute, and escaping source paths', () => {
         files: [
           { path: 'src/App.tsx', content: 'one' },
           { path: './src\\App.tsx', content: 'two' }
-        ]
+        ],
+        policy: sourceEvidencePolicy,
+        completedChecks: completedEvidenceChecks
       }),
     /Duplicate evidence source path/
   );
   assert.throws(
-    () => collectSourceEvidence({ files: [{ path: '../outside.ts', content: '' }] }),
+    () =>
+      collectSourceEvidence({
+        files: [{ path: '../outside.ts', content: '' }],
+        policy: sourceEvidencePolicy,
+        completedChecks: completedEvidenceChecks
+      }),
     /cannot traverse/
   );
   assert.throws(
-    () => collectSourceEvidence({ files: [{ path: 'C:\\outside.ts', content: '' }] }),
+    () =>
+      collectSourceEvidence({
+        files: [{ path: 'C:\\outside.ts', content: '' }],
+        policy: sourceEvidencePolicy,
+        completedChecks: completedEvidenceChecks
+      }),
     /project-relative/
+  );
+});
+
+test('enforces include, ignore, and required-check policy', () => {
+  assert.throws(
+    () =>
+      collectSourceEvidence({
+        files: [{ path: 'README.md', content: 'not included' }],
+        policy: sourceEvidencePolicy,
+        completedChecks: completedEvidenceChecks
+      }),
+    /not included by policy/
+  );
+  assert.throws(
+    () =>
+      collectSourceEvidence({
+        files: [{ path: 'src/debug.log', content: 'ignored' }],
+        policy: { ...sourceEvidencePolicy, include: ['src/**'] },
+        completedChecks: completedEvidenceChecks
+      }),
+    /ignored by policy/
+  );
+  assert.throws(
+    () =>
+      collectSourceEvidence({
+        files: representativeSourceFiles,
+        policy: sourceEvidencePolicy,
+        completedChecks: ['build']
+      }),
+    /static_contract/
   );
 });

@@ -1,22 +1,19 @@
 import assert from 'node:assert/strict';
+import { cp, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
+import { tmpdir } from 'node:os';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import {
-  createBlindScoringPacket,
   createPairedComparisonReport,
   createRegressionReport,
+  createSeededBlindAssignment,
   loadBenchmarkDefinition,
   scoreSubmission,
   serializeDeterministically,
   unblindScores
 } from '../src/index.ts';
-import type {
-  BlindAllocation,
-  BlindSubmission,
-  CriterionJudgment,
-  ScoringRubric
-} from '../src/index.ts';
+import type { ArmSubmission, CriterionJudgment, ScoringRubric } from '../src/index.ts';
 
 const corpusRoot = resolve(
   dirname(fileURLToPath(import.meta.url)),
@@ -55,50 +52,52 @@ test('blind scoring and paired/regression reports are deterministic without rend
   const rubric: ScoringRubric = {
     id: rubricManifest.rubric_id,
     version: rubricManifest.rubric_version,
+    minimumEvaluableSourceWeight: rubricManifest.aggregation.minimum_evaluable_source_weight,
     criteria: rubricManifest.dimensions.map((dimension) => ({
       id: dimension.id,
       label: dimension.title,
       description: dimension.question,
       maxScore: 5,
+      weight: dimension.weight,
       evidenceKind: dimension.evidence_kind,
       scoringGuidance: [dimension.question]
     }))
   };
-  const submissions: BlindSubmission[] = [];
-  const allocations: BlindAllocation[] = [];
-  for (const [index, brief] of briefs.entries()) {
-    for (const [candidateIndex, arm] of (['unguided', 'universal_guided'] as const).entries()) {
-      const blindId = `pair-${String(index + 1).padStart(2, '0')}-candidate-${candidateIndex === 0 ? 'a' : 'b'}`;
-      submissions.push({
-        blindId,
+  const candidates: ArmSubmission[] = [];
+  for (const brief of briefs) {
+    for (const arm of ['unguided', 'universal_guided'] as const) {
+      candidates.push({
         briefId: brief.brief_id,
         suiteVersion: suite.suite_version,
+        arm,
         sourceEvidence: [{ id: 'source', path: 'src/App.tsx', digest: 'a'.repeat(64) }],
         renderedEvidence: []
       });
-      allocations.push({ blindId, arm });
     }
   }
 
-  const packet = createBlindScoringPacket(rubric, [...submissions].reverse());
+  const assignment = createSeededBlindAssignment(
+    rubric,
+    [...candidates].reverse(),
+    'integration-seed'
+  );
+  const { packet, allocations } = assignment;
+  const submissions = [...packet.submissions];
   assert.ok(packet.submissions.every((submission) => !('arm' in submission)));
   const serializedPacket = serializeDeterministically(packet);
   assert.doesNotMatch(serializedPacket, /"unguided"|"universal_guided"/);
   assert.equal(
     serializedPacket,
-    serializeDeterministically(createBlindScoringPacket(rubric, submissions))
-  );
-
-  const armByBlindId = new Map(
-    allocations.map((allocation) => [allocation.blindId, allocation.arm])
+    serializeDeterministically(
+      createSeededBlindAssignment(rubric, candidates, 'integration-seed').packet
+    )
   );
   const scores = submissions.map((submission) => {
-    const arm = armByBlindId.get(submission.blindId);
     const judgments: CriterionJudgment[] = rubric.criteria
       .filter((criterion) => criterion.evidenceKind === 'source')
       .map((criterion) => ({
         criterionId: criterion.id,
-        score: arm === 'universal_guided' ? 4 : 3,
+        score: submission.blindId.endsWith('candidate-a') ? 4 : 3,
         rationale: 'Deterministic source-only fixture judgment.',
         evidenceIds: ['source']
       }));
@@ -119,7 +118,6 @@ test('blind scoring and paired/regression reports are deterministic without rend
   const paired = createPairedComparisonReport(unblinded);
   assert.equal(paired.summary.pairCount, 12);
   assert.equal(paired.summary.comparablePairCount, 12);
-  assert.equal(paired.summary.guidedWins, 12);
   assert.equal(
     serializeDeterministically(paired),
     serializeDeterministically(createPairedComparisonReport([...unblinded].reverse()))
@@ -127,14 +125,11 @@ test('blind scoring and paired/regression reports are deterministic without rend
 
   const baseline = unblinded.map((score) => ({
     ...score,
-    normalizedScore:
-      score.arm === 'universal_guided' && score.normalizedScore !== null
-        ? score.normalizedScore - 5
-        : score.normalizedScore
+    normalizedScore: score.normalizedScore === null ? null : score.normalizedScore - 5
   }));
   const regression = createRegressionReport(baseline, unblinded, { regressionThreshold: 1 });
   assert.equal(regression.summary.comparedCount, 24);
-  assert.equal(regression.summary.improvedCount, 12);
+  assert.equal(regression.summary.improvedCount, 24);
   assert.equal(
     serializeDeterministically(regression),
     serializeDeterministically(
@@ -143,4 +138,31 @@ test('blind scoring and paired/regression reports are deterministic without rend
       })
     )
   );
+});
+
+test('loader rejects canonical-path violations and symlinked corpus files', async () => {
+  const temporary = await mkdtemp(resolve(tmpdir(), 'design-benchmark-loader-'));
+  const copiedRoot = resolve(temporary, 'corpus');
+  try {
+    await cp(corpusRoot, copiedRoot, { recursive: true });
+    const suitePath = resolve(copiedRoot, 'suite.json');
+    const suite = JSON.parse(
+      await (await import('node:fs/promises')).readFile(suitePath, 'utf8')
+    ) as {
+      briefs: string[];
+    };
+    suite.briefs[0] = suite.briefs[0]!.replace('/', '\\');
+    await writeFile(suitePath, JSON.stringify(suite), 'utf8');
+    await assert.rejects(() => loadBenchmarkDefinition(copiedRoot), /canonical forward-slash/);
+
+    await cp(corpusRoot, copiedRoot, { recursive: true, force: true });
+    const target = resolve(copiedRoot, 'briefs/01-fintech-landing.json');
+    const outside = resolve(temporary, 'outside.json');
+    await cp(target, outside);
+    await rm(target);
+    await symlink(outside, target, 'file');
+    await assert.rejects(() => loadBenchmarkDefinition(copiedRoot), /cannot contain symlinks/);
+  } finally {
+    await rm(temporary, { recursive: true, force: true });
+  }
 });

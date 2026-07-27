@@ -27,8 +27,18 @@ export const representativeSourceFiles = [
   }
 ] as const;
 
+export const sourceEvidencePolicy = {
+  include: ['package.json', 'src/**/*.css', 'src/**/*.tsx'],
+  ignore: ['dist/**', '*.log'],
+  requiredChecks: ['build', 'static_contract']
+} as const;
+
+export const completedEvidenceChecks = ['build', 'static_contract'] as const;
+
 export const sourceOnlyEvidenceInput: CollectSourceEvidenceInput = {
-  files: representativeSourceFiles
+  files: representativeSourceFiles,
+  policy: sourceEvidencePolicy,
+  completedChecks: completedEvidenceChecks
 };
 
 export const renderedEvidenceReferences = [

@@ -1,5 +1,12 @@
-import { compareIdentifiers, roundScore } from './deterministic.ts';
+import {
+  compareIdentifiers,
+  roundScore,
+  serializeDeterministically,
+  sha256
+} from './deterministic.ts';
 import type {
+  ArmSubmission,
+  BlindAssignment,
   ScoringRubric,
   BlindAllocation,
   BlindScoringPacket,
@@ -33,15 +40,32 @@ function validateRubric(rubric: ScoringRubric): void {
   for (const criterion of rubric.criteria) {
     if (!Number.isFinite(criterion.maxScore) || criterion.maxScore <= 0)
       throw new Error(`Criterion "${criterion.id}" must have a positive finite maxScore.`);
+    if (!Number.isFinite(criterion.weight) || criterion.weight < 0)
+      throw new Error(`Criterion "${criterion.id}" must have a non-negative finite weight.`);
   }
+  const sourceWeight = rubric.criteria
+    .filter((criterion) => criterion.evidenceKind !== 'rendered')
+    .reduce((total, criterion) => total + criterion.weight, 0);
+  if (sourceWeight <= 0) throw new Error('Rubric must declare positive source weight.');
+  if (
+    !Number.isFinite(rubric.minimumEvaluableSourceWeight) ||
+    rubric.minimumEvaluableSourceWeight < 0 ||
+    rubric.minimumEvaluableSourceWeight > sourceWeight
+  )
+    throw new Error(
+      'minimumEvaluableSourceWeight must be finite and within the declared source weight.'
+    );
 }
 
 /** Build a deterministic scorer packet that contains no arm labels. */
 export function createBlindScoringPacket(
   rubric: ScoringRubric,
-  submissions: readonly BlindSubmission[]
+  submissions: readonly BlindSubmission[],
+  assignmentDigest: string
 ): BlindScoringPacket {
   validateRubric(rubric);
+  if (!/^[a-f0-9]{64}$/.test(assignmentDigest))
+    throw new Error('assignmentDigest must be a lowercase SHA-256 hex digest.');
   assertUnique(
     submissions.map((submission) => submission.blindId),
     'blind submission'
@@ -49,24 +73,110 @@ export function createBlindScoringPacket(
   return {
     format: 'universal.design-benchmark.blind-scoring',
     formatVersion: '1',
+    assignmentDigest,
     rubric: {
-      ...rubric,
-      criteria: [...rubric.criteria].sort((left, right) => compareIdentifiers(left.id, right.id))
+      id: rubric.id,
+      version: rubric.version,
+      minimumEvaluableSourceWeight: rubric.minimumEvaluableSourceWeight,
+      criteria: [...rubric.criteria]
+        .sort((left, right) => compareIdentifiers(left.id, right.id))
+        .map((criterion) => ({
+          id: criterion.id,
+          label: criterion.label,
+          description: criterion.description,
+          maxScore: criterion.maxScore,
+          weight: criterion.weight,
+          evidenceKind: criterion.evidenceKind,
+          scoringGuidance: [...criterion.scoringGuidance]
+        }))
     },
     submissions: [...submissions]
       .sort((left, right) => compareIdentifiers(left.blindId, right.blindId))
-      .map((submission) => ({
-        ...submission,
-        sourceEvidence: [...submission.sourceEvidence].sort((left, right) =>
-          compareIdentifiers(left.id, right.id)
-        ),
-        renderedEvidence: [...submission.renderedEvidence].sort((left, right) =>
-          compareIdentifiers(left.id, right.id)
-        )
+      .map((submission): BlindSubmission => ({
+        blindId: submission.blindId,
+        briefId: submission.briefId,
+        suiteVersion: submission.suiteVersion,
+        sourceEvidence: [...submission.sourceEvidence]
+          .sort((left, right) => compareIdentifiers(left.id, right.id))
+          .map((evidence) => ({
+            id: evidence.id,
+            path: evidence.path,
+            digest: evidence.digest,
+            ...(evidence.startLine === undefined ? {} : { startLine: evidence.startLine }),
+            ...(evidence.endLine === undefined ? {} : { endLine: evidence.endLine }),
+            ...(evidence.excerpt === undefined ? {} : { excerpt: evidence.excerpt })
+          })),
+        renderedEvidence: [...submission.renderedEvidence]
+          .sort((left, right) => compareIdentifiers(left.id, right.id))
+          .map((evidence) => ({
+            id: evidence.id,
+            artifactPath: evidence.artifactPath,
+            digest: evidence.digest,
+            viewport: evidence.viewport,
+            ...(evidence.capturedAt === undefined ? {} : { capturedAt: evidence.capturedAt })
+          }))
       }))
   };
 }
 
+/**
+ * Deterministically blind exactly one submission per arm for every brief.
+ * The digest commits to the hidden allocation without exposing it to scorers.
+ */
+export function createSeededBlindAssignment(
+  rubric: ScoringRubric,
+  candidates: readonly ArmSubmission[],
+  scorerSeed: string
+): BlindAssignment {
+  if (!scorerSeed) throw new Error('scorerSeed is required.');
+  const byBrief = new Map<string, ArmSubmission[]>();
+  for (const candidate of candidates) {
+    const group = byBrief.get(candidate.briefId) ?? [];
+    group.push(candidate);
+    byBrief.set(candidate.briefId, group);
+  }
+  const submissions: BlindSubmission[] = [];
+  const allocations: BlindAllocation[] = [];
+  for (const [briefId, group] of [...byBrief].sort(([left], [right]) =>
+    compareIdentifiers(left, right)
+  )) {
+    if (
+      group.length !== 2 ||
+      new Set(group.map((candidate) => candidate.arm)).size !== 2 ||
+      !group.some((candidate) => candidate.arm === 'unguided') ||
+      !group.some((candidate) => candidate.arm === 'universal_guided')
+    )
+      throw new Error(`Brief "${briefId}" must provide exactly one candidate for each arm.`);
+    const ordered = [...group].sort((left, right) => compareIdentifiers(left.arm, right.arm));
+    const swap = Number.parseInt(sha256(`${briefId}\u0000${scorerSeed}`).slice(-2), 16) & 1;
+    const assigned = swap === 0 ? ordered : [ordered[1]!, ordered[0]!];
+    assigned.forEach((candidate, index) => {
+      const blindId = `${briefId}-${index === 0 ? 'candidate-a' : 'candidate-b'}`;
+      submissions.push({
+        blindId,
+        briefId,
+        suiteVersion: candidate.suiteVersion,
+        sourceEvidence: candidate.sourceEvidence,
+        renderedEvidence: candidate.renderedEvidence
+      });
+      allocations.push({ blindId, arm: candidate.arm });
+    });
+  }
+  const canonicalAllocations = [...allocations].sort((left, right) =>
+    compareIdentifiers(left.blindId, right.blindId)
+  );
+  const assignmentDigest = sha256(
+    serializeDeterministically(
+      { version: 1, scorerSeedDigest: sha256(scorerSeed), allocations: canonicalAllocations },
+      0
+    )
+  );
+  return {
+    packet: createBlindScoringPacket(rubric, submissions, assignmentDigest),
+    allocations: canonicalAllocations,
+    assignmentDigest
+  };
+}
 /**
  * Apply human or machine judgments without inventing visual conclusions.
  * Rendered criteria are always `not_evaluable` until rendered evidence exists.
@@ -163,6 +273,21 @@ export function scoreSubmission(
   const rubricMaxScore = roundScore(
     rubric.criteria.reduce((total, criterion) => total + criterion.maxScore, 0)
   );
+  const rubricById = new Map(rubric.criteria.map((criterion) => [criterion.id, criterion]));
+  const weightedEarned = scored.reduce((total, criterion) => {
+    const weight = rubricById.get(criterion.criterionId)?.weight ?? 0;
+    return total + (criterion.score / criterion.maxScore) * weight;
+  }, 0);
+  const evaluableWeight = scored.reduce(
+    (total, criterion) => total + (rubricById.get(criterion.criterionId)?.weight ?? 0),
+    0
+  );
+  const evaluableSourceWeight = scored
+    .filter((criterion) => rubricById.get(criterion.criterionId)?.evidenceKind !== 'rendered')
+    .reduce((total, criterion) => total + (rubricById.get(criterion.criterionId)?.weight ?? 0), 0);
+  const rubricWeight = rubric.criteria.reduce((total, criterion) => total + criterion.weight, 0);
+  const sufficientCoverage =
+    evaluableSourceWeight + Number.EPSILON >= rubric.minimumEvaluableSourceWeight;
   return {
     blindId: submission.blindId,
     briefId: submission.briefId,
@@ -174,8 +299,12 @@ export function scoreSubmission(
     evaluableMaxScore,
     rubricMaxScore,
     normalizedScore:
-      evaluableMaxScore === 0 ? null : roundScore((earnedScore / evaluableMaxScore) * 100),
-    evaluableFraction: rubricMaxScore === 0 ? 0 : roundScore(evaluableMaxScore / rubricMaxScore)
+      evaluableWeight === 0 || !sufficientCoverage
+        ? null
+        : roundScore((weightedEarned / evaluableWeight) * 100),
+    evaluableFraction: rubricWeight === 0 ? 0 : roundScore(evaluableWeight / rubricWeight),
+    evaluableSourceWeight: roundScore(evaluableSourceWeight),
+    minimumEvaluableSourceWeight: rubric.minimumEvaluableSourceWeight
   };
 }
 
