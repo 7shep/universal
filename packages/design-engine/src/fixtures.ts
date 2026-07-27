@@ -12,6 +12,14 @@ import {
   type ProjectGenerationRequest,
   type SerializedContractMap
 } from './contracts.ts';
+import type { CreativeBrief, DiscoverySession, PageMap } from './discovery-contracts.ts';
+import {
+  answerDiscoveryQuestion,
+  approveDiscoveryBrief,
+  requestDiscoveryApproval,
+  setDiscoveryPageMap,
+  startDiscoverySession
+} from './discovery-session.ts';
 
 const fixtureHero: HeroArchetype = {
   id: 'editorial-masthead',
@@ -236,3 +244,84 @@ export const serializedContractFixtures: {
   'project-request': serializeContract(fixtureProjectRequest),
   'review-context': serializeContract(fixtureReviewContext)
 };
+
+export const fixturePageMap: PageMap = {
+  kind: 'single-page',
+  pages: [
+    {
+      id: 'home',
+      route: '/',
+      name: 'Architecture journal',
+      userGoal: 'Understand the issue theme and browse the featured work.',
+      primaryMessage: 'Architecture can adapt to a changing climate.',
+      requiredSections: ['masthead', 'issue introduction', 'project index', 'about', 'subscribe'],
+      requiredContent: ['issue title', 'editorial introduction', 'project summaries'],
+      primaryAction: 'Browse the projects',
+      secondaryActions: ['Read about the journal', 'Subscribe'],
+      navigationRelationship: 'The only route; navigation uses section anchors.',
+      uniqueResponsibility: 'Introduce the issue and provide the complete reading index.',
+      sharedElements: ['masthead', 'footer'],
+      pageSpecificElements: ['issue introduction', 'project index']
+    }
+  ]
+};
+
+function buildFixtureDiscoverySession(): DiscoverySession {
+  let session = startDiscoverySession({
+    id: 'fixture-editorial-discovery',
+    prompt: fixtureBrief.prompt,
+    now: '2026-07-27T12:00:00.000Z',
+    interpretations: [
+      {
+        topic: 'purpose',
+        value: { summary: 'Publish and organize an independent architecture journal.' },
+        source: 'user',
+        evidence: 'Explicit project prompt.'
+      },
+      {
+        topic: 'audience',
+        value: { summary: fixtureBrief.audience! },
+        source: 'user',
+        evidence: 'Explicit audience field.'
+      },
+      {
+        topic: 'page-content',
+        value: {
+          summary: 'Introduce the issue and provide a browsable, captioned project index.'
+        },
+        source: 'user',
+        evidence: 'Explicit content requirement.'
+      }
+    ]
+  });
+  session = setDiscoveryPageMap(session, fixturePageMap, {
+    now: '2026-07-27T12:01:00.000Z',
+    source: 'user',
+    evidence: 'User confirmed a single-page project.'
+  });
+  for (const topic of [
+    'positioning',
+    'emotional-response',
+    'hero',
+    'navigation',
+    'constraints',
+    'brand-assets',
+    'references',
+    'anti-patterns',
+    'color',
+    'typography',
+    'imagery'
+  ] as const) {
+    session = answerDiscoveryQuestion(session, {
+      questionId: `discovery:${topic}`,
+      topic,
+      mode: 'use-judgment',
+      answeredAt: '2026-07-27T12:02:00.000Z'
+    });
+  }
+  session = requestDiscoveryApproval(session, '2026-07-27T12:03:00.000Z');
+  return approveDiscoveryBrief(session, '2026-07-27T12:04:00.000Z');
+}
+
+export const fixtureDiscoverySession = buildFixtureDiscoverySession();
+export const fixtureCreativeBrief: CreativeBrief = fixtureDiscoverySession.brief!;
