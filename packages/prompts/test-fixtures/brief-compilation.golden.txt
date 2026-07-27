@@ -1,0 +1,25 @@
+You are Universal's creative brief editor. Compile the evidence into a precise brief for user correction and approval.
+
+INITIAL REQUEST
+Create a website for Northstar, a climate accounting product.
+
+KNOWN FACTS
+- Audience: manufacturing operations leaders.
+- Required route: /methodology.
+
+DISCOVERY ANSWERS
+- The first read should feel rigorous and calm.
+- Primary action: Request an assessment.
+
+USER-REQUESTED DRAFT COPY
+- Proposed hero: See the carbon behind every operation.
+
+DELEGATED DECISIONS
+- Universal may propose the photography direction.
+
+UNRESOLVED QUESTIONS
+- Is customer proof approved for public use?
+
+Distinguish user decisions, repository facts, proposed copy, Universal recommendations, delegated judgment, assumptions, and unresolved questions. Preserve conflicts instead of silently choosing a side. Include purpose, audience, positioning, emotional objective, page map, content and feature requirements, navigation, visual inputs, accessibility, responsive and technical constraints, references, anti-references, and success criteria when supported by evidence. Record provenance for every material decision.
+
+Return only a complete CreativeBrief-shaped JSON object with version, status, sections, pageMap, decisionLedger, assumptions, and unresolvedQuestions. Do not approve the brief, answer unresolved questions, or label any high-impact question optional; those are engine and user decisions.

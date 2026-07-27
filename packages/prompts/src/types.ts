@@ -1,4 +1,13 @@
-export type PromptPurpose = 'direction' | 'generation' | 'critique' | 'revision';
+export type PromptPurpose =
+  | 'fact-extraction'
+  | 'copy-drafting'
+  | 'brief-compilation'
+  | 'concept-development'
+  | 'direction-evaluation'
+  | 'direction'
+  | 'generation'
+  | 'critique'
+  | 'revision';
 
 export interface PromptReference {
   readonly id: string;
@@ -116,6 +125,39 @@ export interface DesignDirectionPromptInput {
   readonly reducedMotionBehavior: string;
 }
 
+export interface InitialFactExtractionPromptInput {
+  readonly request: string;
+  readonly repositoryContext?: string | undefined;
+  readonly priorAnswers?: readonly string[] | undefined;
+}
+
+export interface UserRequestedCopyDraftingPromptInput {
+  readonly request: string;
+  readonly knownFacts: readonly string[];
+  readonly copyTargets: readonly string[];
+  readonly constraints?: readonly string[] | undefined;
+}
+
+export interface CreativeBriefCompilationPromptInput {
+  readonly initialRequest: string;
+  readonly knownFacts: readonly string[];
+  readonly discoveryAnswers: readonly string[];
+  readonly draftedCopy?: readonly string[] | undefined;
+  readonly delegatedDecisions?: readonly string[] | undefined;
+  readonly unresolvedQuestions?: readonly string[] | undefined;
+}
+
+export interface ConceptDevelopmentPromptInput {
+  readonly approvedBrief: string;
+  readonly conceptCount?: number | undefined;
+  readonly protectedConstraints: readonly string[];
+}
+
+export interface DirectionEvaluationPromptInput {
+  readonly approvedBrief: string;
+  readonly concepts: readonly string[];
+  readonly evaluationCriteria?: readonly string[] | undefined;
+}
 export interface ReactGenerationPromptInput {
   readonly plan: DesignPlanPromptInput;
   readonly content: string;

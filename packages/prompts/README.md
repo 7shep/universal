@@ -1,8 +1,12 @@
 # `@universal/prompts`
 
-Provider-neutral, typed prompt assembly for Universal's direction, generation, critique, and scoped
-revision flows. Core definitions render plain text and output expectations; provider adapters own chat
-roles, message arrays, tool declarations, and response-format settings.
+Provider-neutral, typed prompt assembly for Universal's discovery, copy drafting, creative-brief,
+concept, direction, generation, critique, and scoped revision flows. Core definitions render plain text
+and output expectations; provider adapters own chat roles, message arrays, tool declarations, and
+response-format settings.
+
+Discovery prompts extract evidence and describe unresolved decisions; deterministic engine policy owns
+question impact, optionality, ordering, deferral, and brief-approval gates.
 
 ## Saved references and migration
 
