@@ -106,13 +106,18 @@ export interface SectionCompositionSignatureV2 {
   sectionId: SectionId;
   kind: CompositionSection['kind'];
   pattern: string;
+  /** Semantic source/DOM order, retained explicitly in persisted signatures. */
+  readingOrder: readonly SpatialSlot[];
   slotSequence: readonly SpatialSlot[];
+  responsiveTransformations: readonly ResponsiveTransformation[];
 }
 
 export interface PageCompositionSignatureV2 {
   pageId: PageId;
   route: string;
   navigationMode: NavigationId;
+  /** Semantic section order, independent of the contract's section storage order. */
+  readingOrder: readonly SectionId[];
   sectionSequence: readonly SectionCompositionSignatureV2[];
 }
 
@@ -620,13 +625,50 @@ const sectionSignatureSimilarityV2 = (
   a: SectionCompositionSignatureV2,
   b: SectionCompositionSignatureV2
 ): number => {
-  const kind = a.kind === b.kind ? 0.25 : 0;
-  const pattern = a.pattern === b.pattern ? 0.5 : 0;
+  const identity = a.sectionId === b.sectionId ? 0.1 : 0;
+  const kind = a.kind === b.kind ? 0.1 : 0;
+  const pattern = a.pattern === b.pattern ? 0.3 : 0;
   const maxSlots = Math.max(a.slotSequence.length, b.slotSequence.length, 1);
   const slots =
     (a.slotSequence.filter((slot, index) => b.slotSequence[index] === slot).length / maxSlots) *
-    0.25;
-  return kind + pattern + slots;
+    0.15;
+  const maxReadingOrder = Math.max(a.readingOrder.length, b.readingOrder.length, 1);
+  const readingOrder =
+    (a.readingOrder.filter((slot, index) => b.readingOrder[index] === slot).length /
+      maxReadingOrder) *
+    0.15;
+  const aTransformations = new Map(
+    a.responsiveTransformations.map((transformation) => [transformation.viewport, transformation])
+  );
+  const bTransformations = new Map(
+    b.responsiveTransformations.map((transformation) => [transformation.viewport, transformation])
+  );
+  const transformationViewports = new Set([...aTransformations.keys(), ...bTransformations.keys()]);
+  const transformations =
+    transformationViewports.size === 0
+      ? 1
+      : [...transformationViewports].reduce((score, viewport) => {
+          const left = aTransformations.get(viewport);
+          const right = bTransformations.get(viewport);
+          if (!left || !right) return score;
+          const strategy = left.strategy === right.strategy ? 0.3 : 0;
+          const maxVisualOrder = Math.max(left.visualOrder.length, right.visualOrder.length, 1);
+          const visualOrder =
+            (left.visualOrder.filter((slot, index) => right.visualOrder[index] === slot).length /
+              maxVisualOrder) *
+            0.35;
+          const maxTransformationReadingOrder = Math.max(
+            left.readingOrder.length,
+            right.readingOrder.length,
+            1
+          );
+          const transformationReadingOrder =
+            (left.readingOrder.filter((slot, index) => right.readingOrder[index] === slot).length /
+              maxTransformationReadingOrder) *
+            0.35;
+          return score + strategy + visualOrder + transformationReadingOrder;
+        }, 0) / transformationViewports.size;
+  return identity + kind + pattern + slots + readingOrder + transformations * 0.2;
 };
 
 const pageSignatureSimilarityV2 = (
@@ -658,13 +700,16 @@ export const multiPageSignatureSimilarity = (
   a: MultiPageCompositionSignature,
   b: MultiPageCompositionSignature
 ): number => {
-  const maxPages = Math.max(a.pages.length, b.pages.length, 1);
+  const aPages = new Map(a.pages.map((page) => [page.pageId, page]));
+  const bPages = new Map(b.pages.map((page) => [page.pageId, page]));
+  const pageIds = new Set([...aPages.keys(), ...bPages.keys()]);
+  // A page missing from either signature contributes zero; shared pages align by stable pageId.
   const score =
-    a.pages.reduce(
-      (total, page, index) =>
-        total + (b.pages[index] ? pageSignatureSimilarityV2(page, b.pages[index]) : 0),
-      0
-    ) / maxPages;
+    [...pageIds].reduce((total, pageId) => {
+      const left = aPages.get(pageId);
+      const right = bPages.get(pageId);
+      return total + (left && right ? pageSignatureSimilarityV2(left, right) : 0);
+    }, 0) / Math.max(pageIds.size, 1);
   return Number(score.toFixed(3));
 };
 
@@ -688,17 +733,40 @@ export function createMultiPageCompositionSignature(
 ): MultiPageCompositionSignature {
   return {
     version: 2,
-    pages: pages.map((page) => ({
-      pageId: page.pageId,
-      route: page.route,
-      navigationMode: page.navigationMode,
-      sectionSequence: page.sections.map((section) => ({
-        sectionId: section.sectionId,
-        kind: section.kind,
-        pattern: section.pattern,
-        slotSequence: [...section.slots]
-      }))
-    })),
+    pages: pages.map((page) => {
+      const sectionsById = new Map(page.sections.map((section) => [section.sectionId, section]));
+      return {
+        pageId: page.pageId,
+        route: page.route,
+        navigationMode: page.navigationMode,
+        readingOrder: [...page.readingOrder],
+        sectionSequence: page.readingOrder.map((sectionId) => {
+          const section = sectionsById.get(sectionId);
+          if (!section)
+            throw new TypeError(
+              `Page ${page.pageId} readingOrder references missing section ${sectionId}.`
+            );
+          return {
+            sectionId: section.sectionId,
+            kind: section.kind,
+            pattern: section.pattern,
+            readingOrder: [...section.readingOrder],
+            slotSequence: [...section.readingOrder],
+            responsiveTransformations: page.responsiveTransformations
+              .filter((transformation) => transformation.sectionId === section.sectionId)
+              .sort(
+                (left, right) =>
+                  (left.viewport === 'tablet' ? 0 : 1) - (right.viewport === 'tablet' ? 0 : 1)
+              )
+              .map((transformation) => ({
+                ...transformation,
+                visualOrder: [...transformation.visualOrder],
+                readingOrder: [...transformation.readingOrder]
+              }))
+          };
+        })
+      };
+    }),
     ...(palette === undefined ? {} : { palette })
   };
 }
@@ -1052,6 +1120,11 @@ export function validateMultiPageCompositionSignature(
           path: `${pagePath}.navigationMode`,
           message: 'Signature navigation mode is invalid.'
         });
+      if (!isStringArray(page.readingOrder) || page.readingOrder.length === 0)
+        errors.push({
+          path: `${pagePath}.readingOrder`,
+          message: 'Signature page readingOrder must contain section ids.'
+        });
       if (!Array.isArray(page.sectionSequence) || page.sectionSequence.length === 0) {
         errors.push({
           path: `${pagePath}.sectionSequence`,
@@ -1084,6 +1157,14 @@ export function validateMultiPageCompositionSignature(
           });
         requireString(section, 'pattern', sectionPath, errors);
         if (
+          !isSupportedSlotArray(section.readingOrder) ||
+          new Set(section.readingOrder).size !== section.readingOrder.length
+        )
+          errors.push({
+            path: `${sectionPath}.readingOrder`,
+            message: 'Signature section readingOrder is invalid.'
+          });
+        if (
           !isSupportedSlotArray(section.slotSequence) ||
           new Set(section.slotSequence).size !== section.slotSequence.length
         )
@@ -1091,7 +1172,70 @@ export function validateMultiPageCompositionSignature(
             path: `${sectionPath}.slotSequence`,
             message: 'Signature slotSequence is invalid.'
           });
+        else if (
+          isSupportedSlotArray(section.readingOrder) &&
+          !orderedValuesEqual(section.slotSequence, section.readingOrder)
+        )
+          errors.push({
+            path: `${sectionPath}.slotSequence`,
+            message: 'Signature slotSequence must follow section readingOrder.'
+          });
+        if (!Array.isArray(section.responsiveTransformations))
+          errors.push({
+            path: `${sectionPath}.responsiveTransformations`,
+            message: 'Signature responsiveTransformations must be an array.'
+          });
+        else {
+          const viewports = new Set<string>();
+          for (const [
+            transformationIndex,
+            transformation
+          ] of section.responsiveTransformations.entries()) {
+            const transformationPath = `${sectionPath}.responsiveTransformations.${transformationIndex}`;
+            const result = validateResponsiveTransformation(transformation, transformationPath);
+            if (!result.ok) errors.push(...result.errors);
+            if (!isRecord(transformation)) continue;
+            if (transformation.pageId !== page.pageId)
+              errors.push({
+                path: `${transformationPath}.pageId`,
+                message: 'Signature transformation references a different page.'
+              });
+            if (transformation.sectionId !== section.sectionId)
+              errors.push({
+                path: `${transformationPath}.sectionId`,
+                message: 'Signature transformation references a different section.'
+              });
+            if (isNonEmptyString(transformation.viewport)) {
+              if (viewports.has(transformation.viewport))
+                errors.push({
+                  path: transformationPath,
+                  message: `Duplicate ${transformation.viewport} signature transformation.`
+                });
+              viewports.add(transformation.viewport);
+            }
+          }
+        }
       }
+      if (
+        isStringArray(page.readingOrder) &&
+        !isUniquePermutation(page.readingOrder, [...sectionIds])
+      )
+        errors.push({
+          path: `${pagePath}.readingOrder`,
+          message:
+            'Signature page readingOrder must reference every signature section exactly once.'
+        });
+      else if (
+        isStringArray(page.readingOrder) &&
+        !orderedValuesEqual(
+          page.readingOrder,
+          page.sectionSequence.filter(isRecord).map((section) => section.sectionId)
+        )
+      )
+        errors.push({
+          path: `${pagePath}.sectionSequence`,
+          message: 'Signature sectionSequence must follow page readingOrder.'
+        });
     }
   }
   return validationResult<MultiPageCompositionSignature>(value, errors);

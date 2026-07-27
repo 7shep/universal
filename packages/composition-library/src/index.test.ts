@@ -301,3 +301,63 @@ test('v2 structural similarity detects palette-only variants', () => {
   changed.pages[0]!.sectionSequence[0]!.pattern = 'cinematic-field';
   assert.ok(multiPageSignatureSimilarity(oxide, changed) < 1);
 });
+
+test('v2 signatures follow declared reading order instead of section storage order', () => {
+  const reorderedStorage = structuredClone(pageContract);
+  reorderedStorage.sections = [...reorderedStorage.sections].reverse();
+
+  const original = createMultiPageCompositionSignature([pageContract]);
+  const reordered = createMultiPageCompositionSignature([reorderedStorage]);
+  assert.deepEqual(reordered, original);
+  assert.deepEqual(
+    reordered.pages[0]?.sectionSequence.map((section) => section.sectionId),
+    pageContract.readingOrder
+  );
+});
+
+test('v2 signatures distinguish changed semantic section and slot order', () => {
+  const changedPageOrder = structuredClone(pageContract);
+  changedPageOrder.readingOrder = [...changedPageOrder.readingOrder].reverse();
+  const changedSlotOrder = structuredClone(pageContract);
+  changedSlotOrder.sections[0]!.readingOrder = ['media', 'headline', 'actions'];
+  changedSlotOrder.responsiveTransformations[0]!.readingOrder = ['media', 'headline', 'actions'];
+
+  const original = createMultiPageCompositionSignature([pageContract]);
+  const pageOrderSignature = createMultiPageCompositionSignature([changedPageOrder]);
+  const slotOrderSignature = createMultiPageCompositionSignature([changedSlotOrder]);
+  assert.notDeepEqual(pageOrderSignature, original);
+  assert.notDeepEqual(slotOrderSignature, original);
+  assert.ok(multiPageSignatureSimilarity(original, pageOrderSignature) < 1);
+  assert.ok(multiPageSignatureSimilarity(original, slotOrderSignature) < 1);
+});
+
+test('v2 signatures distinguish responsive-only structural changes', () => {
+  const responsiveChange = structuredClone(pageContract);
+  responsiveChange.responsiveTransformations[0]!.strategy = 'reflow';
+  responsiveChange.responsiveTransformations[0]!.visualOrder = ['headline', 'media', 'actions'];
+
+  const original = createMultiPageCompositionSignature([pageContract]);
+  const changed = createMultiPageCompositionSignature([responsiveChange]);
+  assert.notDeepEqual(changed, original);
+  assert.ok(multiPageSignatureSimilarity(original, changed) < 1);
+});
+
+test('v2 similarity aligns pages by stable identity and penalizes missing pages', () => {
+  const aboutPage = structuredClone(pageContract);
+  aboutPage.pageId = 'page:about';
+  aboutPage.route = '/about';
+  aboutPage.sections = aboutPage.sections.map((section) => ({
+    ...section,
+    pageId: aboutPage.pageId
+  }));
+  aboutPage.responsiveTransformations = aboutPage.responsiveTransformations.map(
+    (transformation) => ({ ...transformation, pageId: aboutPage.pageId })
+  );
+
+  const forward = createMultiPageCompositionSignature([pageContract, aboutPage]);
+  const reversed = createMultiPageCompositionSignature([aboutPage, pageContract]);
+  const missing = createMultiPageCompositionSignature([pageContract]);
+  assert.equal(multiPageSignatureSimilarity(forward, reversed), 1);
+  assert.equal(multiPageSignatureSimilarity(forward, missing), 0.5);
+  assert.equal(multiPageSignatureSimilarity(missing, forward), 0.5);
+});
