@@ -203,11 +203,16 @@ export interface DiscoveryPolicyResult {
   canApprove: boolean;
 }
 
+export type DecisionRevisionInput = Omit<
+  DecisionProvenance,
+  'id' | 'revision' | 'requiresConfirmation'
+>;
+
 export interface CreativeBriefRevisionInput {
   reason: string;
   now: string;
   interpretations?: readonly DiscoveryInterpretation[] | undefined;
-  decisions?: readonly DecisionProvenance[] | undefined;
+  decisions?: readonly DecisionRevisionInput[] | undefined;
   pageMap?: PageMap | undefined;
 }
 

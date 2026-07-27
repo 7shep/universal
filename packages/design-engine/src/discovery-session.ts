@@ -210,7 +210,6 @@ export interface SetPageMapOptions {
   now: string;
   source: Exclude<DiscoverySource, 'policy'>;
   evidence: string;
-  disposition?: DecisionDisposition | undefined;
 }
 
 export function setDiscoveryPageMap(
@@ -222,7 +221,7 @@ export function setDiscoveryPageMap(
   const validation = validatePageMap(pageMap);
   if (!validation.ok)
     throw new Error(`Invalid page map at ${validation.error.path}: ${validation.error.message}`);
-  const disposition = options.disposition ?? (options.source === 'model' ? 'drafted' : 'explicit');
+  const disposition: DecisionDisposition = options.source === 'model' ? 'drafted' : 'explicit';
   const mapDecision = decision(
     mutable,
     'page-map',

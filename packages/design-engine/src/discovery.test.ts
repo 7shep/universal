@@ -11,6 +11,8 @@ import {
   setDiscoveryPageMap,
   startDiscoverySession,
   toDesignPlanBrief,
+  validateCreativeBrief,
+  validateDiscoverySession,
   validatePageMap,
   type DiscoverySession,
   type PageMap
@@ -148,15 +150,12 @@ test('approval, digest, revision, and DesignPlanBrief conversion round-trip', ()
     reason: 'Focus the audience on release managers.',
     decisions: [
       {
-        id: 'decision:audience:2',
         topic: 'audience',
         value: { summary: 'Release managers at small product teams.' },
         source: 'user',
         disposition: 'explicit',
         answerMode: 'exact',
-        evidence: 'User revision.',
-        revision: 2,
-        requiresConfirmation: false
+        evidence: 'User revision.'
       }
     ]
   });
@@ -199,4 +198,116 @@ test('page-map changes invalidate pending approval and cannot mutate an approved
       }),
     /reopen the approved brief/i
   );
+});
+test('model page maps cannot claim explicit provenance through caller options', () => {
+  const session = startDiscoverySession({
+    id: 'page-map-boundary',
+    prompt: 'A product site.',
+    now: '2026-07-27T11:00:00.000Z'
+  });
+  const updated = setDiscoveryPageMap(session, pageMap, {
+    now: '2026-07-27T11:01:00.000Z',
+    source: 'model',
+    evidence: 'Model proposed a one-page structure.',
+    disposition: 'explicit'
+  } as never);
+  const decision = updated.decisions.at(-1)!;
+  assert.equal(decision.source, 'model');
+  assert.equal(decision.disposition, 'drafted');
+  assert.equal(decision.requiresConfirmation, true);
+  assert.equal(
+    evaluateDiscoveryPolicy(updated).missing.find((item) => item.topic === 'page-map')?.reason,
+    'confirmation-required'
+  );
+});
+
+test('brief revisions normalize malicious provenance and confirmation fields', () => {
+  let session = completeCore();
+  session = requestDiscoveryApproval(session, '2026-07-27T11:02:00.000Z');
+  session = requestDiscoveryRevision(session, '2026-07-27T11:03:00.000Z', 'Test trust boundary.');
+  session = reviseDiscoveryBrief(session, {
+    now: '2026-07-27T11:04:00.000Z',
+    reason: 'Model proposed a new audience.',
+    decisions: [
+      {
+        id: 'decision:audience:999',
+        topic: 'audience',
+        value: { summary: 'Enterprise release organizations.' },
+        source: 'model',
+        disposition: 'explicit',
+        evidence: 'Inferred from surrounding copy.',
+        revision: 999,
+        requiresConfirmation: false
+      }
+    ]
+  } as never);
+  const decision = session.decisions.at(-1)!;
+  assert.equal(decision.id, 'decision:audience:2');
+  assert.equal(decision.revision, 2);
+  assert.equal(decision.disposition, 'assumed');
+  assert.equal(decision.requiresConfirmation, true);
+  assert.equal(
+    session.brief?.unresolved.find((item) => item.topic === 'audience')?.reason,
+    'confirmation-required'
+  );
+});
+
+test('bare page maps in brief revisions remain untrusted drafts', () => {
+  let session = completeCore();
+  session = requestDiscoveryApproval(session, '2026-07-27T11:04:30.000Z');
+  session = requestDiscoveryRevision(session, '2026-07-27T11:04:40.000Z', 'Change structure.');
+  session = reviseDiscoveryBrief(session, {
+    now: '2026-07-27T11:04:50.000Z',
+    reason: 'Propose a revised page structure.',
+    pageMap: {
+      ...pageMap,
+      pages: [{ ...pageMap.pages[0]!, name: 'Revised home' }]
+    }
+  });
+  const mapDecision = session.decisions.at(-1)!;
+  assert.equal(mapDecision.topic, 'page-map');
+  assert.equal(mapDecision.source, 'model');
+  assert.equal(mapDecision.disposition, 'drafted');
+  assert.equal(mapDecision.requiresConfirmation, true);
+  assert.equal(
+    session.brief?.unresolved.find((item) => item.topic === 'page-map')?.reason,
+    'confirmation-required'
+  );
+});
+test('validators reject forged digests, duplicate revisions, and divergent nested state', () => {
+  let session = completeCore();
+  session = requestDiscoveryApproval(session, '2026-07-27T11:05:00.000Z');
+  session = approveDiscoveryBrief(session, '2026-07-27T11:06:00.000Z', 'alex');
+  const brief = session.brief!;
+
+  const forgedBrief = {
+    ...brief,
+    content: { ...brief.content, purpose: { summary: 'Tampered purpose.' } }
+  };
+  const forgedResult = validateCreativeBrief(forgedBrief);
+  assert.equal(forgedResult.ok, false);
+  if (!forgedResult.ok) assert.equal(forgedResult.error.path, 'digest');
+
+  const duplicateDecision = brief.decisions[0]!;
+  const duplicateResult = validateCreativeBrief({
+    ...brief,
+    decisions: [...brief.decisions, duplicateDecision]
+  });
+  assert.equal(duplicateResult.ok, false);
+  if (!duplicateResult.ok) assert.match(duplicateResult.error.message, /unique/i);
+
+  const divergentApproval = validateDiscoverySession({
+    ...session,
+    approval: { status: 'brief-ready' }
+  });
+  assert.equal(divergentApproval.ok, false);
+  if (!divergentApproval.ok)
+    assert.match(divergentApproval.error.message, /approval states must match/i);
+
+  const forgedNestedDigest = validateDiscoverySession({
+    ...session,
+    brief: { ...brief, digest: 'discovery-v1-deadbeef' }
+  });
+  assert.equal(forgedNestedDigest.ok, false);
+  if (!forgedNestedDigest.ok) assert.equal(forgedNestedDigest.error.path, 'brief.digest');
 });

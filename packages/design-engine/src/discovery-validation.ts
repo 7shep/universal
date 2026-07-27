@@ -14,6 +14,7 @@ import {
   type PageMap,
   type PageMapEntry
 } from './discovery-contracts.ts';
+import { digestCreativeBrief } from './discovery-digest.ts';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
@@ -23,6 +24,27 @@ const stringArray = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every(nonEmpty);
 const invalid = (path: string, message: string): Result<never, ContractValidationError> =>
   failure({ path, message });
+const highImpactTopics = new Set(['purpose', 'audience', 'page-map', 'page-content']);
+
+function structurallyEqual(left: unknown, right: unknown): boolean {
+  if (Object.is(left, right)) return true;
+  if (Array.isArray(left) || Array.isArray(right))
+    return (
+      Array.isArray(left) &&
+      Array.isArray(right) &&
+      left.length === right.length &&
+      left.every((item, index) => structurallyEqual(item, right[index]))
+    );
+  if (!isRecord(left) || !isRecord(right)) return false;
+  const leftKeys = Object.keys(left).sort();
+  const rightKeys = Object.keys(right).sort();
+  return (
+    leftKeys.length === rightKeys.length &&
+    leftKeys.every(
+      (key, index) => key === rightKeys[index] && structurallyEqual(left[key], right[key])
+    )
+  );
+}
 
 function validateApproval(
   value: unknown,
@@ -188,11 +210,49 @@ export function validateDecisionProvenance(
     return invalid(`${path}.revision`, 'Decision revision must be a positive integer.');
   if (typeof value.requiresConfirmation !== 'boolean')
     return invalid(`${path}.requiresConfirmation`, 'requiresConfirmation must be boolean.');
+  if (value.answerMode !== undefined && !DISCOVERY_ANSWER_MODES.includes(value.answerMode as never))
+    return invalid(`${path}.answerMode`, 'Decision answer mode is invalid.');
+  const modelDisposition = value.disposition === 'assumed' || value.disposition === 'drafted';
+  if ((value.source === 'model') !== modelDisposition)
+    return invalid(
+      `${path}.disposition`,
+      'Model decisions must be assumed or drafted, and those dispositions require model source.'
+    );
+  const expectedConfirmation =
+    highImpactTopics.has(String(value.topic)) && (value.source === 'model' || modelDisposition);
+  if (value.requiresConfirmation !== expectedConfirmation)
+    return invalid(
+      `${path}.requiresConfirmation`,
+      `requiresConfirmation must be ${String(expectedConfirmation)} for this provenance.`
+    );
+  if (value.id !== `decision:${String(value.topic)}:${String(value.revision)}`)
+    return invalid(`${path}.id`, 'Decision id must match its topic and revision.');
   const discovered = validateDiscoveryValue(value.value, `${path}.value`);
   if (!discovered.ok) return discovered;
   return success(value as unknown as DecisionProvenance);
 }
 
+function validateDecisionCollection(
+  value: unknown,
+  path: string
+): Result<readonly DecisionProvenance[], ContractValidationError> {
+  if (!Array.isArray(value)) return invalid(path, 'Decisions must be an array.');
+  const ids = new Set<string>();
+  const revisions = new Set<string>();
+  for (const [index, decision] of value.entries()) {
+    const decisionPath = `${path}.${index}`;
+    const result = validateDecisionProvenance(decision, decisionPath);
+    if (!result.ok) return result;
+    if (ids.has(result.value.id))
+      return invalid(`${decisionPath}.id`, 'Decision ids must be unique.');
+    const revisionKey = `${result.value.topic}:${result.value.revision}`;
+    if (revisions.has(revisionKey))
+      return invalid(`${decisionPath}.revision`, 'Decision revisions must be unique per topic.');
+    ids.add(result.value.id);
+    revisions.add(revisionKey);
+  }
+  return success(value as readonly DecisionProvenance[]);
+}
 export function validateDiscoverySession(
   value: unknown
 ): Result<DiscoverySession, ContractValidationError> {
@@ -212,17 +272,37 @@ export function validateDiscoverySession(
     const result = validateDiscoveryAnswer(answer, `answers.${index}`);
     if (!result.ok) return result;
   }
-  if (!Array.isArray(value.decisions)) return invalid('decisions', 'Decisions must be an array.');
-  for (const [index, decision] of value.decisions.entries()) {
-    const result = validateDecisionProvenance(decision, `decisions.${index}`);
-    if (!result.ok) return result;
-  }
+  const decisions = validateDecisionCollection(value.decisions, 'decisions');
+  if (!decisions.ok) return decisions;
   if (value.pageMap !== undefined) {
     const result = validatePageMap(value.pageMap);
     if (!result.ok) return result;
   }
   const approval = validateApproval(value.approval, 'approval');
   if (!approval.ok) return approval;
+  if (value.brief === undefined) {
+    if (approval.value.status !== 'discovering')
+      return invalid('approval.status', 'A session without a brief must be discovering.');
+  } else {
+    const brief = validateCreativeBrief(value.brief);
+    if (!brief.ok) {
+      const nestedPath = brief.error.path === '$' ? 'brief' : `brief.${brief.error.path}`;
+      return invalid(nestedPath, brief.error.message);
+    }
+    if (brief.value.id !== `brief:${String(value.id)}`)
+      return invalid('brief.id', 'Brief id must match its discovery session.');
+    if (!structurallyEqual(approval.value, brief.value.approval))
+      return invalid('approval', 'Session and brief approval states must match.');
+    if (value.updatedAt !== brief.value.updatedAt)
+      return invalid('updatedAt', 'Session and brief timestamps must match while a brief exists.');
+    if (!structurallyEqual(decisions.value, brief.value.decisions))
+      return invalid('brief.decisions', 'Session and brief decisions must match.');
+    if (
+      value.pageMap === undefined ||
+      !structurallyEqual(value.pageMap, brief.value.content.pageMap)
+    )
+      return invalid('brief.content.pageMap', 'Session and brief page maps must match.');
+  }
   return success(value as unknown as DiscoverySession);
 }
 
@@ -257,14 +337,39 @@ export function validateCreativeBrief(
     )
   )
     return invalid('content.references', 'Creative brief references are invalid.');
-  if (!Array.isArray(value.decisions)) return invalid('decisions', 'Decisions must be an array.');
-  for (const [index, decision] of value.decisions.entries()) {
-    const result = validateDecisionProvenance(decision, `decisions.${index}`);
-    if (!result.ok) return result;
-  }
+  const decisions = validateDecisionCollection(value.decisions, 'decisions');
+  if (!decisions.ok) return decisions;
   if (!Array.isArray(value.unresolved))
     return invalid('unresolved', 'Unresolved information must be an array.');
   if (!Array.isArray(value.revisions)) return invalid('revisions', 'Revisions must be an array.');
+  if (value.revisions.length !== Number(value.version) - 1)
+    return invalid(
+      'revisions',
+      'Revision history must contain one entry per version after version 1.'
+    );
+  const revisionVersions = new Set<number>();
+  for (const [index, revision] of value.revisions.entries()) {
+    const path = `revisions.${index}`;
+    if (!isRecord(revision)) return invalid(path, 'Brief revision must be an object.');
+    if (!Number.isSafeInteger(revision.version) || Number(revision.version) < 2)
+      return invalid(`${path}.version`, 'Revision version must be an integer of at least 2.');
+    if (revision.version !== index + 2 || revisionVersions.has(Number(revision.version)))
+      return invalid(`${path}.version`, 'Revision versions must be unique and sequential.');
+    revisionVersions.add(Number(revision.version));
+    for (const field of ['revisedAt', 'reason', 'digest'] as const)
+      if (!nonEmpty(revision[field])) return invalid(`${path}.${field}`, `${field} is required.`);
+    if (
+      !Array.isArray(revision.changedTopics) ||
+      !revision.changedTopics.every((topic) => DISCOVERY_TOPICS.includes(topic as never))
+    )
+      return invalid(`${path}.changedTopics`, 'Changed topics are invalid.');
+  }
+  const latestRevision = value.revisions.at(-1);
+  if (isRecord(latestRevision) && latestRevision.digest !== value.digest)
+    return invalid('revisions', 'Latest revision digest must match the current brief digest.');
+  const expectedDigest = digestCreativeBrief(value as unknown as CreativeBrief);
+  if (value.digest !== expectedDigest)
+    return invalid('digest', 'Creative brief digest does not match its content and decisions.');
   const approval = validateApproval(value.approval, 'approval');
   if (!approval.ok) return approval;
   if (approval.value.status === 'approved' && approval.value.approvedDigest !== value.digest)

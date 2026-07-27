@@ -8,11 +8,14 @@ import {
   type CreativeBrief,
   type CreativeBriefContent,
   type CreativeBriefRevisionInput,
+  type DecisionDisposition,
   type DecisionProvenance,
+  type DecisionRevisionInput,
   type DiscoverySession,
   type DiscoveryTopic,
   type DiscoveryValue
 } from './discovery-contracts.ts';
+import { digestCreativeBrief } from './discovery-digest.ts';
 import { evaluateDiscoveryPolicy } from './discovery-policy.ts';
 import {
   validateCreativeBrief,
@@ -102,40 +105,7 @@ function buildContent(session: DiscoverySession): CreativeBriefContent {
   return content;
 }
 
-function canonicalize(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(canonicalize).join(',')}]`;
-  if (value && typeof value === 'object') {
-    const record = value as Record<string, unknown>;
-    return `{${Object.keys(record)
-      .sort()
-      .map((key) => `${JSON.stringify(key)}:${canonicalize(record[key])}`)
-      .join(',')}}`;
-  }
-  return JSON.stringify(value);
-}
-
-function fnv1a(value: string): string {
-  let hash = 0x811c9dc5;
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return (hash >>> 0).toString(16).padStart(8, '0');
-}
-
-export function digestCreativeBrief(
-  brief: Pick<CreativeBrief, 'contractVersion' | 'id' | 'version' | 'content' | 'decisions'>
-): string {
-  return `discovery-v1-${fnv1a(
-    canonicalize({
-      contractVersion: brief.contractVersion,
-      id: brief.id,
-      version: brief.version,
-      content: brief.content,
-      decisions: brief.decisions
-    })
-  )}`;
-}
+export { digestCreativeBrief } from './discovery-digest.ts';
 
 export function createCreativeBrief(session: DiscoverySession, now: string): CreativeBrief {
   const policy = evaluateDiscoveryPolicy(session);
@@ -162,57 +132,125 @@ export function createCreativeBrief(session: DiscoverySession, now: string): Cre
   return brief;
 }
 
+const highImpactTopics = new Set<DiscoveryTopic>([
+  'purpose',
+  'audience',
+  'page-map',
+  'page-content'
+]);
+
+function normalizeRevisionDisposition(input: DecisionRevisionInput): DecisionDisposition {
+  if (input.source === 'model')
+    return input.disposition === 'drafted' || input.answerMode === 'draft' ? 'drafted' : 'assumed';
+  if (input.source === 'repository') return 'explicit';
+  if (input.source === 'policy')
+    throw new Error('Policy decisions cannot be supplied through creative brief revisions.');
+  if (input.source !== 'user') throw new Error('Revision decision source is invalid.');
+  if (input.answerMode === 'exact') return 'explicit';
+  if (input.answerMode === 'preference') return 'preferred';
+  if (input.answerMode === 'use-judgment') return 'delegated';
+  if (input.answerMode === 'draft' || input.answerMode === 'unknown')
+    throw new Error(`Answer mode ${input.answerMode} cannot produce a user revision decision.`);
+  return ['explicit', 'preferred', 'delegated'].includes(input.disposition)
+    ? input.disposition
+    : 'explicit';
+}
+
+function revisionRequiresConfirmation(
+  topic: DiscoveryTopic,
+  source: DecisionRevisionInput['source'],
+  disposition: DecisionDisposition
+): boolean {
+  return (
+    highImpactTopics.has(topic) &&
+    (source === 'model' || disposition === 'assumed' || disposition === 'drafted')
+  );
+}
 export function reviseCreativeBrief(
   brief: CreativeBrief,
   input: CreativeBriefRevisionInput
 ): CreativeBrief {
+  const current = validateCreativeBrief(brief);
+  if (!current.ok)
+    throw new Error(`Invalid creative brief at ${current.error.path}: ${current.error.message}`);
+  if (!input.reason.trim() || !input.now.trim())
+    throw new Error('Creative brief revision reason and timestamp are required.');
   if (!['brief-ready', 'revision-requested'].includes(brief.approval.status))
     throw new Error(`Cannot revise a brief from ${brief.approval.status} state.`);
   const changed = new Set<DiscoveryTopic>();
   const revisionCounts = new Map<DiscoveryTopic, number>();
-  const interpretedDecisions: DecisionProvenance[] = (input.interpretations ?? []).map(
-    (interpretation) => {
-      const revision =
-        (revisionCounts.get(interpretation.topic) ??
-          brief.decisions.filter((decision) => decision.topic === interpretation.topic).length) + 1;
-      revisionCounts.set(interpretation.topic, revision);
-      const assumed = interpretation.source === 'model';
-      return {
-        id: `decision:${interpretation.topic}:${revision}`,
-        topic: interpretation.topic,
-        value: interpretation.value,
-        source: interpretation.source,
-        disposition: assumed ? 'assumed' : 'explicit',
-        evidence: interpretation.evidence,
-        revision,
-        requiresConfirmation:
-          assumed &&
-          ['purpose', 'audience', 'page-map', 'page-content'].includes(interpretation.topic)
-      };
-    }
-  );
-  const incomingDecisions = [...interpretedDecisions, ...(input.decisions ?? [])];
-  const decisions = [...brief.decisions, ...incomingDecisions];
-  for (const decision of input.decisions ?? []) {
-    const validation = validateDecisionProvenance(decision);
+  for (const decision of brief.decisions)
+    revisionCounts.set(
+      decision.topic,
+      Math.max(revisionCounts.get(decision.topic) ?? 0, decision.revision)
+    );
+
+  const normalizeDecision = (inputDecision: DecisionRevisionInput): DecisionProvenance => {
+    const disposition = normalizeRevisionDisposition(inputDecision);
+    const revision = (revisionCounts.get(inputDecision.topic) ?? 0) + 1;
+    revisionCounts.set(inputDecision.topic, revision);
+    const normalized: DecisionProvenance = {
+      id: `decision:${inputDecision.topic}:${revision}`,
+      topic: inputDecision.topic,
+      value: inputDecision.value,
+      source: inputDecision.source,
+      disposition,
+      ...(inputDecision.answerMode ? { answerMode: inputDecision.answerMode } : {}),
+      evidence: inputDecision.evidence,
+      revision,
+      requiresConfirmation: revisionRequiresConfirmation(
+        inputDecision.topic,
+        inputDecision.source,
+        disposition
+      )
+    };
+    const validation = validateDecisionProvenance(normalized);
     if (!validation.ok)
       throw new Error(`Invalid decision at ${validation.error.path}: ${validation.error.message}`);
-    changed.add(decision.topic);
-  }
-  for (const interpretation of input.interpretations ?? []) {
+    changed.add(normalized.topic);
+    return normalized;
+  };
+
+  const interpretedDecisions = (input.interpretations ?? []).map((interpretation) => {
     const validation = validateDiscoveryInterpretation(interpretation);
     if (!validation.ok)
       throw new Error(
         `Invalid interpretation at ${validation.error.path}: ${validation.error.message}`
       );
-    changed.add(interpretation.topic);
-  }
+    return normalizeDecision({
+      topic: interpretation.topic,
+      value: interpretation.value,
+      source: interpretation.source,
+      disposition: interpretation.source === 'model' ? 'assumed' : 'explicit',
+      evidence: interpretation.evidence
+    });
+  });
+  const suppliedDecisions = (input.decisions ?? []).map(normalizeDecision);
+  let pageMapDecisions: readonly DecisionProvenance[] = [];
   if (input.pageMap) {
     const validation = validatePageMap(input.pageMap);
     if (!validation.ok)
       throw new Error(`Invalid page map at ${validation.error.path}: ${validation.error.message}`);
-    changed.add('page-map');
+    pageMapDecisions = [
+      normalizeDecision({
+        topic: 'page-map',
+        value: {
+          summary:
+            input.pageMap.kind === 'single-page'
+              ? `Single page: ${input.pageMap.pages[0]!.name}`
+              : `${input.pageMap.pages.length} pages: ${input.pageMap.pages
+                  .map((page) => page.name)
+                  .join(', ')}`,
+          details: input.pageMap.pages.map((page) => `${page.route} — ${page.userGoal}`)
+        },
+        source: 'model',
+        disposition: 'drafted',
+        evidence: 'Page map supplied through untrusted creative brief revision input.'
+      })
+    ];
   }
+  const incomingDecisions = [...interpretedDecisions, ...suppliedDecisions, ...pageMapDecisions];
+  const decisions = [...brief.decisions, ...incomingDecisions];
 
   const content = { ...brief.content };
   for (const decision of incomingDecisions) {
@@ -258,7 +296,17 @@ export function reviseCreativeBrief(
     changedTopics: [...changed].sort(),
     digest
   };
-  return { ...base, digest, revisions: [...brief.revisions, revision] };
+  const revised: CreativeBrief = {
+    ...base,
+    digest,
+    revisions: [...brief.revisions, revision]
+  };
+  const validation = validateCreativeBrief(revised);
+  if (!validation.ok)
+    throw new Error(
+      `Invalid creative brief at ${validation.error.path}: ${validation.error.message}`
+    );
+  return revised;
 }
 
 export function requestCreativeBriefApproval(brief: CreativeBrief, now: string): CreativeBrief {
