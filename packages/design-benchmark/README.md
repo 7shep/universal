@@ -1,4 +1,4 @@
-# Design benchmark
+﻿# Design benchmark
 
 Offline tooling for the versioned Universal design-quality benchmark.
 
@@ -9,10 +9,23 @@ live preview or network access.
 
 Benchmark definitions live in `../../benchmarks/design-quality/v1`.
 
-`executeBenchmarkPair` is the offline execution boundary. The checked-in suite supplies the
-mandatory checks and token/time budget. Callers inject a capability-scoped workspace factory,
-a trusted executor factory, and required-check adapters. The runner creates and releases two
-verified-distinct workspace roots/backends, requires a fresh executor per arm, fixes identical
-starter/brief bytes, exposes Universal instructions/tools only to the guided request, enforces
-abortable time and token limits, finalizes every executor, and returns actual token usage plus
-auditable check exit statuses and SHA-256 output digests.
+`executeBenchmarkPair` takes trusted workspace, executor, and required-check providers. Injection
+is a provider boundary, not a sandbox. Each provider supplies a versioned isolation attestation,
+and every execution record reports the required, present, and missing capabilities. A result is
+release-comparable only when all suite-required capabilities are attested; generic injected
+providers and the included local backends honestly remain unverified for capabilities they do not
+enforce.
+
+The runner creates two distinct workspace roots/backends, requires a fresh executor per arm, fixes
+identical starter and brief bytes, exposes Universal instructions/tools only to the guided arm, and
+uses the suite's token, execution-time, and termination-grace budgets. Executors return a mandatory
+terminate-and-join handle. On timeout the runner aborts, requests termination, and waits for `join()`.
+A process that does not settle within the termination grace produces `RunnerIsolationFailure`; its
+workspace is quarantined and is never released for reuse.
+
+`createLocalFilesystemWorkspaceFactory` uses `mkdtemp` beneath an explicit owned realpath, rejects
+portable-path aliases and symlink escapes through its capability I/O, and leaves quarantined roots
+with a marker. It does not confine arbitrary process filesystem access. The optional child-process
+executor uses an absolute command, `shell: false`, an exact non-inherited environment, the workspace
+as `cwd`, hard termination, and close-event joining. It attests separate-process lifecycle control,
+not network, host, filesystem, or tool sandboxing.

@@ -8,6 +8,7 @@
     "suite_version",
     "rubric_version",
     "execution_policy",
+    "isolation_policy",
     "briefs",
     "arms",
     "source_evidence",
@@ -24,12 +25,36 @@
       "properties": {
         "budget": {
           "type": "object",
-          "required": ["max_tokens", "max_milliseconds"],
+          "required": ["max_tokens", "max_milliseconds", "termination_grace_milliseconds"],
           "properties": {
             "max_tokens": { "type": "integer", "minimum": 1 },
-            "max_milliseconds": { "type": "integer", "minimum": 1 }
+            "max_milliseconds": { "type": "integer", "minimum": 1 },
+            "termination_grace_milliseconds": { "type": "integer", "minimum": 1 }
           }
         }
+      }
+    },
+    "isolation_policy": {
+      "type": "object",
+      "required": ["attestation_version", "required_capabilities", "unverified_status"],
+      "properties": {
+        "attestation_version": { "const": "1" },
+        "required_capabilities": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "filesystem_isolation",
+              "process_isolation",
+              "network_isolation",
+              "host_isolation",
+              "tool_isolation"
+            ]
+          }
+        },
+        "unverified_status": { "const": "not_comparable" }
       }
     },
     "briefs": {

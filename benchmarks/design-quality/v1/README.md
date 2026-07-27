@@ -1,4 +1,4 @@
-# Design Quality Benchmark v1
+﻿# Design Quality Benchmark v1
 
 This directory is the immutable input corpus for design-quality benchmark version
 `1.0.0`. It is intentionally data-only so runners can consume it without network
@@ -7,7 +7,8 @@ access or a live preview.
 ## Contents
 
 - `suite.json` identifies the twelve briefs, the two experiment arms, evidence
-  policy, and blind comparison protocol.
+  policy, execution and termination budgets, required isolation capabilities,
+  and blind comparison protocol.
 - `rubric.json` defines the versioned scoring dimensions and aggregation rules.
 - `briefs/*.json` contains one self-contained product brief per benchmark case.
 
@@ -26,11 +27,26 @@ Each brief is executed twice from the same clean starter state:
 The arm label must never be exposed to scorers. Runners assign opaque artifact
 labels (`candidate_a` and `candidate_b`) using a recorded deterministic swap.
 
+## Isolation and comparability
+
+The suite requires version 1 attestations for filesystem, process, network, host,
+and tool isolation. Dependency injection does not prove any of those capabilities.
+The runner records provider attestations and marks a run `verified` and comparable
+only when all required capabilities are attested. Otherwise the result is explicitly
+`unverified` and `not_comparable` for release decisions.
+
+Timeouts require termination followed by a successful join within the suite's
+termination-grace budget. A non-cooperative execution is an isolation failure: its
+workspace must be quarantined and must not be cleaned up or reused.
+
 ## Evidence states
 
 Version 1 is source-only. Evidence is a normalized, lexicographically ordered
 snapshot of allowed source files plus deterministic command results. No live
-preview, screenshot, browser, network request, or remote asset is required.
+preview, screenshot, browser, network request, or remote asset is required by the
+evidence collector. That offline collection policy is not itself proof that an
+injected execution provider blocked network access; the provider must attest and
+enforce that capability separately.
 
 Dimensions whose `evidence_kind` is `rendered` are recorded as:
 
@@ -49,6 +65,6 @@ those dimensions without changing historical v1 results.
 ## Versioning
 
 Changes that alter prompts, requirements, rubric wording, weights, evidence
-policy, or aggregation semantics require a new versioned directory. Typo-only
-changes still require updating `content_revision` in `suite.json` so reports can
-identify the exact corpus.
+policy, isolation policy, or aggregation semantics require a new versioned
+directory. Typo-only changes still require updating `content_revision` in
+`suite.json` so reports can identify the exact corpus.

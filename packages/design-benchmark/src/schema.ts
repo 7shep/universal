@@ -3,6 +3,12 @@ export const BENCHMARK_ARMS = ['unguided', 'universal_guided'] as const;
 
 export type CorpusBenchmarkArm = (typeof BENCHMARK_ARMS)[number];
 export type CorpusEvidenceKind = 'source' | 'rendered';
+export type CorpusIsolationCapability =
+  | 'filesystem_isolation'
+  | 'process_isolation'
+  | 'network_isolation'
+  | 'host_isolation'
+  | 'tool_isolation';
 
 export interface BenchmarkSuiteManifest {
   readonly suite_id: string;
@@ -11,7 +17,16 @@ export interface BenchmarkSuiteManifest {
   readonly content_revision: number;
   readonly execution_mode: 'offline_source_only';
   readonly execution_policy: {
-    readonly budget: { readonly max_tokens: number; readonly max_milliseconds: number };
+    readonly budget: {
+      readonly max_tokens: number;
+      readonly max_milliseconds: number;
+      readonly termination_grace_milliseconds: number;
+    };
+  };
+  readonly isolation_policy: {
+    readonly attestation_version: '1';
+    readonly required_capabilities: readonly CorpusIsolationCapability[];
+    readonly unverified_status: 'not_comparable';
   };
   readonly briefs: readonly string[];
   readonly arms: readonly {
@@ -121,11 +136,32 @@ export function assertBenchmarkSuiteManifest(
     !Number.isInteger(executionPolicy.budget.max_tokens) ||
     Number(executionPolicy.budget.max_tokens) <= 0 ||
     !Number.isInteger(executionPolicy.budget.max_milliseconds) ||
-    Number(executionPolicy.budget.max_milliseconds) <= 0
+    Number(executionPolicy.budget.max_milliseconds) <= 0 ||
+    !Number.isInteger(executionPolicy.budget.termination_grace_milliseconds) ||
+    Number(executionPolicy.budget.termination_grace_milliseconds) <= 0
   )
     throw new TypeError(
       'suite.execution_policy must define positive integer token and time budgets.'
     );
+  const isolationPolicy = value.isolation_policy;
+  const requiredIsolation = [
+    'filesystem_isolation',
+    'process_isolation',
+    'network_isolation',
+    'host_isolation',
+    'tool_isolation'
+  ];
+  if (
+    !isRecord(isolationPolicy) ||
+    isolationPolicy.attestation_version !== '1' ||
+    isolationPolicy.unverified_status !== 'not_comparable' ||
+    !Array.isArray(isolationPolicy.required_capabilities) ||
+    isolationPolicy.required_capabilities.length !== requiredIsolation.length ||
+    !requiredIsolation.every((capability) =>
+      (isolationPolicy.required_capabilities as unknown[]).includes(capability)
+    )
+  )
+    throw new TypeError('suite.isolation_policy must require every v1 isolation capability.');
   if (!Number.isInteger(value.content_revision) || Number(value.content_revision) < 1)
     throw new TypeError('suite.content_revision must be a positive integer.');
   if (
