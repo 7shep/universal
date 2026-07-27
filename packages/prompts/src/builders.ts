@@ -36,6 +36,28 @@ const requiredList = (values: readonly string[], path: string): readonly string[
   return values.map((value, index) => required(value, `${path}[${index}]`));
 };
 
+const optionalText = (value: string | undefined, path: string, fallback: string): string => {
+  if (value === undefined) return fallback;
+  if (typeof value !== 'string')
+    throw new PromptAssemblyError(`Prompt input at ${path} must be a string.`);
+  return value.trim() || fallback;
+};
+
+const optionalList = (values: readonly string[] | undefined, path: string): readonly string[] => {
+  if (values === undefined) return [];
+  if (!Array.isArray(values))
+    throw new PromptAssemblyError(`Prompt input at ${path} must be an array.`);
+  return values.map((value, index) => required(value, `${path}[${index}]`));
+};
+
+const optionalNonEmptyList = (
+  values: readonly string[] | undefined,
+  path: string
+): readonly string[] | undefined => {
+  if (values === undefined) return undefined;
+  return requiredList(values, path);
+};
+
 const numberedBlocks = (values: readonly string[], path: string): string =>
   requiredList(values, path)
     .map((value, index) => `--- ${index + 1} ---\n${value}`)
@@ -48,8 +70,15 @@ export function buildInitialFactExtractionPrompt(
     throw new PromptAssemblyError('Missing required prompt input.');
   return renderPrompt(initialFactExtractionPrompt, {
     request: required(input.request, 'request'),
-    repositoryContext: input.repositoryContext?.trim() || 'No repository context supplied.',
-    priorAnswers: bullets(input.priorAnswers ?? [], '- No prior answers supplied.')
+    repositoryContext: optionalText(
+      input.repositoryContext,
+      'repositoryContext',
+      'No repository context supplied.'
+    ),
+    priorAnswers: bullets(
+      optionalList(input.priorAnswers, 'priorAnswers'),
+      '- No prior answers supplied.'
+    )
   });
 }
 
@@ -62,7 +91,7 @@ export function buildUserRequestedCopyDraftingPrompt(
     request: required(input.request, 'request'),
     knownFacts: bullets(requiredList(input.knownFacts, 'knownFacts')),
     copyTargets: bullets(requiredList(input.copyTargets, 'copyTargets')),
-    constraints: bullets(input.constraints ?? [])
+    constraints: bullets(optionalList(input.constraints, 'constraints'))
   });
 }
 
@@ -75,13 +104,16 @@ export function buildCreativeBriefCompilationPrompt(
     initialRequest: required(input.initialRequest, 'initialRequest'),
     knownFacts: bullets(requiredList(input.knownFacts, 'knownFacts')),
     discoveryAnswers: bullets(requiredList(input.discoveryAnswers, 'discoveryAnswers')),
-    draftedCopy: bullets(input.draftedCopy ?? [], '- No draft copy supplied.'),
+    draftedCopy: bullets(
+      optionalList(input.draftedCopy, 'draftedCopy'),
+      '- No draft copy supplied.'
+    ),
     delegatedDecisions: bullets(
-      input.delegatedDecisions ?? [],
+      optionalList(input.delegatedDecisions, 'delegatedDecisions'),
       '- No decisions explicitly delegated.'
     ),
     unresolvedQuestions: bullets(
-      input.unresolvedQuestions ?? [],
+      optionalList(input.unresolvedQuestions, 'unresolvedQuestions'),
       '- No unresolved questions recorded.'
     )
   });
@@ -119,9 +151,8 @@ export function buildDirectionEvaluationPrompt(
     approvedBrief: required(input.approvedBrief, 'approvedBrief'),
     concepts: numberedBlocks(input.concepts, 'concepts'),
     evaluationCriteria: bullets(
-      input.evaluationCriteria
-        ? requiredList(input.evaluationCriteria, 'evaluationCriteria')
-        : defaultEvaluationCriteria
+      optionalNonEmptyList(input.evaluationCriteria, 'evaluationCriteria') ??
+        defaultEvaluationCriteria
     )
   });
 }

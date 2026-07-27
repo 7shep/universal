@@ -17,12 +17,12 @@ type FactExtractionVariables = Omit<InitialFactExtractionPromptInput, 'priorAnsw
 
 export const initialFactExtractionPrompt: PromptDefinition<FactExtractionVariables> = {
   id: 'universal.initial-fact-extraction',
-  version: '1.0.0',
+  version: '2.0.0',
   purpose: 'fact-extraction',
   description: 'Extract explicit facts and unresolved decisions before a discovery interview.',
   requiredVariables: ['request', 'repositoryContext', 'priorAnswers'],
   outputExpectation:
-    'Valid JSON containing sourced facts, constraints, unknowns, conflicts, and candidate questions with impact rationale; no recommendations or optionality decisions.',
+    'Valid JSON matching InitialFactExtractionOutput: engine-compatible interpretations and evidence-only conflicts; no questions or policy decisions.',
   template: `You are Universal's discovery fact extractor. Build an evidence ledger from the material supplied; do not conduct the interview or invent missing decisions.
 
 INITIAL REQUEST
@@ -34,9 +34,9 @@ REPOSITORY CONTEXT
 PRIOR USER ANSWERS
 {{priorAnswers}}
 
-Separate explicit user statements, repository evidence, and unknowns. Preserve exact routes, page requirements, copy, assets, references, constraints, preferences, prohibitions, and delegated decisions. For every fact, cite its source and record confidence. Identify contradictions without resolving them. Candidate questions may include an impact rationale and the decision they would clarify, but must not be ranked as required, optional, skippable, or blocking.
+Separate explicit user statements, repository evidence, and supported model interpretations. Preserve exact routes, page requirements, copy, assets, references, constraints, preferences, prohibitions, and delegated decisions. Emit each supported item as an interpretation with topic, value ({ summary, optional details }), source (user, repository, or model), and verbatim or precise evidence. Identify contradictions without resolving them.
 
-Return only JSON with facts, constraints, unknowns, conflicts, delegatedDecisions, and candidateQuestions. Never decide that a high-impact question is optional; question selection and deferral belong to engine policy.`
+Return only an InitialFactExtractionOutput JSON object with interpretations and conflicts. Each conflict has topics, summary, and evidence. Do not generate questions, missing-information classifications, impact, ordering, blocking, or optionality; the engine derives all discovery questions and policy from the validated interpretations.`
 };
 
 type CopyDraftingVariables = Omit<
@@ -88,7 +88,7 @@ type BriefCompilationVariables = Omit<
 
 export const creativeBriefCompilationPrompt: PromptDefinition<BriefCompilationVariables> = {
   id: 'universal.creative-brief-compilation',
-  version: '1.0.0',
+  version: '2.0.0',
   purpose: 'brief-compilation',
   description: 'Compile discovery evidence into a concise, provenance-rich creative brief.',
   requiredVariables: [
@@ -100,7 +100,7 @@ export const creativeBriefCompilationPrompt: PromptDefinition<BriefCompilationVa
     'unresolvedQuestions'
   ],
   outputExpectation:
-    'Valid JSON for a versioned creative brief with page map, content requirements, provenance, assumptions, delegated decisions, and unresolved questions.',
+    'Valid JSON matching CreativeBriefCompilationOutput: candidate content plus engine-compatible interpretations, without engine-owned lifecycle fields.',
   template: `You are Universal's creative brief editor. Compile the evidence into a precise brief for user correction and approval.
 
 INITIAL REQUEST
@@ -121,9 +121,9 @@ DELEGATED DECISIONS
 UNRESOLVED QUESTIONS
 {{unresolvedQuestions}}
 
-Distinguish user decisions, repository facts, proposed copy, Universal recommendations, delegated judgment, assumptions, and unresolved questions. Preserve conflicts instead of silently choosing a side. Include purpose, audience, positioning, emotional objective, page map, content and feature requirements, navigation, visual inputs, accessibility, responsive and technical constraints, references, anti-references, and success criteria when supported by evidence. Record provenance for every material decision.
+Distinguish user decisions, repository facts, proposed copy, Universal recommendations, delegated judgment, and assumptions. Preserve conflicts instead of silently choosing a side. Compile content aligned to the engine CreativeBriefContent contract: purpose, audience, optional positioning and emotionalResponse, pageMap, pageContent, optional hero/navigation/color/typography/brandAssets/imagery, constraints, references, antiPatterns, and preferences. Also emit the evidence behind material content as DiscoveryInterpretation-compatible objects with topic, value, source, and evidence.
 
-Return only a complete CreativeBrief-shaped JSON object with version, status, sections, pageMap, decisionLedger, assumptions, and unresolvedQuestions. Do not approve the brief, answer unresolved questions, or label any high-impact question optional; those are engine and user decisions.`
+Return only a CreativeBriefCompilationOutput JSON object with content and interpretations. This is a provider draft, not an engine CreativeBrief. Never emit contractVersion, id, version, timestamps, decisions, unresolved policy, revisions, digest, or approval; the engine validates interpretations and pageMap, applies policy, and owns those authoritative lifecycle fields.`
 };
 
 type ConceptDevelopmentVariables = Omit<ConceptDevelopmentPromptInput, 'protectedConstraints'> & {

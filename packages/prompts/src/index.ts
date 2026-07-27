@@ -4,3 +4,4 @@ export * from './serialize.ts';
 export * from './definitions.ts';
 export * from './builders.ts';
 export * from './registry.ts';
+export * from './outputs.ts';

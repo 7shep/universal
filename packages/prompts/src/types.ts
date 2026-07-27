@@ -182,3 +182,85 @@ export interface SectionRevisionPromptInput {
   readonly protectedConstraints: readonly string[];
   readonly accessibilityRequirements: readonly string[];
 }
+export const DISCOVERY_OUTPUT_TOPICS = [
+  'purpose',
+  'audience',
+  'positioning',
+  'emotional-response',
+  'page-map',
+  'page-content',
+  'hero',
+  'navigation',
+  'color',
+  'typography',
+  'brand-assets',
+  'imagery',
+  'constraints',
+  'references',
+  'anti-patterns'
+] as const;
+export type DiscoveryOutputTopic = (typeof DISCOVERY_OUTPUT_TOPICS)[number];
+export type DiscoveryOutputSource = 'user' | 'model' | 'repository';
+
+/** Structurally assignable to the design engine's DiscoveryInterpretation contract. */
+export interface DiscoveryInterpretationOutput {
+  readonly topic: DiscoveryOutputTopic;
+  readonly value: { readonly summary: string; readonly details?: readonly string[] | undefined };
+  readonly source: DiscoveryOutputSource;
+  readonly evidence: string;
+}
+export interface FactExtractionConflictOutput {
+  readonly topics: readonly DiscoveryOutputTopic[];
+  readonly summary: string;
+  readonly evidence: readonly string[];
+}
+export interface InitialFactExtractionOutput {
+  readonly interpretations: readonly DiscoveryInterpretationOutput[];
+  readonly conflicts: readonly FactExtractionConflictOutput[];
+}
+export interface CreativeBriefPageOutput {
+  readonly id: string;
+  readonly route: string;
+  readonly name: string;
+  readonly userGoal: string;
+  readonly primaryMessage: string;
+  readonly requiredSections: readonly string[];
+  readonly requiredContent: readonly string[];
+  readonly primaryAction?: string | undefined;
+  readonly secondaryActions: readonly string[];
+  readonly navigationRelationship: string;
+  readonly uniqueResponsibility: string;
+  readonly sharedElements: readonly string[];
+  readonly pageSpecificElements: readonly string[];
+}
+export interface CreativeBriefContentOutput {
+  readonly projectName?: string | undefined;
+  readonly purpose: DiscoveryInterpretationOutput['value'];
+  readonly audience: DiscoveryInterpretationOutput['value'];
+  readonly positioning?: DiscoveryInterpretationOutput['value'] | undefined;
+  readonly emotionalResponse?: DiscoveryInterpretationOutput['value'] | undefined;
+  readonly pageMap: {
+    readonly kind: 'single-page' | 'multi-page';
+    readonly pages: readonly CreativeBriefPageOutput[];
+  };
+  readonly pageContent: DiscoveryInterpretationOutput['value'];
+  readonly hero?: DiscoveryInterpretationOutput['value'] | undefined;
+  readonly navigation?: DiscoveryInterpretationOutput['value'] | undefined;
+  readonly color?: DiscoveryInterpretationOutput['value'] | undefined;
+  readonly typography?: DiscoveryInterpretationOutput['value'] | undefined;
+  readonly brandAssets?: DiscoveryInterpretationOutput['value'] | undefined;
+  readonly imagery?: DiscoveryInterpretationOutput['value'] | undefined;
+  readonly constraints: readonly string[];
+  readonly references: readonly {
+    readonly description: string;
+    readonly url?: string | undefined;
+    readonly role: 'inspiration' | 'anti-reference';
+  }[];
+  readonly antiPatterns: readonly string[];
+  readonly preferences: readonly string[];
+}
+/** Provider DTO used before the engine adds identity, time, digest, policy, revisions, and approval. */
+export interface CreativeBriefCompilationOutput {
+  readonly content: CreativeBriefContentOutput;
+  readonly interpretations: readonly DiscoveryInterpretationOutput[];
+}

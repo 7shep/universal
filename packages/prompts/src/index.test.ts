@@ -14,7 +14,10 @@ import {
   getPrompt,
   interpolatePrompt,
   migratePromptReference,
-  promptTemplates
+  parseCreativeBriefCompilationOutput,
+  parseInitialFactExtractionOutput,
+  promptTemplates,
+  toDiscoveryInterpretations
 } from './index.ts';
 import { accessibilityRequirements, fixturePlan } from './fixtures.ts';
 
@@ -128,7 +131,7 @@ test('registers every prompt by stable ID and semantic version', () => {
     [
       {
         id: 'universal.initial-fact-extraction',
-        version: '1.0.0',
+        version: '2.0.0',
         purpose: 'fact-extraction'
       },
       {
@@ -138,7 +141,7 @@ test('registers every prompt by stable ID and semantic version', () => {
       },
       {
         id: 'universal.creative-brief-compilation',
-        version: '1.0.0',
+        version: '2.0.0',
         purpose: 'brief-compilation'
       },
       {
@@ -163,12 +166,14 @@ test('registers every prompt by stable ID and semantic version', () => {
   );
 });
 
-test('leaves high-impact question optionality to engine policy', () => {
+test('keeps discovery questions and CreativeBrief lifecycle fields in engine policy', () => {
+  assert.match(rendered['fact-extraction'].text, /Do not generate questions/);
+  assert.doesNotMatch(rendered['fact-extraction'].text, /candidateQuestions/);
+  assert.match(rendered['brief-compilation'].text, /provider draft, not an engine CreativeBrief/);
   assert.match(
-    rendered['fact-extraction'].text,
-    /Never decide that a high-impact question is optional/
+    rendered['brief-compilation'].text,
+    /Never emit contractVersion, id, version, timestamps/
   );
-  assert.match(rendered['brief-compilation'].text, /label any high-impact question optional/);
   assert.match(rendered['direction-evaluation'].text, /engine policy controls/);
 });
 test('fails explicitly for missing typed input and unresolved placeholders', () => {
@@ -190,6 +195,129 @@ test('fails explicitly for missing typed input and unresolved placeholders', () 
   );
 });
 
+test('validates optional inputs before prompt rendering', () => {
+  assert.throws(
+    () => buildInitialFactExtractionPrompt({ request: 'Site', repositoryContext: 42 } as never),
+    /repositoryContext must be a string/
+  );
+  assert.throws(
+    () => buildInitialFactExtractionPrompt({ request: 'Site', priorAnswers: 'answer' } as never),
+    /priorAnswers must be an array/
+  );
+  assert.throws(
+    () =>
+      buildUserRequestedCopyDraftingPrompt({
+        request: 'Copy',
+        knownFacts: ['fact'],
+        copyTargets: ['hero'],
+        constraints: [null]
+      } as never),
+    /constraints\[0\]/
+  );
+  assert.throws(
+    () =>
+      buildCreativeBriefCompilationPrompt({
+        initialRequest: 'Site',
+        knownFacts: ['fact'],
+        discoveryAnswers: ['answer'],
+        draftedCopy: {}
+      } as never),
+    /draftedCopy must be an array/
+  );
+  assert.throws(
+    () =>
+      buildCreativeBriefCompilationPrompt({
+        initialRequest: 'Site',
+        knownFacts: ['fact'],
+        discoveryAnswers: ['answer'],
+        delegatedDecisions: [' ']
+      } as never),
+    /delegatedDecisions\[0\]/
+  );
+  assert.throws(
+    () =>
+      buildDirectionEvaluationPrompt({
+        approvedBrief: 'Brief',
+        concepts: ['One', 'Two'],
+        evaluationCriteria: []
+      }),
+    /evaluationCriteria/
+  );
+});
+
+test('parses fact output as engine-adaptable interpretations and rejects model questions', () => {
+  const parsed = parseInitialFactExtractionOutput(
+    JSON.stringify({
+      interpretations: [
+        {
+          topic: 'audience',
+          value: { summary: 'Manufacturing operations leaders.' },
+          source: 'user',
+          evidence: 'Primary audience: operations leaders.'
+        }
+      ],
+      conflicts: []
+    })
+  );
+  assert.deepEqual(toDiscoveryInterpretations(parsed), parsed.interpretations);
+  assert.throws(
+    () =>
+      parseInitialFactExtractionOutput(
+        JSON.stringify({
+          interpretations: [],
+          conflicts: [],
+          candidateQuestions: []
+        })
+      ),
+    /candidateQuestions.*unexpected field/
+  );
+});
+
+test('parses the provider brief DTO and rejects engine-owned lifecycle fields', () => {
+  const content = {
+    purpose: { summary: 'Explain operational carbon.' },
+    audience: { summary: 'Manufacturing operations leaders.' },
+    pageMap: {
+      kind: 'single-page',
+      pages: [
+        {
+          id: 'home',
+          route: '/',
+          name: 'Home',
+          userGoal: 'Understand the product.',
+          primaryMessage: 'See operational carbon clearly.',
+          requiredSections: ['hero'],
+          requiredContent: ['product explanation'],
+          secondaryActions: [],
+          navigationRelationship: 'Single route',
+          uniqueResponsibility: 'Primary overview',
+          sharedElements: ['navigation'],
+          pageSpecificElements: ['hero']
+        }
+      ]
+    },
+    pageContent: { summary: 'Evidence-led product explanation.' },
+    constraints: ['WCAG AA'],
+    references: [],
+    antiPatterns: ['generic cards'],
+    preferences: ['calm']
+  };
+  const parsed = parseCreativeBriefCompilationOutput(
+    JSON.stringify({ content, interpretations: [] })
+  );
+  assert.equal(parsed.content.pageMap.pages[0]?.route, '/');
+  assert.throws(
+    () =>
+      parseCreativeBriefCompilationOutput(
+        JSON.stringify({
+          content,
+          interpretations: [],
+          approval: { status: 'approved' }
+        })
+      ),
+    /approval.*unexpected field/
+  );
+});
 test('migrates the legacy saved prompt reference and rejects unknown versions', () => {
   assert.deepEqual(migratePromptReference({ id: 'composition-contract', version: '1' }), {
     id: 'universal.react-generation',
