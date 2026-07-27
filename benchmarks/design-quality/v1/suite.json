@@ -3,10 +3,13 @@
   "suite_id": "design-quality",
   "suite_version": "1.0.0",
   "rubric_version": "1.0.0",
-  "content_revision": 1,
+  "content_revision": 2,
   "title": "Universal Design Quality Benchmark",
   "description": "Paired, blind comparison of unguided and Universal-guided React interface generation across twelve representative briefs.",
   "execution_mode": "offline_source_only",
+  "execution_policy": {
+    "budget": { "max_tokens": 12000, "max_milliseconds": 300000 }
+  },
   "briefs": [
     "briefs/01-fintech-landing.json",
     "briefs/02-developer-platform.json",

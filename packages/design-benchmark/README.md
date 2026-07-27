@@ -9,7 +9,10 @@ live preview or network access.
 
 Benchmark definitions live in `../../benchmarks/design-quality/v1`.
 
-`executeBenchmarkPair` is the offline execution boundary. Callers inject workspace, generation,
-and required-check adapters; the runner creates one isolated workspace per arm, fixes identical
-starter/brief bytes and budgets, exposes Universal instructions/tools only to the guided arm,
-and returns auditable check results with exit statuses and SHA-256 output digests.
+`executeBenchmarkPair` is the offline execution boundary. The checked-in suite supplies the
+mandatory checks and token/time budget. Callers inject a capability-scoped workspace factory,
+a trusted executor factory, and required-check adapters. The runner creates and releases two
+verified-distinct workspace roots/backends, requires a fresh executor per arm, fixes identical
+starter/brief bytes, exposes Universal instructions/tools only to the guided request, enforces
+abortable time and token limits, finalizes every executor, and returns actual token usage plus
+auditable check exit statuses and SHA-256 output digests.

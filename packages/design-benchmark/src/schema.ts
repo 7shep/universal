@@ -10,6 +10,9 @@ export interface BenchmarkSuiteManifest {
   readonly rubric_version: string;
   readonly content_revision: number;
   readonly execution_mode: 'offline_source_only';
+  readonly execution_policy: {
+    readonly budget: { readonly max_tokens: number; readonly max_milliseconds: number };
+  };
   readonly briefs: readonly string[];
   readonly arms: readonly {
     readonly id: CorpusBenchmarkArm;
@@ -18,7 +21,13 @@ export interface BenchmarkSuiteManifest {
     readonly workflow: string;
     readonly universal_tools: string;
   }[];
-  readonly pairing: { readonly required_arm_ids: readonly CorpusBenchmarkArm[] };
+  readonly pairing: {
+    readonly required_arm_ids: readonly CorpusBenchmarkArm[];
+    readonly same_starter_fixture: true;
+    readonly same_brief_bytes: true;
+    readonly same_runtime_budget: true;
+    readonly independent_workspaces: true;
+  };
   readonly source_evidence: {
     readonly required: true;
     readonly network: 'disabled';
@@ -105,6 +114,18 @@ export function assertBenchmarkSuiteManifest(
     throw new TypeError('suite id and version must identify design-quality v1.');
   if (value.execution_mode !== 'offline_source_only')
     throw new TypeError('suite.execution_mode must be offline_source_only.');
+  const executionPolicy = value.execution_policy;
+  if (
+    !isRecord(executionPolicy) ||
+    !isRecord(executionPolicy.budget) ||
+    !Number.isInteger(executionPolicy.budget.max_tokens) ||
+    Number(executionPolicy.budget.max_tokens) <= 0 ||
+    !Number.isInteger(executionPolicy.budget.max_milliseconds) ||
+    Number(executionPolicy.budget.max_milliseconds) <= 0
+  )
+    throw new TypeError(
+      'suite.execution_policy must define positive integer token and time budgets.'
+    );
   if (!Number.isInteger(value.content_revision) || Number(value.content_revision) < 1)
     throw new TypeError('suite.content_revision must be a positive integer.');
   if (
@@ -144,7 +165,13 @@ export function assertBenchmarkSuiteManifest(
     !isRecord(pairing) ||
     !Array.isArray(pairing.required_arm_ids) ||
     pairing.required_arm_ids.length !== 2 ||
-    !BENCHMARK_ARMS.every((arm) => (pairing.required_arm_ids as readonly unknown[]).includes(arm))
+    !BENCHMARK_ARMS.every((arm) =>
+      (pairing.required_arm_ids as readonly unknown[]).includes(arm)
+    ) ||
+    pairing.same_starter_fixture !== true ||
+    pairing.same_brief_bytes !== true ||
+    pairing.same_runtime_budget !== true ||
+    pairing.independent_workspaces !== true
   )
     throw new TypeError('suite.pairing must require both benchmark arms.');
   const source = value.source_evidence;
@@ -160,6 +187,10 @@ export function assertBenchmarkSuiteManifest(
     !isTextArray(source.include) ||
     !isTextArray(source.ignore) ||
     !isTextArray(source.required_checks) ||
+    source.required_checks.length !== 3 ||
+    source.required_checks[0] !== 'install_from_lockfile' ||
+    source.required_checks[1] !== 'build' ||
+    source.required_checks[2] !== 'static_contract' ||
     source.digest !== 'sha256' ||
     source.timestamps !== 'excluded'
   )
