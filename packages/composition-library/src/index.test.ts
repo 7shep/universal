@@ -3,18 +3,25 @@ import test from 'node:test';
 import {
   compositionCatalog,
   compositionDomainCatalog,
+  createMultiPageCompositionSignature,
   navigationCatalog,
+  multiPageSignatureSimilarity,
+  preservesReadingOrder,
   selectComposition,
   signatureSimilarity,
   validateCompositionCatalog,
   validateComposition,
   validateCompositionContract,
   validateCompositionSignature,
+  validateMultiPageCompositionSignature,
+  validatePageCompositionContractV2,
+  validatePageCompositionContractsV2,
   type CompositionCatalogData,
   type CompositionSelectionInput,
   type CompositionSignature,
   type HeroArchetype,
-  type NavigationDefinition
+  type NavigationDefinition,
+  type PageCompositionContractV2
 } from './index.ts';
 
 const signature: CompositionSignature = {
@@ -33,6 +40,41 @@ const selectionInput: CompositionSelectionInput = {
   history: []
 };
 
+const pageContract: PageCompositionContractV2 = {
+  version: 2,
+  pageId: 'page:home',
+  route: '/',
+  navigationMode: 'perimeter',
+  sections: [
+    {
+      pageId: 'page:home',
+      sectionId: 'section:hero',
+      kind: 'hero',
+      pattern: 'poster-field',
+      slots: ['headline', 'media', 'actions'],
+      readingOrder: ['headline', 'media', 'actions']
+    },
+    {
+      pageId: 'page:home',
+      sectionId: 'section:proof',
+      kind: 'proof',
+      pattern: 'staggered-proof',
+      slots: ['headline', 'body'],
+      readingOrder: ['headline', 'body']
+    }
+  ],
+  readingOrder: ['section:hero', 'section:proof'],
+  responsiveTransformations: [
+    {
+      pageId: 'page:home',
+      sectionId: 'section:hero',
+      viewport: 'mobile',
+      strategy: 'stack',
+      visualOrder: ['media', 'headline', 'actions'],
+      readingOrder: ['headline', 'media', 'actions']
+    }
+  ]
+};
 const cloneCatalog = (): { heroes: HeroArchetype[]; navigation: NavigationDefinition[] } =>
   structuredClone(compositionDomainCatalog) as {
     heroes: HeroArchetype[];
@@ -198,4 +240,64 @@ test('selection refuses malformed catalogs before scoring', () => {
     () => selectComposition(selectionInput, malformed),
     /Invalid composition catalog:[\s\S]*Duplicate hero id/
   );
+});
+
+test('v2 page contracts preserve semantic order across responsive visual reflow', () => {
+  const result = validatePageCompositionContractV2(pageContract);
+  assert.equal(result.ok, true);
+  assert.equal(
+    preservesReadingOrder(pageContract.sections[0]!, pageContract.responsiveTransformations[0]!),
+    true
+  );
+
+  const signature = createMultiPageCompositionSignature([pageContract], 'oxide');
+  assert.equal(validateMultiPageCompositionSignature(signature).ok, true);
+  assert.deepEqual(
+    signature.pages[0]?.sectionSequence.map((section) => section.pattern),
+    ['poster-field', 'staggered-proof']
+  );
+});
+
+test('v2 validation rejects dangling page and section references and reading-order changes', () => {
+  const invalid = structuredClone(pageContract);
+  invalid.sections[0]!.pageId = 'page:other';
+  invalid.responsiveTransformations[0]!.sectionId = 'section:missing';
+  invalid.responsiveTransformations[0]!.readingOrder = ['media', 'headline', 'actions'];
+  const result = validatePageCompositionContractV2(invalid);
+  assert.equal(result.ok, false);
+  if (!result.ok) {
+    const messages = result.errors.map((issue) => `${issue.path}: ${issue.message}`).join('\n');
+    assert.match(messages, /references a different page/);
+    assert.match(messages, /references missing section/);
+  }
+
+  const reordered = structuredClone(pageContract);
+  reordered.responsiveTransformations[0]!.readingOrder = ['media', 'headline', 'actions'];
+  const reorderedResult = validatePageCompositionContractV2(reordered);
+  assert.equal(reorderedResult.ok, false);
+  if (!reorderedResult.ok)
+    assert.ok(
+      reorderedResult.errors.some((issue) => /preserve semantic reading order/.test(issue.message))
+    );
+});
+
+test('multi-page validation enforces unique page references and routes', () => {
+  const duplicate = structuredClone(pageContract);
+  assert.equal(validatePageCompositionContractsV2([pageContract]).ok, true);
+  const result = validatePageCompositionContractsV2([pageContract, duplicate]);
+  assert.equal(result.ok, false);
+  if (!result.ok) {
+    assert.ok(result.errors.some((issue) => /Duplicate page id/.test(issue.message)));
+    assert.ok(result.errors.some((issue) => /Duplicate page route/.test(issue.message)));
+  }
+});
+
+test('v2 structural similarity detects palette-only variants', () => {
+  const oxide = createMultiPageCompositionSignature([pageContract], 'oxide');
+  const cobalt = createMultiPageCompositionSignature([pageContract], 'cobalt');
+  assert.equal(multiPageSignatureSimilarity(oxide, cobalt), 1);
+
+  const changed = structuredClone(cobalt);
+  changed.pages[0]!.sectionSequence[0]!.pattern = 'cinematic-field';
+  assert.ok(multiPageSignatureSimilarity(oxide, changed) < 1);
 });
