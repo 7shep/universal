@@ -342,6 +342,41 @@ test('v2 signatures distinguish responsive-only structural changes', () => {
   assert.ok(multiPageSignatureSimilarity(original, changed) < 1);
 });
 
+test('v2 signature validation rejects responsive order that violates its section', () => {
+  const changedReadingOrder = createMultiPageCompositionSignature([pageContract]);
+  changedReadingOrder.pages[0]!.sectionSequence[0]!.responsiveTransformations[0]!.readingOrder = [
+    'media',
+    'headline',
+    'actions'
+  ];
+  const readingOrderResult = validateMultiPageCompositionSignature(changedReadingOrder);
+  assert.equal(readingOrderResult.ok, false);
+  if (!readingOrderResult.ok)
+    assert.ok(
+      readingOrderResult.errors.some(
+        (issue) =>
+          issue.path.endsWith('.responsiveTransformations.0.readingOrder') &&
+          /preserve section semantic reading order/.test(issue.message)
+      )
+    );
+
+  const missingVisualSlot = createMultiPageCompositionSignature([pageContract]);
+  missingVisualSlot.pages[0]!.sectionSequence[0]!.responsiveTransformations[0]!.visualOrder = [
+    'media',
+    'headline'
+  ];
+  const visualOrderResult = validateMultiPageCompositionSignature(missingVisualSlot);
+  assert.equal(visualOrderResult.ok, false);
+  if (!visualOrderResult.ok)
+    assert.ok(
+      visualOrderResult.errors.some(
+        (issue) =>
+          issue.path.endsWith('.responsiveTransformations.0.visualOrder') &&
+          /every section slot exactly once/.test(issue.message)
+      )
+    );
+});
+
 test('v2 similarity aligns pages by stable identity and penalizes missing pages', () => {
   const aboutPage = structuredClone(pageContract);
   aboutPage.pageId = 'page:about';

@@ -1205,6 +1205,25 @@ export function validateMultiPageCompositionSignature(
                 path: `${transformationPath}.sectionId`,
                 message: 'Signature transformation references a different section.'
               });
+            if (
+              result.ok &&
+              isSupportedSlotArray(section.slotSequence) &&
+              !isUniquePermutation(result.value.visualOrder, section.slotSequence)
+            )
+              errors.push({
+                path: `${transformationPath}.visualOrder`,
+                message:
+                  'Signature transformation visualOrder must contain every section slot exactly once.'
+              });
+            if (
+              result.ok &&
+              isSupportedSlotArray(section.readingOrder) &&
+              !orderedValuesEqual(result.value.readingOrder, section.readingOrder)
+            )
+              errors.push({
+                path: `${transformationPath}.readingOrder`,
+                message: 'Signature transformation must preserve section semantic reading order.'
+              });
             if (isNonEmptyString(transformation.viewport)) {
               if (viewports.has(transformation.viewport))
                 errors.push({
