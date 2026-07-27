@@ -1,0 +1,194 @@
+{
+  "$schema": "./rubric.schema.json",
+  "rubric_id": "design-quality",
+  "rubric_version": "1.0.0",
+  "score_scale": {
+    "minimum": 1,
+    "maximum": 5,
+    "anchors": {
+      "1": "Materially fails the criterion or introduces serious contradictions.",
+      "2": "Partially addresses the criterion with important omissions or defects.",
+      "3": "Meets the criterion at a competent baseline with minor gaps.",
+      "4": "Meets the criterion thoroughly with clear, intentional decisions.",
+      "5": "Exceptional execution that is coherent, specific, and robust."
+    }
+  },
+  "statuses": ["evaluable", "not_evaluable"],
+  "dimensions": [
+    {
+      "id": "brief_fidelity",
+      "title": "Brief fidelity",
+      "weight": 0.22,
+      "evidence_kind": "source",
+      "question": "Does the implementation include the requested content, sections, controls, and constraints without inventing contradictory product behavior?",
+      "source_signals": [
+        "required text and sections",
+        "declared component structure",
+        "explicit constraint compliance"
+      ],
+      "disallowed_inference": ["visual attractiveness", "pixel-level placement"]
+    },
+    {
+      "id": "information_architecture",
+      "title": "Information architecture",
+      "weight": 0.18,
+      "evidence_kind": "source",
+      "question": "Does the source encode a clear content hierarchy, sensible grouping, and an order appropriate to the primary user task?",
+      "source_signals": [
+        "semantic landmarks",
+        "heading order",
+        "section and control grouping",
+        "navigation structure"
+      ],
+      "disallowed_inference": ["actual visual prominence", "spatial balance"]
+    },
+    {
+      "id": "interaction_semantics",
+      "title": "Interaction semantics",
+      "weight": 0.18,
+      "evidence_kind": "source",
+      "question": "Are interactive elements represented by appropriate controls with understandable labels, states, and non-deceptive behavior?",
+      "source_signals": [
+        "button, link, input, and form semantics",
+        "labels",
+        "disabled and selected states",
+        "keyboard-compatible element choice"
+      ],
+      "disallowed_inference": ["animation quality", "pointer feel"]
+    },
+    {
+      "id": "accessibility_foundations",
+      "title": "Accessibility foundations",
+      "weight": 0.17,
+      "evidence_kind": "source",
+      "question": "Does the implementation provide a sound static accessibility foundation?",
+      "source_signals": [
+        "document language",
+        "landmarks",
+        "form labels",
+        "alternative text",
+        "heading order",
+        "focus styles",
+        "reduced-motion handling"
+      ],
+      "disallowed_inference": [
+        "computed contrast",
+        "screen-reader runtime behavior",
+        "actual focus visibility against rendered backgrounds"
+      ]
+    },
+    {
+      "id": "responsive_intent",
+      "title": "Responsive intent",
+      "weight": 0.13,
+      "evidence_kind": "source",
+      "question": "Does the source explicitly account for narrow and wide layouts without relying on fixed desktop-only geometry?",
+      "source_signals": [
+        "media or container queries",
+        "fluid sizing",
+        "wrapping and overflow handling",
+        "mobile navigation intent"
+      ],
+      "disallowed_inference": [
+        "absence of clipping in a real viewport",
+        "rendered breakpoint quality"
+      ]
+    },
+    {
+      "id": "implementation_integrity",
+      "title": "Implementation integrity",
+      "weight": 0.12,
+      "evidence_kind": "source",
+      "question": "Is the implementation buildable, internally consistent, offline-safe, and free of obvious placeholder or broken-reference behavior?",
+      "source_signals": [
+        "successful deterministic build",
+        "local imports resolve",
+        "no remote runtime dependency",
+        "no placeholder copy where final copy is required"
+      ],
+      "disallowed_inference": ["runtime performance", "browser-specific rendering"]
+    },
+    {
+      "id": "visual_hierarchy",
+      "title": "Visual hierarchy",
+      "weight": 0,
+      "future_weight": 0.2,
+      "evidence_kind": "rendered",
+      "question": "Does the rendered interface guide attention in an intentional order?",
+      "when_rendered_evidence_missing": "not_evaluable"
+    },
+    {
+      "id": "composition_and_spacing",
+      "title": "Composition and spacing",
+      "weight": 0,
+      "future_weight": 0.2,
+      "evidence_kind": "rendered",
+      "question": "Are layout, density, rhythm, alignment, and whitespace coherent across viewports?",
+      "when_rendered_evidence_missing": "not_evaluable"
+    },
+    {
+      "id": "typography_and_color",
+      "title": "Typography and color",
+      "weight": 0,
+      "future_weight": 0.2,
+      "evidence_kind": "rendered",
+      "question": "Do typography and color form a legible, distinctive, and accessible system?",
+      "when_rendered_evidence_missing": "not_evaluable"
+    },
+    {
+      "id": "visual_craft",
+      "title": "Visual craft",
+      "weight": 0,
+      "future_weight": 0.2,
+      "evidence_kind": "rendered",
+      "question": "Does the interface demonstrate polish, consistency, and context-appropriate detail?",
+      "when_rendered_evidence_missing": "not_evaluable"
+    },
+    {
+      "id": "distinctiveness",
+      "title": "Distinctiveness",
+      "weight": 0,
+      "future_weight": 0.2,
+      "evidence_kind": "rendered",
+      "question": "Does the interface avoid generic template patterns and express a specific visual point of view?",
+      "when_rendered_evidence_missing": "not_evaluable"
+    }
+  ],
+  "aggregation": {
+    "method": "weighted_mean",
+    "source_weight_sum": 1,
+    "exclude_statuses": ["not_evaluable"],
+    "round_decimals": 2,
+    "minimum_evaluable_source_weight": 0.7,
+    "pair_delta": "universal_guided_total - unguided_total"
+  },
+  "blind_score_format": {
+    "pair_id": "string",
+    "brief_id": "string",
+    "scorer_id": "opaque string",
+    "rubric_version": "1.0.0",
+    "candidates": {
+      "candidate_a": {
+        "dimensions": {
+          "<dimension_id>": {
+            "status": "evaluable | not_evaluable",
+            "score": "integer 1..5 | null",
+            "evidence": ["source path and stable locator"],
+            "reason": "required concise rationale"
+          }
+        }
+      },
+      "candidate_b": "same shape as candidate_a"
+    },
+    "paired_verdicts": {
+      "<dimension_id>": {
+        "winner": "candidate_a | candidate_b | tie | not_evaluable",
+        "confidence": "low | medium | high",
+        "reason": "required concise rationale"
+      }
+    },
+    "overall_preference": "candidate_a | candidate_b | tie | not_evaluable",
+    "assignment_digest": "sha256 hex",
+    "locked_at": "ISO-8601 timestamp"
+  }
+}

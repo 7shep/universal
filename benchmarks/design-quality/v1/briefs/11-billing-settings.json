@@ -1,0 +1,41 @@
+{
+  "$schema": "../brief.schema.json",
+  "brief_id": "dq-v1-11-billing-settings",
+  "brief_version": "1.0.0",
+  "title": "Atlas billing and plan settings",
+  "surface": "application",
+  "audience": "A workspace owner reviewing plan cost and billing details",
+  "scenario": "Atlas is a static account settings view for a fictional 24-seat team on a monthly Pro plan.",
+  "task": "Build a billing settings page that clarifies current plan, next charge, payment method, invoices, and the consequences of plan changes.",
+  "content": {
+    "brand": "Atlas",
+    "primary_heading": "Billing & plan",
+    "sections": [
+      "Settings navigation with Profile, Workspace, Members, Billing & plan, Integrations, and Security",
+      "Current Pro plan at $18 per seat monthly for 24 seats",
+      "Next charge of $432 on August 15, 2026",
+      "Payment method Visa ending 4242 expiring 09/28",
+      "Plan actions Change plan and Cancel plan",
+      "Invoice history for July, June, and May 2026 with date, amount, and Paid status",
+      "Billing contact billing@example.test and tax information status Not provided"
+    ]
+  },
+  "requirements": [
+    "Expose Billing & plan as the selected settings section",
+    "Associate cost with cadence and seat count",
+    "Use a semantic table for invoice history",
+    "Separate routine plan changes from the destructive cancellation path",
+    "Describe that controls are static and no billing action will occur"
+  ],
+  "constraints": [
+    "Do not implement downloads, payment changes, plan changes, or cancellation",
+    "Do not display a complete payment card number",
+    "Do not add discounts, taxes, credits, or annual-plan claims",
+    "Do not use remote assets or services"
+  ],
+  "evaluation_focus": [
+    "Clarity of financial details and billing cadence",
+    "Safe treatment of destructive and non-functional actions",
+    "Semantic invoice and navigation structure"
+  ]
+}

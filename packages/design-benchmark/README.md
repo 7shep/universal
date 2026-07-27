@@ -1,0 +1,10 @@
+# Design benchmark
+
+Offline tooling for the versioned Universal design-quality benchmark.
+
+The package compares an `unguided` generation with a `universal-guided` generation for each
+brief. Source evidence is deterministic and reproducible. Criteria that require visual judgment
+remain `not_evaluable` until rendered evidence is attached; the source collector does not use a
+live preview or network access.
+
+Benchmark definitions live in `../../benchmarks/design-quality/v1`.

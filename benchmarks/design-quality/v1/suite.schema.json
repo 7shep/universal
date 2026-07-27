@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://universal.local/benchmarks/design-quality/v1/suite.schema.json",
+  "title": "Design quality benchmark suite",
+  "type": "object",
+  "required": [
+    "suite_id",
+    "suite_version",
+    "rubric_version",
+    "briefs",
+    "arms",
+    "source_evidence",
+    "rendered_evidence",
+    "blind_scoring"
+  ],
+  "properties": {
+    "suite_id": { "const": "design-quality" },
+    "suite_version": { "type": "string", "pattern": "^1\\." },
+    "rubric_version": { "type": "string" },
+    "briefs": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^briefs/.+\\.json$" }
+    },
+    "arms": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "brief_input", "workflow"],
+        "properties": {
+          "id": { "enum": ["unguided", "universal_guided"] }
+        }
+      }
+    },
+    "rendered_evidence": {
+      "type": "object",
+      "required": ["available", "missing_status", "missing_score"],
+      "properties": {
+        "available": { "const": false },
+        "missing_status": { "const": "not_evaluable" },
+        "missing_score": { "type": "null" }
+      }
+    }
+  }
+}

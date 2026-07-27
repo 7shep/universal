@@ -1,0 +1,41 @@
+{
+  "$schema": "../brief.schema.json",
+  "brief_id": "dq-v1-10-team-onboarding",
+  "brief_version": "1.0.0",
+  "title": "Tandem workspace onboarding",
+  "surface": "application",
+  "audience": "A new team administrator configuring a project collaboration workspace",
+  "scenario": "Tandem needs a static onboarding screen showing the third step in a four-step setup flow.",
+  "task": "Build the invite-your-team step with clear progress, role explanations, validation guidance, and safe secondary actions.",
+  "content": {
+    "brand": "Tandem",
+    "primary_heading": "Invite your team",
+    "sections": [
+      "Four-step progress indicator: Workspace, Preferences, Invite team, and Finish",
+      "Introductory copy explaining that invitations can also be sent later",
+      "Three email rows with role selections for Admin, Member, and Viewer",
+      "Role explanation for Admin, Member, and Viewer permissions",
+      "Add another person control",
+      "Back, Skip for now, and Send invitations actions",
+      "Help link titled Learn about workspace roles"
+    ]
+  },
+  "requirements": [
+    "Mark Invite team as the current step in machine-readable semantics",
+    "Use explicit labels for every email and role field",
+    "Provide an inline example of invalid-email guidance without requiring interaction",
+    "Make Back, Skip for now, and Send invitations visually and semantically distinguishable by intent",
+    "Preserve logical focus and reading order at narrow widths"
+  ],
+  "constraints": [
+    "Do not implement submission, row addition, navigation, or validation behavior",
+    "Do not prefill real personal information",
+    "Do not make Skip for now look destructive",
+    "Do not use remote assets, fonts, or APIs"
+  ],
+  "evaluation_focus": [
+    "Form semantics and explanation of roles",
+    "Progress communication and action hierarchy",
+    "Honest static validation and control states"
+  ]
+}

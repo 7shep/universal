@@ -1,0 +1,41 @@
+{
+  "$schema": "../brief.schema.json",
+  "brief_id": "dq-v1-08-incident-operations",
+  "brief_version": "1.0.0",
+  "title": "Beacon incident operations console",
+  "surface": "dashboard",
+  "audience": "On-call engineers coordinating an active service incident",
+  "scenario": "Beacon displays a static snapshot of a degraded API incident and its response timeline.",
+  "task": "Build a high-density operations console that prioritizes incident status, ownership, affected services, and the next response action.",
+  "content": {
+    "brand": "Beacon",
+    "primary_heading": "INC-2041 · Elevated API latency",
+    "sections": [
+      "Operations navigation with Incidents, Services, On-call, Runbooks, and Search",
+      "Incident header with SEV-2, Investigating, started 14:07 UTC, and commander Priya N.",
+      "Current impact: checkout API p95 latency above 2.4 s in us-east",
+      "Affected services list for Checkout API, Payments Worker, and Edge Gateway",
+      "Timeline entries at 14:07, 14:11, 14:18, and 14:26 UTC",
+      "Responders list with incident commander, communications lead, and investigator",
+      "Next update due 14:40 UTC and linked Runbook RB-17"
+    ]
+  },
+  "requirements": [
+    "Place severity, status, impact, and next update before supporting detail in document order",
+    "Use time elements or equivalent machine-readable timestamps",
+    "Do not rely on color alone for severity or service health",
+    "Represent the incident timeline as an ordered sequence",
+    "Expose controls as static or disabled when behavior is not implemented"
+  ],
+  "constraints": [
+    "Do not implement acknowledgement, escalation, messaging, or status changes",
+    "Do not auto-refresh or fetch data",
+    "Do not add fictional incident facts beyond the supplied snapshot",
+    "Do not use remote icons, fonts, or assets"
+  ],
+  "evaluation_focus": [
+    "Priority ordering under operational pressure",
+    "Unambiguous state, ownership, and time semantics",
+    "Honest presentation of non-functional controls"
+  ]
+}

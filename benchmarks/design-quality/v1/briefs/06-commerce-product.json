@@ -1,0 +1,41 @@
+{
+  "$schema": "../brief.schema.json",
+  "brief_id": "dq-v1-06-commerce-product",
+  "brief_version": "1.0.0",
+  "title": "Kestrel carry system product page",
+  "surface": "product_page",
+  "audience": "Urban commuters comparing a durable modular daypack",
+  "scenario": "Kestrel sells one 22-liter pack with three included modules and two color options.",
+  "task": "Build a static commerce product detail page that supports confident product evaluation without pretending to complete a purchase.",
+  "content": {
+    "brand": "Kestrel",
+    "primary_heading": "One pack. Every weekday.",
+    "sections": [
+      "Store navigation with Packs, Modules, Repair, Field notes, and Cart (0)",
+      "Product summary for Kestrel 22L at $189 with Slate and Lichen options",
+      "Static product gallery with four labeled views",
+      "Included modules: laptop sleeve, cable pouch, and bottle cradle",
+      "Specification list covering 22 L capacity, 980 g weight, and 46 × 30 × 16 cm size",
+      "Repair promise and materials note",
+      "Shipping note, returns note, and footer"
+    ]
+  },
+  "requirements": [
+    "Use a fieldset and legend or equivalent semantics for the two color options",
+    "Label the static Add to cart control as a demonstrative non-working state",
+    "Expose gallery view labels and useful image alternatives",
+    "Keep price, included items, specifications, and policies easy to locate",
+    "Handle the specification table and gallery labels at narrow widths"
+  ],
+  "constraints": [
+    "Do not implement checkout, inventory, image zoom, or cart mutations",
+    "Do not add sale pricing, reviews, ratings, or sustainability certifications",
+    "Do not use remote product photography",
+    "Do not obscure the fact that this is a static demonstration"
+  ],
+  "evaluation_focus": [
+    "Honest static representation of commerce controls",
+    "Decision-supporting hierarchy and product detail completeness",
+    "Semantic option and specification presentation"
+  ]
+}

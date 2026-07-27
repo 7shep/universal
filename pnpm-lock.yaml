@@ -120,6 +120,8 @@ importers:
         specifier: workspace:*
         version: link:../shared
 
+  packages/design-benchmark: {}
+
   packages/design-engine:
     dependencies:
       '@universal/composition-library':

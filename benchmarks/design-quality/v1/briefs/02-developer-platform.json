@@ -1,0 +1,41 @@
+{
+  "$schema": "../brief.schema.json",
+  "brief_id": "dq-v1-02-developer-platform",
+  "brief_version": "1.0.0",
+  "title": "Relay developer platform launch page",
+  "surface": "landing_page",
+  "audience": "Backend engineers evaluating an event-delivery API",
+  "scenario": "Relay provides durable webhooks with retries, observability, signing, and local replay tools.",
+  "task": "Build a technical product page that lets an engineer understand the API quickly and begin integrating without marketing-heavy friction.",
+  "content": {
+    "brand": "Relay",
+    "primary_heading": "Webhooks that arrive",
+    "sections": [
+      "Compact navigation with Docs, SDKs, Status, Pricing, Sign in, and Start building",
+      "Hero with reliability promise, Start building, Read the docs, and a local code example",
+      "Capability overview for retries, signing, replay, and delivery logs",
+      "Integration path showing Create endpoint, Send event, and Inspect delivery",
+      "SDK list for TypeScript, Python, Go, Ruby, and Java",
+      "Reliability note covering idempotency keys and exponential backoff",
+      "Developer-focused final call to action and footer"
+    ]
+  },
+  "requirements": [
+    "Render the example as a code block with a language label and readable plain-text fallback",
+    "Keep documentation access prominent alongside the signup action",
+    "Use ordered steps for the integration path",
+    "Use links or buttons according to whether an action navigates or performs an action",
+    "Account for long code lines and narrow screens without page-level horizontal overflow"
+  ],
+  "constraints": [
+    "Do not load syntax-highlighting libraries or external packages at runtime",
+    "Do not invent uptime percentages, customer logos, or benchmark numbers",
+    "Do not require JavaScript for core content visibility",
+    "Use only the supplied SDK languages"
+  ],
+  "evaluation_focus": [
+    "Fast technical comprehension with restrained product messaging",
+    "Semantic, overflow-safe presentation of code and ordered setup steps",
+    "Appropriate density for an engineering audience"
+  ]
+}

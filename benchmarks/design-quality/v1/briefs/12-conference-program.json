@@ -1,0 +1,41 @@
+{
+  "$schema": "../brief.schema.json",
+  "brief_id": "dq-v1-12-conference-program",
+  "brief_version": "1.0.0",
+  "title": "Making Systems conference program",
+  "surface": "landing_page",
+  "audience": "Design and engineering practitioners deciding whether to attend a one-day conference",
+  "scenario": "Making Systems is a small in-person conference in Toronto focused on the collaboration behind durable digital products.",
+  "task": "Build an event page that balances identity and practical program information, leading visitors toward a clearly described ticket action.",
+  "content": {
+    "brand": "Making Systems",
+    "primary_heading": "The work between the disciplines",
+    "sections": [
+      "Navigation with Program, Speakers, Venue, Access, and Get tickets",
+      "Hero with October 17, 2026, Toronto, the primary heading, and Get tickets",
+      "Program sessions at 09:30, 10:45, 13:00, 14:30, and 16:00",
+      "Speakers Lena Park, Omar El-Sayed, Jo Rivera, and Nikhil Bose with roles and session titles",
+      "Venue details for Junction Hall, 88 Sterling Road, Toronto",
+      "Access information covering step-free entry, live captions, quiet room, and dietary needs contact",
+      "Ticket note: General admission $240 CAD; ticket checkout is not implemented"
+    ]
+  },
+  "requirements": [
+    "Associate each session with time, title, speaker, and format",
+    "Use time elements or equivalent machine-readable program times",
+    "Make venue and accessibility information easy to find before the footer",
+    "State the ticket price, currency, and static checkout limitation together",
+    "Provide a linear and readable program at narrow widths"
+  ],
+  "constraints": [
+    "Do not implement ticket purchase, maps, calendar export, or filters",
+    "Do not invent sponsors, speaker biographies, or venue amenities",
+    "Do not use remote headshots, maps, fonts, or scripts",
+    "Do not hide practical details behind hover or interaction"
+  ],
+  "evaluation_focus": [
+    "Balance of expressive event identity and practical decision information",
+    "Program, venue, and accessibility semantics",
+    "Transparent static ticket action"
+  ]
+}

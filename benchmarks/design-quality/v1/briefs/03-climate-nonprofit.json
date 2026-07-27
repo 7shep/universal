@@ -1,0 +1,41 @@
+{
+  "$schema": "../brief.schema.json",
+  "brief_id": "dq-v1-03-climate-nonprofit",
+  "brief_version": "1.0.0",
+  "title": "Common Ground restoration campaign",
+  "surface": "landing_page",
+  "audience": "Local residents considering volunteering or donating to watershed restoration",
+  "scenario": "Common Ground is recruiting volunteers for a six-month river restoration campaign across three neighborhoods.",
+  "task": "Build an editorial campaign page that explains the work, makes participation feel concrete, and supports both volunteering and donations.",
+  "content": {
+    "brand": "Common Ground",
+    "primary_heading": "A living river starts on its banks",
+    "sections": [
+      "Navigation with The project, Field days, Our impact, About, Donate, and Join a field day",
+      "Hero with campaign statement, Join a field day, and Explore the project",
+      "Project explanation covering invasive removal, native planting, and water monitoring",
+      "Upcoming field days in Riverside on May 9, Eastbank on May 23, and Mill Creek on June 6",
+      "Impact facts: 3 neighborhoods, 18 river acres, and 6 months of field work",
+      "Volunteer testimonial from Sam Ortiz, Riverside resident",
+      "Donation and newsletter calls to action with footer"
+    ]
+  },
+  "requirements": [
+    "Present each field day with place, date, activity, and a clear signup action",
+    "Keep volunteer participation primary while preserving a distinct donate path",
+    "Explain what a first-time volunteer should expect",
+    "Use time elements or equivalently machine-readable dates",
+    "Provide useful alternative text for any content-bearing environmental imagery"
+  ],
+  "constraints": [
+    "Do not use guilt-based, catastrophic, or unverifiable impact language",
+    "Do not add donation amounts or tax claims",
+    "Do not use remote media or map embeds",
+    "Do not hide event details behind interaction"
+  ],
+  "evaluation_focus": [
+    "Warm civic tone without sacrificing logistical clarity",
+    "Scannable event information and action hierarchy",
+    "Responsible handling of impact claims"
+  ]
+}

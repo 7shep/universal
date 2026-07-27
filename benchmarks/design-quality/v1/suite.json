@@ -1,0 +1,100 @@
+{
+  "$schema": "./suite.schema.json",
+  "suite_id": "design-quality",
+  "suite_version": "1.0.0",
+  "rubric_version": "1.0.0",
+  "content_revision": 1,
+  "title": "Universal Design Quality Benchmark",
+  "description": "Paired, blind comparison of unguided and Universal-guided React interface generation across twelve representative briefs.",
+  "execution_mode": "offline_source_only",
+  "briefs": [
+    "briefs/01-fintech-landing.json",
+    "briefs/02-developer-platform.json",
+    "briefs/03-climate-nonprofit.json",
+    "briefs/04-consumer-audio.json",
+    "briefs/05-architecture-portfolio.json",
+    "briefs/06-commerce-product.json",
+    "briefs/07-analytics-dashboard.json",
+    "briefs/08-incident-operations.json",
+    "briefs/09-clinic-scheduling.json",
+    "briefs/10-team-onboarding.json",
+    "briefs/11-billing-settings.json",
+    "briefs/12-conference-program.json"
+  ],
+  "arms": [
+    {
+      "id": "unguided",
+      "label": "Unguided",
+      "brief_input": "verbatim",
+      "workflow": "repository_default",
+      "universal_tools": "not_provided"
+    },
+    {
+      "id": "universal_guided",
+      "label": "Universal-guided",
+      "brief_input": "verbatim",
+      "workflow": "universal_design_workflow",
+      "universal_tools": "create_design_plan,get_design_rules,review_implementation"
+    }
+  ],
+  "pairing": {
+    "unit": "brief_id",
+    "required_arm_ids": ["unguided", "universal_guided"],
+    "same_starter_fixture": true,
+    "same_brief_bytes": true,
+    "same_runtime_budget": true,
+    "independent_workspaces": true
+  },
+  "source_evidence": {
+    "required": true,
+    "network": "disabled",
+    "live_preview": "disabled",
+    "file_encoding": "utf-8",
+    "line_endings": "lf",
+    "path_order": "lexicographic",
+    "path_separator": "/",
+    "ignore": [".git/**", "node_modules/**", "dist/**", "coverage/**", ".turbo/**", "*.log"],
+    "include": [
+      "package.json",
+      "src/**/*.css",
+      "src/**/*.html",
+      "src/**/*.js",
+      "src/**/*.jsx",
+      "src/**/*.json",
+      "src/**/*.ts",
+      "src/**/*.tsx"
+    ],
+    "digest": "sha256",
+    "required_checks": ["install_from_lockfile", "build", "static_contract"],
+    "timestamps": "excluded"
+  },
+  "rendered_evidence": {
+    "available": false,
+    "required_for_evidence_kind": "rendered",
+    "missing_status": "not_evaluable",
+    "missing_score": null,
+    "missing_reason": "rendered_evidence_unavailable",
+    "forbid_source_inference": true
+  },
+  "blind_scoring": {
+    "artifact_labels": ["candidate_a", "candidate_b"],
+    "hide_fields": ["arm_id", "arm_label", "workflow", "tool_transcript"],
+    "assignment": "sha256(pair_id + scorer_seed) low-bit swap",
+    "record_assignment_digest": true,
+    "reveal_after_score_lock": true,
+    "allowed_verdicts": ["candidate_a", "candidate_b", "tie", "not_evaluable"],
+    "score_format": "rubric.json#blind_score_format"
+  },
+  "reports": {
+    "paired_comparison": {
+      "primary_unit": "brief",
+      "include_ties": true,
+      "exclude_not_evaluable": true
+    },
+    "regression": {
+      "baseline_key": "suite_version+rubric_version+brief_id+arm_id",
+      "compare_only_matching_versions": true,
+      "exclude_not_evaluable": true
+    }
+  }
+}
