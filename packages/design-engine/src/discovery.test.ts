@@ -164,3 +164,39 @@ test('approval, digest, revision, and DesignPlanBrief conversion round-trip', ()
   assert.notEqual(session.brief!.digest, oldDigest);
   assert.equal(session.brief!.version, 2);
 });
+
+test('mutations invalidate a pending brief and prevent stale approval', () => {
+  let session = completeCore();
+  session = requestDiscoveryApproval(session, '2026-07-27T10:03:00.000Z');
+  session = respond(session, 'hero', 'exact', 'Plan releases without the scramble.');
+  assert.equal(session.approval.status, 'discovering');
+  assert.equal(session.brief, undefined);
+  assert.throws(
+    () => approveDiscoveryBrief(session, '2026-07-27T10:04:00.000Z'),
+    /prepare and request approval/i
+  );
+});
+
+test('page-map changes invalidate pending approval and cannot mutate an approved brief', () => {
+  let session = completeCore();
+  session = requestDiscoveryApproval(session, '2026-07-27T10:03:00.000Z');
+  session = setDiscoveryPageMap(session, pageMap, {
+    now: '2026-07-27T10:04:00.000Z',
+    source: 'user',
+    evidence: 'User reconfirmed the page map.'
+  });
+  assert.equal(session.approval.status, 'discovering');
+  assert.equal(session.brief, undefined);
+
+  session = requestDiscoveryApproval(session, '2026-07-27T10:05:00.000Z');
+  session = approveDiscoveryBrief(session, '2026-07-27T10:06:00.000Z');
+  assert.throws(
+    () =>
+      setDiscoveryPageMap(session, pageMap, {
+        now: '2026-07-27T10:07:00.000Z',
+        source: 'user',
+        evidence: 'Attempted post-approval mutation.'
+      }),
+    /reopen the approved brief/i
+  );
+});

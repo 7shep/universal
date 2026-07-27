@@ -89,6 +89,17 @@ function assertSession(session: DiscoverySession): DiscoverySession {
   return session;
 }
 
+function reopenForMutation(session: DiscoverySession, now: string): DiscoverySession {
+  if (session.approval.status === 'approved')
+    throw new Error('Reopen the approved brief before changing discovery.');
+  return {
+    ...session,
+    updatedAt: now,
+    approval: { status: 'discovering' },
+    brief: undefined
+  };
+}
+
 export function startDiscoverySession(input: StartDiscoveryInput): DiscoverySession {
   if (!input.id.trim() || !input.prompt.trim() || !input.now.trim())
     throw new Error('Discovery session id, prompt, and timestamp are required.');
@@ -119,18 +130,16 @@ export function addDiscoveryInterpretation(
   interpretation: DiscoveryInterpretation,
   now: string
 ): DiscoverySession {
-  if (session.approval.status === 'approved')
-    throw new Error('Reopen the approved brief before adding discovery evidence.');
+  const mutable = reopenForMutation(session, now);
   const validation = validateDiscoveryInterpretation(interpretation);
   if (!validation.ok)
     throw new Error(
       `Invalid discovery interpretation at ${validation.error.path}: ${validation.error.message}`
     );
   const next = {
-    ...session,
-    updatedAt: now,
-    interpretations: [...session.interpretations, interpretation],
-    decisions: [...session.decisions, interpretationDecision(session, interpretation)]
+    ...mutable,
+    interpretations: [...mutable.interpretations, interpretation],
+    decisions: [...mutable.decisions, interpretationDecision(mutable, interpretation)]
   };
   return assertSession(next);
 }
@@ -139,8 +148,7 @@ export function answerDiscoveryQuestion(
   session: DiscoverySession,
   answer: DiscoveryAnswer
 ): DiscoverySession {
-  if (session.approval.status === 'approved')
-    throw new Error('Reopen the approved brief before answering discovery questions.');
+  const mutable = reopenForMutation(session, answer.answeredAt);
   const validation = validateDiscoveryAnswer(answer);
   if (!validation.ok)
     throw new Error(
@@ -149,12 +157,12 @@ export function answerDiscoveryQuestion(
   if (answer.questionId !== `discovery:${answer.topic}`)
     throw new Error('Discovery answer questionId does not match its topic.');
 
-  let decisions = session.decisions;
+  let decisions = mutable.decisions;
   if (answer.mode === 'exact' || answer.mode === 'preference') {
     decisions = [
       ...decisions,
       decision(
-        session,
+        mutable,
         answer.topic,
         answer.value!,
         'user',
@@ -167,7 +175,7 @@ export function answerDiscoveryQuestion(
     decisions = [
       ...decisions,
       decision(
-        session,
+        mutable,
         answer.topic,
         answer.value ?? { summary: 'Universal may decide this during art direction.' },
         'user',
@@ -180,7 +188,7 @@ export function answerDiscoveryQuestion(
     decisions = [
       ...decisions,
       decision(
-        session,
+        mutable,
         answer.topic,
         answer.value,
         'model',
@@ -192,9 +200,8 @@ export function answerDiscoveryQuestion(
   }
 
   return assertSession({
-    ...session,
-    updatedAt: answer.answeredAt,
-    answers: [...session.answers, answer],
+    ...mutable,
+    answers: [...mutable.answers, answer],
     decisions
   });
 }
@@ -211,12 +218,13 @@ export function setDiscoveryPageMap(
   pageMap: PageMap,
   options: SetPageMapOptions
 ): DiscoverySession {
+  const mutable = reopenForMutation(session, options.now);
   const validation = validatePageMap(pageMap);
   if (!validation.ok)
     throw new Error(`Invalid page map at ${validation.error.path}: ${validation.error.message}`);
   const disposition = options.disposition ?? (options.source === 'model' ? 'drafted' : 'explicit');
   const mapDecision = decision(
-    session,
+    mutable,
     'page-map',
     {
       summary:
@@ -230,13 +238,11 @@ export function setDiscoveryPageMap(
     options.evidence
   );
   return assertSession({
-    ...session,
-    updatedAt: options.now,
+    ...mutable,
     pageMap,
-    decisions: [...session.decisions, mapDecision]
+    decisions: [...mutable.decisions, mapDecision]
   });
 }
-
 function withBrief(
   session: DiscoverySession,
   brief: CreativeBrief,
