@@ -13,7 +13,8 @@ import {
   type DecisionRevisionInput,
   type DiscoverySession,
   type DiscoveryTopic,
-  type DiscoveryValue
+  type DiscoveryValue,
+  type PageMap
 } from './discovery-contracts.ts';
 import { digestCreativeBrief } from './discovery-digest.ts';
 import { evaluateDiscoveryPolicy } from './discovery-policy.ts';
@@ -46,19 +47,12 @@ function latestDecision(
 }
 
 function requiredDecision(
-  session: DiscoverySession,
+  decisions: readonly DecisionProvenance[],
   topic: 'purpose' | 'audience' | 'page-content'
 ): DiscoveryValue {
-  const decision = latestDecision(session.decisions, topic);
+  const decision = latestDecision(decisions, topic);
   if (!decision) throw new Error(`Cannot prepare creative brief without ${topic}.`);
   return decision.value;
-}
-
-function optionalDecision(
-  decisions: readonly DecisionProvenance[],
-  topic: keyof typeof fieldByTopic
-): DiscoveryValue | undefined {
-  return latestDecision(decisions, topic)?.value;
 }
 
 function listFromDecision(
@@ -70,27 +64,32 @@ function listFromDecision(
   return [value.summary, ...(value.details ?? [])];
 }
 
-function referencesFromDecision(
-  decisions: readonly DecisionProvenance[]
-): readonly DesignReference[] {
-  return listFromDecision(decisions, 'references').map((description) => ({
-    description,
-    role: 'inspiration'
-  }));
-}
-
-function buildContent(session: DiscoverySession): CreativeBriefContent {
-  if (!session.pageMap || !validatePageMap(session.pageMap).ok)
-    throw new Error('Cannot prepare creative brief without a valid page map.');
+function projectCreativeBriefContent(
+  decisions: readonly DecisionProvenance[],
+  pageMap: PageMap,
+  projectName?: string
+): CreativeBriefContent {
+  const pageMapValidation = validatePageMap(pageMap);
+  if (!pageMapValidation.ok)
+    throw new Error(
+      `Cannot project creative brief content at ${pageMapValidation.error.path}: ${pageMapValidation.error.message}`
+    );
+  const latestByTopic = new Map<DiscoveryTopic, DecisionProvenance>();
+  for (const decision of decisions) latestByTopic.set(decision.topic, decision);
+  const currentDecisions = [...latestByTopic.values()];
   const content: CreativeBriefContent = {
-    purpose: requiredDecision(session, 'purpose'),
-    audience: requiredDecision(session, 'audience'),
-    pageMap: session.pageMap,
-    pageContent: requiredDecision(session, 'page-content'),
-    constraints: listFromDecision(session.decisions, 'constraints'),
-    references: referencesFromDecision(session.decisions),
-    antiPatterns: listFromDecision(session.decisions, 'anti-patterns'),
-    preferences: session.decisions
+    ...(projectName ? { projectName } : {}),
+    purpose: requiredDecision(decisions, 'purpose'),
+    audience: requiredDecision(decisions, 'audience'),
+    pageMap,
+    pageContent: requiredDecision(decisions, 'page-content'),
+    constraints: listFromDecision(decisions, 'constraints'),
+    references: listFromDecision(decisions, 'references').map((description): DesignReference => ({
+      description,
+      role: 'inspiration'
+    })),
+    antiPatterns: listFromDecision(decisions, 'anti-patterns'),
+    preferences: currentDecisions
       .filter((decision) => decision.disposition === 'preferred')
       .map((decision) => decision.value.summary)
   };
@@ -99,12 +98,11 @@ function buildContent(session: DiscoverySession): CreativeBriefContent {
     (typeof fieldByTopic)[keyof typeof fieldByTopic]
   ][]) {
     if (['purpose', 'audience', 'page-content'].includes(topic)) continue;
-    const value = optionalDecision(session.decisions, topic);
+    const value = latestByTopic.get(topic)?.value;
     if (value) Object.assign(content, { [field]: value });
   }
   return content;
 }
-
 export { digestCreativeBrief } from './discovery-digest.ts';
 
 export function createCreativeBrief(session: DiscoverySession, now: string): CreativeBrief {
@@ -117,7 +115,7 @@ export function createCreativeBrief(session: DiscoverySession, now: string): Cre
     version: 1,
     createdAt: now,
     updatedAt: now,
-    content: buildContent(session),
+    content: projectCreativeBriefContent(session.decisions, session.pageMap!),
     decisions: session.decisions,
     unresolved: policy.missing,
     revisions: [] as readonly BriefRevision[],
@@ -252,16 +250,11 @@ export function reviseCreativeBrief(
   const incomingDecisions = [...interpretedDecisions, ...suppliedDecisions, ...pageMapDecisions];
   const decisions = [...brief.decisions, ...incomingDecisions];
 
-  const content = { ...brief.content };
-  for (const decision of incomingDecisions) {
-    const field = fieldByTopic[decision.topic as keyof typeof fieldByTopic];
-    if (field) Object.assign(content, { [field]: decision.value });
-    if (decision.topic === 'constraints')
-      content.constraints = [decision.value.summary, ...(decision.value.details ?? [])];
-    if (decision.topic === 'anti-patterns')
-      content.antiPatterns = [decision.value.summary, ...(decision.value.details ?? [])];
-  }
-  if (input.pageMap) content.pageMap = input.pageMap;
+  const content = projectCreativeBriefContent(
+    decisions,
+    input.pageMap ?? brief.content.pageMap,
+    brief.content.projectName
+  );
 
   const unresolved = brief.unresolved.filter((item) => !changed.has(item.topic));
   for (const nextDecision of incomingDecisions) {

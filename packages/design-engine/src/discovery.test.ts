@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   answerDiscoveryQuestion,
   approveDiscoveryBrief,
+  digestCreativeBrief,
   evaluateDiscoveryPolicy,
   getNextDiscoveryQuestions,
   requestDiscoveryApproval,
@@ -164,6 +165,52 @@ test('approval, digest, revision, and DesignPlanBrief conversion round-trip', ()
   assert.equal(session.brief!.version, 2);
 });
 
+test('revisions reproject references and current preferred decisions into content', () => {
+  let session = completeCore();
+  session = requestDiscoveryApproval(session, '2026-07-27T10:06:30.000Z');
+  session = requestDiscoveryRevision(session, '2026-07-27T10:06:40.000Z', 'Add direction inputs.');
+  const previousDigest = session.brief!.digest;
+  session = reviseDiscoveryBrief(session, {
+    now: '2026-07-27T10:06:50.000Z',
+    reason: 'Record a new reference and preferred color direction.',
+    decisions: [
+      {
+        topic: 'references',
+        value: {
+          summary: 'Braun industrial design archive',
+          details: ['Swiss railway wayfinding system']
+        },
+        source: 'user',
+        disposition: 'explicit',
+        answerMode: 'exact',
+        evidence: 'User supplied two visual references.'
+      },
+      {
+        topic: 'color',
+        value: { summary: 'Warm off-white with signal orange.' },
+        source: 'user',
+        disposition: 'preferred',
+        answerMode: 'preference',
+        evidence: 'User selected the preferred palette direction.'
+      }
+    ]
+  });
+  const brief = session.brief!;
+  assert.deepEqual(brief.content.references, [
+    { description: 'Braun industrial design archive', role: 'inspiration' },
+    { description: 'Swiss railway wayfinding system', role: 'inspiration' }
+  ]);
+  assert.equal(brief.content.color?.summary, 'Warm off-white with signal orange.');
+  assert.ok(brief.content.preferences.includes('Warm off-white with signal orange.'));
+  assert.ok(brief.content.preferences.includes('Small product teams.'));
+  assert.notEqual(brief.digest, previousDigest);
+  assert.equal(brief.digest, digestCreativeBrief(brief));
+  assert.equal(validateCreativeBrief(brief).ok, true);
+
+  const compatible = toDesignPlanBrief(brief, { requireApproval: false });
+  assert.deepEqual(compatible.references, brief.content.references);
+  assert.deepEqual(compatible.preferences, brief.content.preferences);
+});
 test('mutations invalidate a pending brief and prevent stale approval', () => {
   let session = completeCore();
   session = requestDiscoveryApproval(session, '2026-07-27T10:03:00.000Z');
