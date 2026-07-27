@@ -1,4 +1,5 @@
 import type { CollectSourceEvidenceInput, RenderedEvidenceReference } from '../src/evidence.ts';
+import { recordExecutedCheck } from '../src/checks.ts';
 
 export const representativeSourceFiles = [
   {
@@ -33,12 +34,15 @@ export const sourceEvidencePolicy = {
   requiredChecks: ['build', 'static_contract']
 } as const;
 
-export const completedEvidenceChecks = ['build', 'static_contract'] as const;
+export const executedEvidenceChecks = [
+  recordExecutedCheck('build', { exitStatus: 0, stdout: 'build ok', stderr: '' }),
+  recordExecutedCheck('static_contract', { exitStatus: 0, stdout: 'contract ok', stderr: '' })
+] as const;
 
 export const sourceOnlyEvidenceInput: CollectSourceEvidenceInput = {
   files: representativeSourceFiles,
   policy: sourceEvidencePolicy,
-  completedChecks: completedEvidenceChecks
+  executedChecks: executedEvidenceChecks
 };
 
 export const renderedEvidenceReferences = [

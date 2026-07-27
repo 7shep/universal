@@ -5,6 +5,8 @@ import { tmpdir } from 'node:os';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import {
+  assertBenchmarkBriefDefinition,
+  assertBenchmarkSuiteManifest,
   createPairedComparisonReport,
   createRegressionReport,
   createSeededBlindAssignment,
@@ -97,7 +99,7 @@ test('blind scoring and paired/regression reports are deterministic without rend
       .filter((criterion) => criterion.evidenceKind === 'source')
       .map((criterion) => ({
         criterionId: criterion.id,
-        score: submission.blindId.endsWith('candidate-a') ? 4 : 3,
+        score: submission.blindId.endsWith('candidate_a') ? 4 : 3,
         rationale: 'Deterministic source-only fixture judgment.',
         evidenceIds: ['source']
       }));
@@ -153,7 +155,7 @@ test('loader rejects canonical-path violations and symlinked corpus files', asyn
     };
     suite.briefs[0] = suite.briefs[0]!.replace('/', '\\');
     await writeFile(suitePath, JSON.stringify(suite), 'utf8');
-    await assert.rejects(() => loadBenchmarkDefinition(copiedRoot), /canonical forward-slash/);
+    await assert.rejects(() => loadBenchmarkDefinition(copiedRoot), /canonical/);
 
     await cp(corpusRoot, copiedRoot, { recursive: true, force: true });
     const target = resolve(copiedRoot, 'briefs/01-fintech-landing.json');
@@ -165,4 +167,39 @@ test('loader rejects canonical-path violations and symlinked corpus files', asyn
   } finally {
     await rm(temporary, { recursive: true, force: true });
   }
+});
+
+test('runtime validators enforce the cited v1 JSON schema requirements', async () => {
+  const definition = await loadBenchmarkDefinition(corpusRoot);
+  const validBrief = definition.briefs[0]!;
+  const invalidBriefs: unknown[] = [
+    { ...validBrief, unexpected: true },
+    { ...validBrief, brief_id: 'invalid' },
+    { ...validBrief, brief_version: '1.0.1' },
+    { ...validBrief, surface: 'terminal' },
+    { ...validBrief, requirements: validBrief.requirements.slice(0, 3) },
+    { ...validBrief, constraints: validBrief.constraints.slice(0, 2) },
+    { ...validBrief, evaluation_focus: validBrief.evaluation_focus.slice(0, 1) },
+    { ...validBrief, content: { ...validBrief.content, sections: ['one', 'two'] } },
+    { ...validBrief, content: { ...validBrief.content, sections: ['one', 'two', 3] } }
+  ];
+  for (const brief of invalidBriefs)
+    assert.throws(() => assertBenchmarkBriefDefinition(brief), TypeError);
+
+  assert.throws(
+    () =>
+      assertBenchmarkSuiteManifest({
+        ...definition.suite,
+        rendered_evidence: { ...definition.suite.rendered_evidence, available: true }
+      }),
+    /rendered evidence|forbid source inference/i
+  );
+  assert.throws(
+    () =>
+      assertBenchmarkSuiteManifest({
+        ...definition.suite,
+        briefs: ['not-canonical.json', ...definition.suite.briefs.slice(1)]
+      }),
+    /canonical JSON paths/
+  );
 });

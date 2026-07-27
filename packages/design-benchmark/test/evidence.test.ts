@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { SOURCE_EVIDENCE_VERSION, collectSourceEvidence } from '../src/evidence.ts';
+import { recordExecutedCheck } from '../src/checks.ts';
 import {
-  completedEvidenceChecks,
+  executedEvidenceChecks,
   renderedEvidenceReferences,
   representativeSourceFiles,
   sourceEvidencePolicy,
@@ -17,7 +18,7 @@ test('collects stable source facts without rendered or network dependencies', ()
       content: file.content.replaceAll('\n', '\r\n')
     })),
     policy: sourceEvidencePolicy,
-    completedChecks: completedEvidenceChecks
+    executedChecks: executedEvidenceChecks
   });
 
   assert.deepEqual(second, first);
@@ -41,6 +42,10 @@ test('collects stable source facts without rendered or network dependencies', ()
   assert.equal(first.signals.mediaQueries, 1);
   assert.equal(first.signals.reducedMotionQueries, 1);
   assert.equal(first.signals.cssCustomPropertyDeclarations, 2);
+  assert.deepEqual(
+    first.checks.map((check) => check.name),
+    ['build', 'static_contract']
+  );
 });
 
 test('marks every visual-only criterion not evaluable without rendered evidence', () => {
@@ -57,7 +62,7 @@ test('records rendered references without producing visual conclusions', () => {
     files: representativeSourceFiles,
     renderedEvidence: [...renderedEvidenceReferences].reverse(),
     policy: sourceEvidencePolicy,
-    completedChecks: completedEvidenceChecks
+    executedChecks: executedEvidenceChecks
   });
 
   assert.deepEqual(
@@ -76,7 +81,7 @@ test('source digest changes with content but ignores caller ordering', () => {
       file.path === 'src/styles.css' ? { ...file, content: `${file.content}\nfooter {}` } : file
     ),
     policy: sourceEvidencePolicy,
-    completedChecks: completedEvidenceChecks
+    executedChecks: executedEvidenceChecks
   });
 
   assert.notEqual(changed.sourceDigest, baseline.sourceDigest);
@@ -84,7 +89,7 @@ test('source digest changes with content but ignores caller ordering', () => {
     collectSourceEvidence({
       files: [...representativeSourceFiles].reverse(),
       policy: sourceEvidencePolicy,
-      completedChecks: completedEvidenceChecks
+      executedChecks: executedEvidenceChecks
     }).sourceDigest,
     baseline.sourceDigest
   );
@@ -99,7 +104,7 @@ test('rejects ambiguous, absolute, and escaping source paths', () => {
           { path: './src\\App.tsx', content: 'two' }
         ],
         policy: sourceEvidencePolicy,
-        completedChecks: completedEvidenceChecks
+        executedChecks: executedEvidenceChecks
       }),
     /Duplicate evidence source path/
   );
@@ -108,7 +113,7 @@ test('rejects ambiguous, absolute, and escaping source paths', () => {
       collectSourceEvidence({
         files: [{ path: '../outside.ts', content: '' }],
         policy: sourceEvidencePolicy,
-        completedChecks: completedEvidenceChecks
+        executedChecks: executedEvidenceChecks
       }),
     /cannot traverse/
   );
@@ -117,7 +122,7 @@ test('rejects ambiguous, absolute, and escaping source paths', () => {
       collectSourceEvidence({
         files: [{ path: 'C:\\outside.ts', content: '' }],
         policy: sourceEvidencePolicy,
-        completedChecks: completedEvidenceChecks
+        executedChecks: executedEvidenceChecks
       }),
     /project-relative/
   );
@@ -129,7 +134,7 @@ test('enforces include, ignore, and required-check policy', () => {
       collectSourceEvidence({
         files: [{ path: 'README.md', content: 'not included' }],
         policy: sourceEvidencePolicy,
-        completedChecks: completedEvidenceChecks
+        executedChecks: executedEvidenceChecks
       }),
     /not included by policy/
   );
@@ -138,7 +143,7 @@ test('enforces include, ignore, and required-check policy', () => {
       collectSourceEvidence({
         files: [{ path: 'src/debug.log', content: 'ignored' }],
         policy: { ...sourceEvidencePolicy, include: ['src/**'] },
-        completedChecks: completedEvidenceChecks
+        executedChecks: executedEvidenceChecks
       }),
     /ignored by policy/
   );
@@ -147,8 +152,33 @@ test('enforces include, ignore, and required-check policy', () => {
       collectSourceEvidence({
         files: representativeSourceFiles,
         policy: sourceEvidencePolicy,
-        completedChecks: ['build']
+        executedChecks: [executedEvidenceChecks[0]!]
       }),
     /static_contract/
+  );
+});
+
+test('rejects failed or tampered required check records', () => {
+  const failed = recordExecutedCheck('build', { exitStatus: 1, stdout: '', stderr: 'failed' });
+  assert.throws(
+    () =>
+      collectSourceEvidence({
+        files: representativeSourceFiles,
+        policy: sourceEvidencePolicy,
+        executedChecks: [failed, executedEvidenceChecks[1]!]
+      }),
+    /Required evidence check failed \(1\): build/
+  );
+  assert.throws(
+    () =>
+      collectSourceEvidence({
+        files: representativeSourceFiles,
+        policy: sourceEvidencePolicy,
+        executedChecks: [
+          { ...executedEvidenceChecks[0]!, stdout: 'forged' },
+          executedEvidenceChecks[1]!
+        ]
+      }),
+    /invalid output digest/
   );
 });

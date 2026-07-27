@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { assertSuccessfulRequiredChecks, type ExecutedCheckResult } from './checks.ts';
 
 export const SOURCE_EVIDENCE_VERSION = '1.0.0' as const;
 
@@ -27,7 +28,7 @@ export interface CollectSourceEvidenceInput {
   readonly files: readonly EvidenceSourceFile[];
   readonly renderedEvidence?: readonly RenderedEvidenceReference[];
   readonly policy: SourceEvidencePolicy;
-  readonly completedChecks: readonly string[];
+  readonly executedChecks: readonly ExecutedCheckResult[];
 }
 
 export type SourceLanguage =
@@ -80,6 +81,7 @@ export interface SourceEvidence {
   readonly signals: SourceSignalCounts;
   readonly renderedEvidence: readonly RenderedEvidenceReference[];
   readonly visualOnly: readonly VisualEvaluationAvailability[];
+  readonly checks: readonly ExecutedCheckResult[];
 }
 
 const sha256 = (value: string): string => createHash('sha256').update(value, 'utf8').digest('hex');
@@ -132,10 +134,7 @@ function enforcePolicy(input: CollectSourceEvidenceInput, paths: readonly string
     if (ignore.some((expression) => expression.test(path)))
       throw new Error(`Evidence source path is ignored by policy: ${path}`);
   }
-  const completed = new Set(input.completedChecks);
-  const missing = input.policy.requiredChecks.filter((check) => !completed.has(check));
-  if (missing.length > 0)
-    throw new Error(`Required evidence checks did not complete: ${missing.join(', ')}`);
+  assertSuccessfulRequiredChecks(input.policy.requiredChecks, input.executedChecks);
 }
 
 const languageFor = (path: string): SourceLanguage => {
@@ -269,6 +268,7 @@ export function collectSourceEvidence(input: CollectSourceEvidenceInput): Source
     files,
     signals: collectSignals(canonicalFiles.map((file) => file.content).join('\n')),
     renderedEvidence,
-    visualOnly: VISUAL_ONLY_CRITERIA.map((criterion) => ({ criterion, status, reason }))
+    visualOnly: VISUAL_ONLY_CRITERIA.map((criterion) => ({ criterion, status, reason })),
+    checks: [...input.executedChecks].sort((left, right) => compareText(left.name, right.name))
   };
 }

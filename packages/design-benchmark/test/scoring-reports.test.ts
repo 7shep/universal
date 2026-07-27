@@ -140,9 +140,9 @@ test('uses declared weights and withholds totals below minimum source coverage',
   };
   const complete = scoreSubmission(submission('weighted'), weightedRubric, [
     { criterionId: 'major', score: 5, rationale: 'Major evidence.', evidenceIds: ['source-app'] },
-    { criterionId: 'minor', score: 0, rationale: 'Minor evidence.', evidenceIds: ['source-app'] }
+    { criterionId: 'minor', score: 1, rationale: 'Minor evidence.', evidenceIds: ['source-app'] }
   ]);
-  assert.equal(complete.normalizedScore, 70);
+  assert.equal(complete.normalizedScore, 76);
   const insufficient = scoreSubmission(submission('partial'), weightedRubric, [
     {
       criterionId: 'minor',
@@ -168,6 +168,7 @@ test('seeded assignments are deterministic and scorer packets strip undeclared f
   const second = createSeededBlindAssignment(rubric, [...candidates].reverse(), 'seed-1');
   assert.deepEqual(second, first);
   assert.match(first.assignmentDigest, /^[a-f0-9]{64}$/);
+  assert.ok(first.packet.submissions.every((item) => /-candidate_[ab]$/.test(item.blindId)));
   const serialized = serializeDeterministically(first.packet);
   assert.doesNotMatch(serialized, /arm_id|workflow|universal_guided|unguided/);
 });
@@ -187,4 +188,21 @@ test('regressions reject mismatched suite versions', () => {
     () => createRegressionReport(baseline, current, { regressionThreshold: 1 }),
     /matching suite versions/
   );
+});
+
+test('enforces the rubric integer score scale of 1 through 5', () => {
+  for (const score of [0, 1.5, 6]) {
+    assert.throws(
+      () =>
+        scoreSubmission(submission('range'), rubric, [
+          {
+            criterionId: 'source-quality',
+            score,
+            rationale: 'Out-of-range evidence.',
+            evidenceIds: ['source-app']
+          }
+        ]),
+      /integer between 1 and 5/
+    );
+  }
 });

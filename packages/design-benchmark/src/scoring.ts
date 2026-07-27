@@ -38,8 +38,8 @@ function validateRubric(rubric: ScoringRubric): void {
     'rubric criterion'
   );
   for (const criterion of rubric.criteria) {
-    if (!Number.isFinite(criterion.maxScore) || criterion.maxScore <= 0)
-      throw new Error(`Criterion "${criterion.id}" must have a positive finite maxScore.`);
+    if (criterion.maxScore !== 5)
+      throw new Error(`Criterion "${criterion.id}" must use the rubric maximum score of 5.`);
     if (!Number.isFinite(criterion.weight) || criterion.weight < 0)
       throw new Error(`Criterion "${criterion.id}" must have a non-negative finite weight.`);
   }
@@ -151,7 +151,7 @@ export function createSeededBlindAssignment(
     const swap = Number.parseInt(sha256(`${briefId}\u0000${scorerSeed}`).slice(-2), 16) & 1;
     const assigned = swap === 0 ? ordered : [ordered[1]!, ordered[0]!];
     assigned.forEach((candidate, index) => {
-      const blindId = `${briefId}-${index === 0 ? 'candidate-a' : 'candidate-b'}`;
+      const blindId = `${briefId}-${index === 0 ? 'candidate_a' : 'candidate_b'}`;
       submissions.push({
         blindId,
         briefId,
@@ -224,14 +224,8 @@ export function scoreSubmission(
           rationale: 'No judgment was supplied.',
           evidenceIds: []
         };
-      if (
-        !Number.isFinite(judgment.score) ||
-        judgment.score < 0 ||
-        judgment.score > criterion.maxScore
-      )
-        throw new RangeError(
-          `Score for "${criterion.id}" must be between 0 and ${criterion.maxScore}.`
-        );
+      if (!Number.isInteger(judgment.score) || judgment.score < 1 || judgment.score > 5)
+        throw new RangeError(`Score for "${criterion.id}" must be an integer between 1 and 5.`);
       if (!judgment.rationale.trim())
         throw new Error(`Judgment for "${criterion.id}" requires a rationale.`);
       assertUnique(judgment.evidenceIds, `evidence reference for "${criterion.id}"`);

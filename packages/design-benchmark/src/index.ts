@@ -5,3 +5,5 @@ export * from './deterministic.ts';
 export * from './scoring.ts';
 export * from './reports.ts';
 export * from './loader.ts';
+export * from './checks.ts';
+export * from './runner.ts';

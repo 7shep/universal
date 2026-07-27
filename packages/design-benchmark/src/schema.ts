@@ -34,7 +34,7 @@ export interface BenchmarkSuiteManifest {
     readonly timestamps: 'excluded';
   };
   readonly rendered_evidence: {
-    readonly available: boolean;
+    readonly available: false;
     readonly missing_status: 'not_evaluable';
     readonly missing_score: null;
     readonly forbid_source_inference: true;
@@ -75,7 +75,7 @@ export interface BenchmarkBriefDefinition {
   readonly content: {
     readonly brand: string;
     readonly primary_heading: string;
-    readonly sections: readonly unknown[];
+    readonly sections: readonly string[];
   };
   readonly requirements: readonly string[];
   readonly constraints: readonly string[];
@@ -107,8 +107,13 @@ export function assertBenchmarkSuiteManifest(
     throw new TypeError('suite.execution_mode must be offline_source_only.');
   if (!Number.isInteger(value.content_revision) || Number(value.content_revision) < 1)
     throw new TypeError('suite.content_revision must be a positive integer.');
-  if (!isTextArray(value.briefs) || value.briefs.length !== 12 || new Set(value.briefs).size !== 12)
-    throw new TypeError('suite.briefs must contain twelve unique paths.');
+  if (
+    !isTextArray(value.briefs) ||
+    value.briefs.length !== 12 ||
+    new Set(value.briefs).size !== 12 ||
+    value.briefs.some((brief) => !/^briefs\/.+\.json$/.test(brief))
+  )
+    throw new TypeError('suite.briefs must contain twelve unique canonical JSON paths.');
   if (!Array.isArray(value.arms)) throw new TypeError('suite.arms must be an array.');
   const armIds = value.arms.map((arm) => (isRecord(arm) ? arm.id : undefined));
   if (BENCHMARK_ARMS.some((arm) => !armIds.includes(arm)) || armIds.length !== 2)
@@ -181,6 +186,7 @@ export function assertBenchmarkSuiteManifest(
   const rendered = value.rendered_evidence;
   if (
     !isRecord(rendered) ||
+    rendered.available !== false ||
     rendered.missing_status !== 'not_evaluable' ||
     rendered.missing_score !== null ||
     rendered.forbid_source_inference !== true
@@ -270,27 +276,61 @@ export function assertBenchmarkBriefDefinition(
   path = 'brief'
 ): asserts value is BenchmarkBriefDefinition {
   if (!isRecord(value)) throw new TypeError(`${path} must be an object.`);
-  for (const field of [
+  const allowedFields = new Set([
+    '$schema',
     'brief_id',
     'brief_version',
     'title',
     'surface',
     'audience',
     'scenario',
-    'task'
-  ] as const)
+    'task',
+    'content',
+    'requirements',
+    'constraints',
+    'evaluation_focus'
+  ]);
+  const unexpected = Object.keys(value).find((field) => !allowedFields.has(field));
+  if (unexpected) throw new TypeError(`${path} contains unsupported property "${unexpected}".`);
+  if (value.$schema !== undefined && typeof value.$schema !== 'string')
+    throw new TypeError(`${path}.$schema must be a string.`);
+  for (const field of ['title', 'audience', 'scenario', 'task'] as const)
     if (!isText(value[field])) throw new TypeError(`${path}.${field} must be a non-empty string.`);
+  if (typeof value.brief_id !== 'string' || !/^dq-v1-[0-9]{2}-[a-z0-9-]+$/.test(value.brief_id))
+    throw new TypeError(`${path}.brief_id does not match the v1 id format.`);
+  if (value.brief_version !== '1.0.0')
+    throw new TypeError(`${path}.brief_version must equal 1.0.0.`);
+  if (
+    typeof value.surface !== 'string' ||
+    !['landing_page', 'portfolio', 'product_page', 'dashboard', 'application'].includes(
+      value.surface
+    )
+  )
+    throw new TypeError(`${path}.surface is not supported.`);
   if (
     !isRecord(value.content) ||
-    !isText(value.content.brand) ||
-    !isText(value.content.primary_heading) ||
-    !Array.isArray(value.content.sections)
+    typeof value.content.brand !== 'string' ||
+    typeof value.content.primary_heading !== 'string' ||
+    !Array.isArray(value.content.sections) ||
+    value.content.sections.length < 3 ||
+    !value.content.sections.every((section) => typeof section === 'string')
   )
-    throw new TypeError(`${path}.content requires brand and primary_heading.`);
-  for (const field of ['requirements', 'constraints', 'evaluation_focus'] as const)
-    if (!isTextArray(value[field])) throw new TypeError(`${path}.${field} must be a string array.`);
+    throw new TypeError(
+      `${path}.content must include brand, heading, and at least three string sections.`
+    );
+  const arrays = [
+    ['requirements', value.requirements, 4],
+    ['constraints', value.constraints, 3],
+    ['evaluation_focus', value.evaluation_focus, 2]
+  ] as const;
+  for (const [field, array, minimum] of arrays)
+    if (
+      !Array.isArray(array) ||
+      array.length < minimum ||
+      !array.every((item) => typeof item === 'string')
+    )
+      throw new TypeError(`${path}.${field} must contain at least ${minimum} strings.`);
 }
-
 export function assertBenchmarkDefinition(
   value: unknown
 ): asserts value is LoadedBenchmarkDefinition {
