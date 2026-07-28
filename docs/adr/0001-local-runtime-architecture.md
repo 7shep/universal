@@ -5,6 +5,8 @@
 - Decision owners: Universal maintainers
 - Scope: Local orchestration, generation, build, and preview boundaries
 
+> Implementation note (2026-07-28): this ADR records the pre-implementation context. Phase 3 now implements the trust boundary. [ADR 0002](0002-phase3-runtime-protocol-narrowing.md) records the intentionally narrower bootstrap, polling, UI-serving, and workspace topology.
+
 ## Context
 
 Universal promises a local-first Studio that turns a design brief into three art-directed React

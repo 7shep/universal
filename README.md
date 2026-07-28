@@ -54,18 +54,21 @@ a deterministic, credential-free way to inspect the current art-direction flow.
 
 ## What is ready today
 
-Universal is in active early development. It is useful for experimenting with structured art
-direction and MCP-driven design workflows, but it is not yet a production-ready website generator.
+Universal is in active early development. Phase 3 provides an offline deterministic path from an
+approved Design Plan v2 through validated React generation, immutable workspace materialization, a
+locked production build, and an isolated loopback preview. Studio and Preview can use versioned
+runtime records; hosted deployment, arbitrary packages, and a production live-provider adapter
+remain out of scope.
 
-| Available                               | Still in progress                      |
-| --------------------------------------- | -------------------------------------- |
-| Discovery and creative-brief workflow   | React project generation               |
-| Art-direction development and selection | Runtime process supervision            |
-| Design Plan v2 compiler and validation  | Live generated-project preview         |
-| Design rules and taste policy           | End-to-end model-backed generation     |
-| Source-aware implementation critique    | Automated visual evidence capture      |
-| Local MCP server with 14 tools          | Packaging and one-command distribution |
-| Studio, Preview, and demo applications  | Stable public release guarantees       |
+| Available                                             | Still in progress                       |
+| ----------------------------------------------------- | --------------------------------------- |
+| Discovery, brief approval, and direction selection    | Production live-provider implementation |
+| Design Plan v2 compiler and digest-bound provenance   | OS or container sandboxing              |
+| Provider-neutral deterministic React generation       | Full macOS and Linux runtime validation |
+| Trusted local runtime and immutable workspaces        | Hosted deployment and public previews   |
+| Locked production builds and isolated static previews | Packaging and one-command distribution  |
+| Runtime-connected Studio and Preview applications     | Stable public release guarantees        |
+| Deterministic rendered benchmark and recovery tests   | Subjective visual quality automation    |
 
 The [roadmap](ROADMAP.md) tracks planned milestones. The
 [architecture guide](docs/ARCHITECTURE.md) distinguishes implemented behavior from planned
@@ -141,7 +144,10 @@ See the [MCP tool reference](docs/MCP_REFERENCE.md) for all tool inputs and outp
 | `packages/design-linter`       | Implementation critique contracts         |
 | `packages/design-taste`        | Versioned taste policy                    |
 | `packages/design-benchmark`    | Deterministic quality benchmark           |
+| `packages/generation`          | Provider-neutral generation boundary      |
+| `packages/local-runtime`       | Trusted build and preview supervision     |
 | `packages/prompts`             | Versioned prompt definitions and assembly |
+| `packages/runtime-contracts`   | Browser/runtime protocol contracts        |
 | `packages/shared`              | Cross-package domain utilities            |
 | `packages/ui`                  | Shared React primitives                   |
 
