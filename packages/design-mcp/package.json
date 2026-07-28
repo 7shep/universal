@@ -9,7 +9,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
-    "test": "pnpm run build && node --test dist/index.test.js dist/art-director.test.js dist/art-director-golden.test.js",
+    "test": "pnpm run build \u0026\u0026 node --test dist/index.test.js dist/art-director.test.js dist/art-director-golden.test.js dist/art-director-phase3-golden.test.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src"
   },
@@ -22,5 +22,9 @@
     "@universal/shared": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.12.0",
     "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@universal/generation": "workspace:*",
+    "@universal/local-runtime": "workspace:*"
   }
 }

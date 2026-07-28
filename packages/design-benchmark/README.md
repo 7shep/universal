@@ -33,3 +33,17 @@ not network, host, filesystem, or tool sandboxing.
 ## Phase 2 art-direction preflight
 
 `evaluateArtDirectionBenchmark()` evaluates serialized workflow evidence before implementation scoring. It reports six independent pass/fail dimensions: discovery coverage; no silent high-impact assumptions; concept differentiation; brief fit; generic-pattern resistance; and approval/provenance integrity. This preflight is deterministic and does not infer rendered visual quality.
+
+## Phase 3 rendered benchmark
+
+`src/phase3.ts` extends the six Phase 2 workflow dimensions with generated-project validity, locked deterministic build, page-map coverage, selected-direction fidelity, typography hierarchy, composition differentiation, responsive intent, accessibility essentials, reduced motion, prohibited patterns, preview isolation, and last-known-good behavior.
+
+A trusted render harness supplies canonical desktop/mobile observations plus lowercase SHA-256 screenshot digests. The collector sorts and validates those records. Structural, runtime, and security dimensions are machine evidence. Selected-direction fidelity and composition differentiation require an identified human review with rationale; the benchmark does not infer subjective quality from source or DOM strings.
+
+Run it offline with:
+
+```bash
+pnpm --filter @universal/design-benchmark test
+```
+
+The Phase 3 test fixture includes one independent negative mutation for every dimension.
