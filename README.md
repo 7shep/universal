@@ -50,10 +50,15 @@
 
 ## Project Status
 
-Universal is in active early development. The monorepo, Studio and Preview applications, design contracts, and MCP prototype are in place. Some generation flows remain architectural placeholders while the design engine is built out.
+Universal is in active early development. The monorepo, deterministic discovery and art-direction
+workflow, Design Plan v2 compiler, Studio and Preview applications, and local MCP server are in
+place. Studio demonstrates the complete design-direction sequence through a local fixture client
+and can be hosted with an injected MCP transport adapter. React project generation, runtime process
+supervision, and live preview integration remain architectural work.
 
 See the [architecture and ownership guide](docs/ARCHITECTURE.md), [roadmap](ROADMAP.md),
-and [product principles](PRODUCT.md) for the current boundaries and planned direction.
+[Studio guide](docs/STUDIO.md), and [product principles](PRODUCT.md) for the current boundaries and
+planned direction.
 
 ## Quick Start
 
@@ -92,7 +97,27 @@ design-linter, and design-taste policy tests.
 
 ## MCP Prototype
 
-Universal includes a local MCP server that exposes four tools to compatible coding agents:
+Universal includes a local MCP server that exposes 14 tools to compatible coding agents.
+
+The Phase 2 Art Director workflow is the recommended path when a project needs discovery,
+provenance, explicit approval, concept selection, and a digest-bound Design Plan v2:
+
+```text
+start_art_direction
+  -> get_discovery_questions
+  -> submit_discovery_answers
+  -> get_creative_brief
+  -> approve_creative_brief
+  -> develop_art_direction
+  -> get_selected_direction
+  -> create_design_plan_v2
+```
+
+`revise_creative_brief` supports review changes, and `get_art_direction_session` validates or
+inspects a serialized session. Every Phase 2 response returns the complete serialized session that
+must be passed to the next operation.
+
+Four compatibility and policy tools remain available:
 
 - `create_design_plan` establishes the visual and compositional direction.
 - `get_design_rules` returns category-specific design constraints.
@@ -108,7 +133,7 @@ pnpm --filter @universal/design-mcp build
 
 See [Connect Universal MCP to Codex](docs/CODEX_MCP_SETUP.md) for configuration, verification,
 troubleshooting, and a complete demo workflow. The [MCP tool reference](docs/MCP_REFERENCE.md)
-documents request and response shapes for all four tools.
+documents request and response shapes for all 14 tools.
 
 ## Workspace
 
@@ -130,6 +155,7 @@ universal/
 |   |-- shared/                Shared domain types and utilities
 |   `-- ui/                    Shared React UI primitives
 |-- docs/                      Setup and integration guides
+|   `-- STUDIO.md              Studio workflow and client integration
 |-- PRODUCT.md                 Product principles and boundaries
 `-- ROADMAP.md                 Milestones and future direction
 ```

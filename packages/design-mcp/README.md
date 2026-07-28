@@ -4,8 +4,19 @@
 
 Phase 2 is exposed as a digest-bound, serialized session workflow:
 
-`start_art_direction` ? discovery questions and answers ? creative brief review ?
-explicit brief approval ? concept development ? selected direction ? Design Plan v2.
+```text
+start_art_direction
+  -> get_discovery_questions
+  -> submit_discovery_answers
+  -> get_creative_brief
+  -> approve_creative_brief
+  -> develop_art_direction
+  -> get_selected_direction
+  -> create_design_plan_v2
+```
+
+`revise_creative_brief` revises a reviewed brief and invalidates digest-bound downstream artifacts.
+`get_art_direction_session` validates and inspects a serialized session.
 
 Each operation returns the complete serialized `ArtDirectorSession`; pass that
 exact string to the next operation. Optional `requestId` values make mutation
@@ -17,3 +28,6 @@ boundary does not select or configure model providers.
 not start discovery, infer approval, or delegate to the Phase 2 workflow. Callers
 that need provenance, explicit approval, concept selection, or Design Plan v2
 must use the Art Director operations.
+
+See [`docs/MCP_REFERENCE.md`](../../docs/MCP_REFERENCE.md) for every request and response shape,
+phase preconditions, idempotent retry behavior, and error codes.
