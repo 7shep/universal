@@ -18,6 +18,19 @@ start_art_direction
 `revise_creative_brief` revises a reviewed brief and invalidates digest-bound downstream artifacts.
 `get_art_direction_session` validates and inspects a serialized session.
 
+A current `plan-created` session can continue through the credential-free MCP host-generation path:
+
+```text
+prepare_react_generation
+  -> host model authors allowed source files
+  -> build_react_project
+  -> trusted immutable workspace and production build
+  -> pnpm run dev on 127.0.0.1
+```
+
+The host model supplies source only. The runtime retains ownership of dependencies, scripts,
+configuration, materialization, build supervision, and the local Vite command.
+
 Each operation returns the complete serialized `ArtDirectorSession`; pass that
 exact string to the next operation. Optional `requestId` values make mutation
 retries idempotent and reject conflicting reuse. Concept Director and Plan

@@ -23,7 +23,7 @@ pnpm --filter @universal/local-runtime start
 
 The runtime binds an ephemeral port on `127.0.0.1` only. The CLI prints a one-time bootstrap token and runtime origin. Configure the Studio/Preview runtime bootstrap object through the host page as documented by their `window.__UNIVERSAL_RUNTIME__` declarations. There is no public preview URL and no hosted backend.
 
-The runtime defaults to the credential-free deterministic provider. A live adapter is optional and must be injected by trusted runtime code. Setting `UNIVERSAL_GENERATION_PROVIDER=live` without an installed adapter fails closed. Provider API keys and model names are read only by the runtime process; Studio, Preview, generated source, lifecycle records, child processes, and preview responses never receive them. Output and errors are secret-scanned and redacted.
+The standalone runtime defaults to the credential-free deterministic provider. The MCP server also supports a credential-free host-model submission adapter: Codex authors allowlisted source after `prepare_react_generation`, and `build_react_project` passes that source through the same generator validation and runtime pipeline. A live adapter is optional and must be injected by trusted runtime code. Setting `UNIVERSAL_GENERATION_PROVIDER=live` without an installed adapter fails closed. Provider API keys and model names are read only by the runtime process; Studio, Preview, generated source, lifecycle records, child processes, and preview responses never receive them. Output and errors are secret-scanned and redacted.
 
 ## Bootstrap and session model
 
@@ -53,7 +53,20 @@ approved brief + selected direction + Design Plan v2
 
 Request validation binds brief ID/version/digest/approval digest, selected-direction ID/evaluation digest, plan ID/version/digest, page map, creative rationale, typography, composition, interaction, responsive, accessibility, provenance, and invariants. Stale or forged bindings fail before a provider is called.
 
-The deterministic provider emits the checked-in luxury-keyboard fixture and requires no network or credentials. It is the default for development, tests, the golden journey, and benchmark evidence.
+The deterministic provider emits the checked-in luxury-keyboard fixture and remains the default for Studio development, the original golden journey, and benchmark evidence. For arbitrary MCP work, the MCP host model authors source from the exact plan-created session; the submitted source is treated as untrusted provider output and cannot bypass validation, materialization, locked installation, build supervision, or review. Neither path requires provider credentials.
+
+## MCP-host generation and local Vite
+
+`prepare_react_generation` and `build_react_project` join the Art Director workflow to the trusted
+runtime without a provider API key. The MCP server derives a stable project binding from Design Plan
+v2 and an immutable revision identity from the sorted source payload plus the caller's stable
+`requestId`. It serializes builds against the shared runtime record store.
+
+Successful builds return the immutable workspace and production output paths. The fixed template
+also owns `pnpm run dev`, defined as `vite --host 127.0.0.1`; callers may run it from the returned
+workspace for local inspection. The generated source never controls the command, host, dependency
+set, configuration, or workspace destination. This local Vite server is a developer convenience,
+not the CSP-isolated Preview security boundary.
 
 ## Workspace and dependency policy
 

@@ -58,6 +58,8 @@ test('serves compatible public design tools over stdio', async () => {
       'develop_art_direction',
       'get_selected_direction',
       'create_design_plan_v2',
+      'prepare_react_generation',
+      'build_react_project',
       'get_art_direction_session'
     ]) {
       assert.ok(
@@ -76,6 +78,13 @@ test('serves compatible public design tools over stdio', async () => {
     });
     assert.equal(response.isError, undefined);
     assert.match(JSON.stringify(response.content), /industrial/);
+
+    const premature = await client.callTool({
+      name: 'prepare_react_generation',
+      arguments: { session: '{}' }
+    });
+    assert.equal(premature.isError, true);
+    assert.match(JSON.stringify(premature.content), /INVALID_SESSION/);
   } finally {
     await client.close();
   }

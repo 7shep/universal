@@ -125,6 +125,27 @@ revokes approval and marks affected concepts, directions, and plans stale; stale
 cross later phase boundaries. `get_art_direction_session` validates session shape and digest
 bindings without advancing it.
 
+### Generate and build MCP-host-authored React
+
+1. A client completes the Phase 2 flow through `create_design_plan_v2`.
+2. `prepare_react_generation` validates the exact plan-created session and exposes the canonical
+   `GenerationContext`, source allowlist, quotas, required files, and runtime-owned-file denylist.
+3. The MCP host model authors React, TypeScript, CSS, text, and optional approved image assets. It
+   cannot author dependencies, scripts, commands, entrypoints, build configuration, or paths
+   outside `src/`.
+4. `build_react_project` derives a project binding from Design Plan v2 and an immutable revision
+   identity from the sorted source plus a stable request ID.
+5. The submitted-source provider passes the files through `ReactGenerator` validation and secret
+   scanning, then `RuntimeService` performs safe materialization, offline frozen installation,
+   production build, and deterministic implementation review.
+6. A successful MCP result returns the immutable workspace and production output paths. The caller
+   may run the runtime-owned `pnpm run dev` script, which binds Vite to `127.0.0.1`.
+
+This is not a live-provider adapter: the already-authorized MCP host model is the source author. The
+submitted files remain untrusted at the generation and runtime boundaries. The MCP layer owns only
+transport adaptation and serialization; `generation` and `local-runtime` remain the validation and
+execution owners.
+
 ### Create a Phase 1 compatibility plan
 
 1. A coding agent calls `create_design_plan` with a prompt and optional constraints.

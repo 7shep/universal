@@ -43,7 +43,9 @@ discovery questions → approved creative brief
       ↓
 art direction → selected direction → Design Plan v2
       ↓
-React implementation
+MCP-host model authors React source
+      ↓
+trusted materialization → locked build → local Vite
       ↓
 source and visual review → prioritized findings
 ```
@@ -55,7 +57,7 @@ a deterministic, credential-free way to inspect the current art-direction flow.
 ## What is ready today
 
 Universal is in active early development. Phase 3 provides an offline deterministic path from an
-approved Design Plan v2 through validated React generation, immutable workspace materialization, a
+approved Design Plan v2 through deterministic or MCP-host-authored React generation, immutable workspace materialization, a
 locked production build, and an isolated loopback preview. Studio and Preview can use versioned
 runtime records; hosted deployment, arbitrary packages, and a production live-provider adapter
 remain out of scope.
