@@ -1,6 +1,6 @@
 # Universal MCP Tool Reference
 
-Universal exposes 14 tools over the local stdio MCP server. Tool results use the MCP text-content
+Universal exposes 16 tools over the local stdio MCP server. Tool results use the MCP text-content
 envelope; its text is pretty-printed JSON. Build and connect the server with
 [CODEX_MCP_SETUP.md](CODEX_MCP_SETUP.md). The Phase 1 compatibility and policy tools match the Zod
 schemas in `packages/design-mcp/src/index.ts`; the Phase 2 Art Director tools match
@@ -235,6 +235,72 @@ Compiles Design Plan v2 from the approved brief and digest-current selected dire
 The response phase is `plan-created`; `data` is a `DesignPlanV2Artifact`. Its `plan` is the validated
 Design Plan v2 and its envelope binds the plan to the approved brief and selected-direction digests.
 Use this tool instead of `create_design_plan` when provenance and approval gates matter.
+
+### `prepare_react_generation`
+
+Validates an exact `plan-created` session and returns the digest-bound generation context plus the
+source contract the MCP host model must follow. It does not generate or write files.
+
+```json
+{ "session": "<exact session returned by create_design_plan_v2>" }
+```
+
+The response includes the stable project ID, Design Plan v2 identity, page map, narratives,
+typography, color, composition, navigation, responsive, motion, provenance, protected invariants,
+implementation constraints, required source files, quotas, supported asset types, and the complete
+runtime-owned-file denylist. Calling this before `plan-created`, with a stale plan, or with a
+modified serialized session returns an MCP error.
+
+### `build_react_project`
+
+Accepts source authored by the MCP host model from the exact prepared Design Plan v2 and sends it
+through the trusted Phase 3 runtime. The runtime validates the provider schema and secret scan,
+materializes an immutable revision outside the checkout, installs only the frozen runtime-owned
+dependencies offline, builds with Vite, and runs deterministic implementation review.
+
+```json
+{
+  "session": "<exact plan-created session>",
+  "requestId": "aftertone:build:1",
+  "files": [
+    {
+      "path": "src/App.tsx",
+      "kind": "react",
+      "content": "export default function App() { return <main><h1>Aftertone</h1></main>; }"
+    },
+    {
+      "path": "src/styles.css",
+      "kind": "stylesheet",
+      "content": ":focus-visible{outline:3px solid}@media(prefers-reduced-motion:reduce){*{transition:none!important}}"
+    }
+  ]
+}
+```
+
+`src/App.tsx` and `src/styles.css` are required. Additional `.ts`, `.tsx`, `.css`, and `.txt` files
+under `src/` are allowed. Approved base64 image assets may be submitted separately. Runtime-owned
+entrypoints, manifests, dependencies, lockfiles, scripts, configuration, absolute paths, traversal,
+collisions, binaries, over-quota output, credential-shaped content, and outbound network calls are
+rejected.
+
+A successful response includes `workspacePath`, `outputPath`, structured build diagnostics, review
+evidence, and:
+
+```json
+{
+  "localDevelopment": {
+    "cwd": "<immutable runtime workspace>",
+    "command": "pnpm",
+    "args": ["run", "dev"],
+    "host": "127.0.0.1"
+  }
+}
+```
+
+The revision identity is derived from the submitted source and `requestId`. Repeating the same
+submission is idempotent; use a new stable `requestId` after intentionally changing source or when
+retrying a failed immutable revision. Failed generation, build, or review responses set MCP
+`isError` and retain structured runtime diagnostics.
 
 ### `get_art_direction_session`
 

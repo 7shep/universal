@@ -49,6 +49,8 @@ Restart or reconnect Codex after saving the configuration. The available tools s
 - `develop_art_direction`
 - `get_selected_direction`
 - `create_design_plan_v2`
+- `prepare_react_generation`
+- `build_react_project`
 - `get_art_direction_session`
 
 `get_taste_profile` returns the active versioned taste principles, contextual anti-pattern
@@ -62,9 +64,33 @@ guidance, positive reference notes, and selection criteria used during planning 
 4. For Phase 2 verification, call `start_art_direction` with a short prompt, then pass the returned
    `session` string unchanged to `get_discovery_questions`.
 
-For copy-pasteable requests, session handoff rules, and documented response shapes for all 14 tools,
+For copy-pasteable requests, session handoff rules, and documented response shapes for all 16 tools,
 see the
 [MCP tool reference](MCP_REFERENCE.md).
+
+## Arbitrary MCP generation workflow
+
+After the Phase 2 workflow returns a plan-created session, the MCP host model can generate a custom
+React project without a live-provider credential:
+
+```text
+create_design_plan_v2
+  -> prepare_react_generation
+  -> host model authors allowlisted React/TypeScript/CSS files
+  -> build_react_project
+  -> trusted validation and immutable materialization
+  -> offline frozen install
+  -> production build and deterministic review
+  -> local runtime-owned project path
+```
+
+`build_react_project` does not write into the repository checkout. On success it returns
+`localDevelopment.cwd` and the runtime-owned `pnpm run dev` command. Run that command from the
+returned directory; Vite binds to `127.0.0.1` and prints the selected local URL. Use a new stable
+`requestId` for an intentional retry. Reusing the same ID and source is idempotent.
+
+The MCP host authors source only. It cannot supply `package.json`, dependencies, scripts, lockfiles,
+Vite or TypeScript configuration, `src/main.tsx`, shell commands, or arbitrary output paths.
 
 ## Demo workflow
 

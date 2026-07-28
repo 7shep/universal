@@ -8,10 +8,12 @@ import {
   getDesignRules
 } from './design.js';
 import { registerArtDirectorTools } from './art-director-mcp.js';
+import { registerRuntimeBuildTools } from './runtime-build-mcp.js';
 import { reviewImplementation } from '@universal/design-linter';
 
-const server = new McpServer({ name: 'universal', version: '0.2.0' });
+const server = new McpServer({ name: 'universal', version: '0.3.0' });
 registerArtDirectorTools(server);
+registerRuntimeBuildTools(server);
 
 const tasteDirectionSchema = z.object({
   profileId: z.string().min(1),

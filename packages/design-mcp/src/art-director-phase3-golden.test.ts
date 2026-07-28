@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp } from 'node:fs/promises';
+import { mkdtemp, readFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -16,12 +16,14 @@ import {
   createProjectGenerationRequest,
   DeterministicReactProvider,
   ReactGenerator,
+  type RawGeneratedProject,
   type ReactGenerationProvider
 } from '@universal/generation';
 import { RuntimeService } from '@universal/local-runtime';
 import { ArtDirectorOrchestrator, ArtDirectorError } from './art-director.js';
 import { createArtDirectorMcpAdapter } from './art-director-mcp.js';
 import { createIntegratedArtDirectorDependencies } from './art-director-services.js';
+import { createRuntimeBuildMcpAdapter } from './runtime-build-mcp.js';
 
 const pages: PageMap = {
   kind: 'multi-page',
@@ -226,6 +228,69 @@ test(
     assert.equal(plan.source.briefDigest, brief.digest);
     assert.equal(plan.pageMap.pages.length, 3);
     const deterministic = new DeterministicReactProvider();
+    const submittedProject: RawGeneratedProject = {
+        files: [
+          {
+            path: 'src/App.tsx',
+            kind: 'react',
+            content: `const routes = [
+  { href: '/', label: 'Index', title: 'A quieter instrument for lasting work.' },
+  { href: '/keyboards/monolith-75', label: 'Monolith 75', title: 'Tune the material, sound, and feel.' },
+  { href: '/craft', label: 'Craft', title: 'Designed to be opened, repaired, and kept.' }
+];
+export default function App() {
+  const current = routes.find((route) => route.href === window.location.pathname) ?? routes[0]!;
+  return <><nav aria-label="Primary"><strong>STILL / FORM</strong>{routes.map((route) => <a key={route.href} href={route.href}>{route.label}</a>)}</nav><main><p>Model-authored / plan-bound / runtime-validated</p><h1>{current.title}</h1><section aria-labelledby="record"><h2 id="record">Material record</h2><p>Machined aluminum, serviceable switches, and a repair promise expressed as an editorial product ledger.</p></section></main></>;
+}`
+          },
+          {
+            path: 'src/styles.css',
+            kind: 'stylesheet',
+            content: `:root{font-family:Arial,sans-serif;color:#eee;background:#151412}*{box-sizing:border-box}body{margin:0}nav{display:flex;gap:2rem;padding:1.25rem}nav a{color:inherit}main{min-height:100vh;padding:clamp(2rem,8vw,8rem)}h1{max-width:12ch;font-family:Georgia,serif;font-size:clamp(3rem,9vw,8rem);line-height:.9}section{max-width:54rem;margin-top:6rem;border-top:1px solid;padding-top:2rem}:focus-visible{outline:3px solid #b84432;outline-offset:4px}@media(max-width:42rem){nav{align-items:flex-start;flex-direction:column;gap:.75rem}main{padding-top:4rem}}@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important}}`
+          }
+        ]
+      },
+      mcpWorkspaceRoot = await mkdtemp(path.join(os.tmpdir(), 'universal-mcp-build-')),
+      mcpRepositoryRoot = await mkdtemp(path.join(os.tmpdir(), 'universal-mcp-repository-')),
+      runtimeBuildAdapter = createRuntimeBuildMcpAdapter({
+        workspaceRoot: mcpWorkspaceRoot,
+        repositoryRoot: mcpRepositoryRoot
+      }),
+      preparation = await runtimeBuildAdapter.prepare(planned.session);
+    assert.match(JSON.stringify(preparation), /build_react_project/);
+    assert.match(JSON.stringify(preparation), new RegExp(plan.digest));
+
+    const forbiddenSubmission = await runtimeBuildAdapter.build({
+      session: planned.session,
+      requestId: 'phase3:mcp-build:forbidden',
+      files: [...submittedProject.files, { path: 'package.json', content: '{}', kind: 'text' }],
+      assets: submittedProject.assets
+    });
+    assert.equal(forbiddenSubmission.ok, false);
+    if (!forbiddenSubmission.ok)
+      assert.match(JSON.stringify(forbiddenSubmission.error), /GENERATION_FAILURE/);
+
+    const trustedSubmission = await runtimeBuildAdapter.build({
+      session: planned.session,
+      requestId: 'phase3:mcp-build:success',
+      files: submittedProject.files,
+      assets: submittedProject.assets
+    });
+    assert.equal(
+      trustedSubmission.ok,
+      true,
+      trustedSubmission.ok ? undefined : JSON.stringify(trustedSubmission.error)
+    );
+    if (!trustedSubmission.ok) throw new Error('Trusted MCP submission did not build.');
+    assert.equal(trustedSubmission.review !== undefined, true);
+    assert.match(trustedSubmission.workspacePath, /mcp-project/);
+    assert.match(trustedSubmission.outputPath, /dist$/);
+    assert.deepEqual(trustedSubmission.localDevelopment.args, ['run', 'dev']);
+    assert.equal(trustedSubmission.localDevelopment.host, '127.0.0.1');
+    assert.match(
+      await readFile(path.join(trustedSubmission.workspacePath, 'package.json'), 'utf8'),
+      /"dev": "vite --host 127\.0\.0\.1"/
+    );
     const provider: ReactGenerationProvider = {
       capabilities: deterministic.capabilities,
       async generate(request, signal) {

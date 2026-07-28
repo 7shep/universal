@@ -175,6 +175,12 @@ importers:
       '@universal/design-taste':
         specifier: workspace:*
         version: link:../design-taste
+      '@universal/generation':
+        specifier: workspace:*
+        version: link:../generation
+      '@universal/local-runtime':
+        specifier: workspace:*
+        version: link:../local-runtime
       '@universal/prompts':
         specifier: workspace:*
         version: link:../prompts
@@ -184,13 +190,6 @@ importers:
       zod:
         specifier: ^3.24.0
         version: 3.25.76
-    devDependencies:
-      '@universal/generation':
-        specifier: workspace:*
-        version: link:../generation
-      '@universal/local-runtime':
-        specifier: workspace:*
-        version: link:../local-runtime
 
   packages/design-taste: {}
 
