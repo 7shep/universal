@@ -1,4 +1,13 @@
-export type PromptPurpose = 'direction' | 'generation' | 'critique' | 'revision';
+export type PromptPurpose =
+  | 'fact-extraction'
+  | 'copy-drafting'
+  | 'brief-compilation'
+  | 'concept-development'
+  | 'direction-evaluation'
+  | 'direction'
+  | 'generation'
+  | 'critique'
+  | 'revision';
 
 export interface PromptReference {
   readonly id: string;
@@ -116,6 +125,39 @@ export interface DesignDirectionPromptInput {
   readonly reducedMotionBehavior: string;
 }
 
+export interface InitialFactExtractionPromptInput {
+  readonly request: string;
+  readonly repositoryContext?: string | undefined;
+  readonly priorAnswers?: readonly string[] | undefined;
+}
+
+export interface UserRequestedCopyDraftingPromptInput {
+  readonly request: string;
+  readonly knownFacts: readonly string[];
+  readonly copyTargets: readonly string[];
+  readonly constraints?: readonly string[] | undefined;
+}
+
+export interface CreativeBriefCompilationPromptInput {
+  readonly initialRequest: string;
+  readonly knownFacts: readonly string[];
+  readonly discoveryAnswers: readonly string[];
+  readonly draftedCopy?: readonly string[] | undefined;
+  readonly delegatedDecisions?: readonly string[] | undefined;
+  readonly unresolvedQuestions?: readonly string[] | undefined;
+}
+
+export interface ConceptDevelopmentPromptInput {
+  readonly approvedBrief: string;
+  readonly conceptCount?: number | undefined;
+  readonly protectedConstraints: readonly string[];
+}
+
+export interface DirectionEvaluationPromptInput {
+  readonly approvedBrief: string;
+  readonly concepts: readonly string[];
+  readonly evaluationCriteria?: readonly string[] | undefined;
+}
 export interface ReactGenerationPromptInput {
   readonly plan: DesignPlanPromptInput;
   readonly content: string;
@@ -139,4 +181,86 @@ export interface SectionRevisionPromptInput {
   readonly instruction: string;
   readonly protectedConstraints: readonly string[];
   readonly accessibilityRequirements: readonly string[];
+}
+export const DISCOVERY_OUTPUT_TOPICS = [
+  'purpose',
+  'audience',
+  'positioning',
+  'emotional-response',
+  'page-map',
+  'page-content',
+  'hero',
+  'navigation',
+  'color',
+  'typography',
+  'brand-assets',
+  'imagery',
+  'constraints',
+  'references',
+  'anti-patterns'
+] as const;
+export type DiscoveryOutputTopic = (typeof DISCOVERY_OUTPUT_TOPICS)[number];
+export type DiscoveryOutputSource = 'user' | 'model' | 'repository';
+
+/** Structurally assignable to the design engine's DiscoveryInterpretation contract. */
+export interface DiscoveryInterpretationOutput {
+  readonly topic: DiscoveryOutputTopic;
+  readonly value: { readonly summary: string; readonly details?: readonly string[] | undefined };
+  readonly source: DiscoveryOutputSource;
+  readonly evidence: string;
+}
+export interface FactExtractionConflictOutput {
+  readonly topics: readonly DiscoveryOutputTopic[];
+  readonly summary: string;
+  readonly evidence: readonly string[];
+}
+export interface InitialFactExtractionOutput {
+  readonly interpretations: readonly DiscoveryInterpretationOutput[];
+  readonly conflicts: readonly FactExtractionConflictOutput[];
+}
+export interface CreativeBriefPageOutput {
+  readonly id: string;
+  readonly route: string;
+  readonly name: string;
+  readonly userGoal: string;
+  readonly primaryMessage: string;
+  readonly requiredSections: readonly string[];
+  readonly requiredContent: readonly string[];
+  readonly primaryAction?: string | undefined;
+  readonly secondaryActions: readonly string[];
+  readonly navigationRelationship: string;
+  readonly uniqueResponsibility: string;
+  readonly sharedElements: readonly string[];
+  readonly pageSpecificElements: readonly string[];
+}
+export interface CreativeBriefContentOutput {
+  readonly projectName?: string | undefined;
+  readonly purpose: DiscoveryInterpretationOutput['value'];
+  readonly audience: DiscoveryInterpretationOutput['value'];
+  readonly positioning?: DiscoveryInterpretationOutput['value'] | undefined;
+  readonly emotionalResponse?: DiscoveryInterpretationOutput['value'] | undefined;
+  readonly pageMap: {
+    readonly kind: 'single-page' | 'multi-page';
+    readonly pages: readonly CreativeBriefPageOutput[];
+  };
+  readonly pageContent: DiscoveryInterpretationOutput['value'];
+  readonly hero?: DiscoveryInterpretationOutput['value'] | undefined;
+  readonly navigation?: DiscoveryInterpretationOutput['value'] | undefined;
+  readonly color?: DiscoveryInterpretationOutput['value'] | undefined;
+  readonly typography?: DiscoveryInterpretationOutput['value'] | undefined;
+  readonly brandAssets?: DiscoveryInterpretationOutput['value'] | undefined;
+  readonly imagery?: DiscoveryInterpretationOutput['value'] | undefined;
+  readonly constraints: readonly string[];
+  readonly references: readonly {
+    readonly description: string;
+    readonly url?: string | undefined;
+    readonly role: 'inspiration' | 'anti-reference';
+  }[];
+  readonly antiPatterns: readonly string[];
+  readonly preferences: readonly string[];
+}
+/** Provider DTO used before the engine adds identity, time, digest, policy, revisions, and approval. */
+export interface CreativeBriefCompilationOutput {
+  readonly content: CreativeBriefContentOutput;
+  readonly interpretations: readonly DiscoveryInterpretationOutput[];
 }
