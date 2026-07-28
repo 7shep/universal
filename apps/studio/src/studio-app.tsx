@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   createLocalArtDirectorClient,
   type AnswerMode,
@@ -8,6 +8,11 @@ import {
   type Question,
   type StudioProject
 } from './studio-client';
+import {
+  createLocalGenerationLifecycleClient,
+  type GenerationLifecycleClient,
+  type GenerationSnapshot
+} from './runtime-client';
 type Stage = 'discovery' | 'brief' | 'direction' | 'plan';
 const stages: Stage[] = ['discovery', 'brief', 'direction', 'plan'];
 const labels: Record<Stage, string> = {
@@ -19,7 +24,7 @@ const labels: Record<Stage, string> = {
 const modes: { value: AnswerMode; label: string }[] = [
   { value: 'exact', label: 'Exact answer' },
   { value: 'preference', label: 'Preference / reference' },
-  { value: 'unknown', label: 'I don’t know' },
+  { value: 'unknown', label: 'I do not know' },
   { value: 'judgment', label: 'Use your judgment' },
   { value: 'draft', label: 'Draft this for me' }
 ];
@@ -37,7 +42,7 @@ function getBriefGuidance(prompt: string): { invalid: boolean; message: string }
   }
   return { invalid: false, message: 'Ready to begin discovery.' };
 }
-const Arrow = () => <span aria-hidden="true">→</span>;
+const Arrow = () => <span aria-hidden="true">&rarr;</span>;
 function Progress({
   stage,
   project,
@@ -137,7 +142,7 @@ function Start({
             disabled={guidance.invalid || busy}
             onClick={run}
           >
-            {busy ? 'Preparing discovery…' : 'Begin discovery'} <Arrow />
+            {busy ? 'Preparing discovery...' : 'Begin discovery'} <Arrow />
           </button>
         </div>
       </div>
@@ -347,7 +352,7 @@ function Discovery({
   return (
     <section className="stage">
       <Heading
-        kicker={`Discovery · ${index + 1} of ${project.groups.length}`}
+        kicker={`Discovery  /  ${index + 1} of ${project.groups.length}`}
         title={group.title}
         copy={group.description}
       />
@@ -382,7 +387,7 @@ function Discovery({
         <button className="primary" disabled={busy} onClick={advance}>
           {index === project.groups.length - 1
             ? busy
-              ? 'Compiling brief…'
+              ? 'Compiling brief...'
               : 'Review the brief'
             : 'Next question group'}{' '}
           <Arrow />
@@ -468,7 +473,7 @@ function Brief({
           Revise discovery
         </button>
         <button className="primary" disabled={!ok || busy} onClick={approve}>
-          {busy ? 'Developing direction…' : 'Approve brief'} <Arrow />
+          {busy ? 'Developing direction...' : 'Approve brief'} <Arrow />
         </button>
       </div>
     </section>
@@ -529,7 +534,7 @@ function DirectionView({
         <section className="alternatives">
           <header>
             <h2>Other viable directions</h2>
-            <p>Available if the recommended spine feels wrong—not merely unfamiliar.</p>
+            <p>Available if the recommended spine feels wrong - not merely unfamiliar.</p>
           </header>
           {d.alternatives.map((x) => (
             <details key={x.name}>
@@ -544,13 +549,178 @@ function DirectionView({
           Revise brief
         </button>
         <button className="primary" disabled={busy} onClick={approve}>
-          {busy ? 'Preparing plan…' : 'Approve direction'} <Arrow />
+          {busy ? 'Preparing plan...' : 'Approve direction'} <Arrow />
         </button>
       </div>
     </section>
   );
 }
-function Plan({ project }: { project: StudioProject }) {
+const terminalGenerationStates = new Set(['idle', 'ready', 'failed', 'cancelled', 'interrupted']);
+const generationLabels: Record<GenerationSnapshot['status'], string> = {
+  idle: 'Not generated',
+  queued: 'Queued',
+  generating: 'Generating React',
+  materializing: 'Materializing safely',
+  installing: 'Installing locked dependencies',
+  building: 'Building production output',
+  reviewing: 'Reviewing implementation',
+  ready: 'Preview ready',
+  failed: 'Generation failed',
+  cancelled: 'Cancelled',
+  interrupted: 'Interrupted'
+};
+function GenerationLifecycle({
+  client,
+  project,
+  previewShellUrl
+}: {
+  client: GenerationLifecycleClient;
+  project: StudioProject;
+  previewShellUrl: string;
+}) {
+  const [snapshot, setSnapshot] = useState<GenerationSnapshot | null>(null),
+    [clientError, setClientError] = useState('');
+  useEffect(() => {
+    let disposed = false;
+    const refresh = async () => {
+      try {
+        const next = await client.load(project);
+        if (!disposed) {
+          setSnapshot(next);
+          setClientError('');
+        }
+      } catch (error) {
+        if (!disposed) setClientError(error instanceof Error ? error.message : String(error));
+      }
+    };
+    void refresh();
+    const timer = window.setInterval(() => {
+      void refresh();
+    }, 1000);
+    return () => {
+      disposed = true;
+      window.clearInterval(timer);
+    };
+  }, [client, project]);
+  const act = async (action: () => Promise<GenerationSnapshot>) => {
+    setClientError('');
+    try {
+      setSnapshot(await action());
+    } catch (error) {
+      setClientError(error instanceof Error ? error.message : String(error));
+    }
+  };
+  const status = snapshot?.status ?? 'idle',
+    active = !terminalGenerationStates.has(status),
+    previewProjectId = `project:${project.id}`;
+  return (
+    <section className="generation-lifecycle" aria-labelledby="generation-title">
+      <div className="generation-heading">
+        <div>
+          <p className="kicker">Trusted local runtime</p>
+          <h2 id="generation-title">From approved plan to isolated preview.</h2>
+        </div>
+        <p
+          className="generation-status"
+          data-state={status}
+          role={status === 'failed' ? 'alert' : 'status'}
+        >
+          <span aria-hidden="true">
+            {active ? '◌' : status === 'ready' ? '✓' : status === 'failed' ? '×' : '—'}
+          </span>
+          {generationLabels[status]}
+        </p>
+      </div>
+      <div className="generation-grid">
+        <div className="generation-narrative">
+          <p>
+            The runtime validates every binding, writes only inside its workspace, installs the
+            fixed lockfile, builds immutable output, and serves successful artifacts from a separate
+            loopback origin.
+          </p>
+          {snapshot?.buildId ? (
+            <code>Build / {snapshot.buildId}</code>
+          ) : (
+            <code>Plan / {project.enginePlan?.digest ?? project.plan?.version}</code>
+          )}
+        </div>
+        <ol className="generation-steps">
+          <li data-current={status === 'generating' || status === 'queued'}>
+            <span>01</span>Generate
+          </li>
+          <li data-current={status === 'materializing' || status === 'installing'}>
+            <span>02</span>Validate & install
+          </li>
+          <li data-current={status === 'building' || status === 'reviewing'}>
+            <span>03</span>Build & review
+          </li>
+          <li data-current={status === 'ready'}>
+            <span>04</span>Preview
+          </li>
+        </ol>
+      </div>
+      {snapshot?.newerFailure && snapshot.currentPreview ? (
+        <div className="last-good">
+          <strong>Current preview retained</strong>
+          <p>A newer attempt failed: {snapshot.newerFailure.message}</p>
+        </div>
+      ) : null}
+      {clientError ? (
+        <p className="runtime-diagnostic" role="alert">
+          {clientError}
+        </p>
+      ) : null}
+      {snapshot?.diagnostics.length ? (
+        <details className="runtime-details">
+          <summary>Runtime diagnostics ({snapshot.diagnostics.length})</summary>
+          <ul>
+            {snapshot.diagnostics.map((item, index) => (
+              <li key={`${index}-${item}`}>{item}</li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
+      <div className="generation-actions">
+        {active && snapshot?.operationId ? (
+          <button
+            className="text"
+            onClick={() => void act(() => client.cancel(project, snapshot.operationId!))}
+          >
+            Cancel operation
+          </button>
+        ) : null}
+        {snapshot?.currentPreview ? (
+          <a
+            className="primary preview-link"
+            href={`${previewShellUrl}?projectId=${encodeURIComponent(previewProjectId)}`}
+          >
+            Open isolated preview <Arrow />
+          </a>
+        ) : (
+          <button
+            className="primary"
+            disabled={active}
+            onClick={() => void act(() => client.start(project))}
+          >
+            {status === 'failed' && snapshot?.retryable
+              ? 'Retry generation'
+              : 'Generate React site'}{' '}
+            <Arrow />
+          </button>
+        )}
+      </div>
+    </section>
+  );
+}
+function Plan({
+  project,
+  generationClient,
+  previewShellUrl
+}: {
+  project: StudioProject;
+  generationClient: GenerationLifecycleClient;
+  previewShellUrl: string;
+}) {
   const p = project.plan!;
   return (
     <section className="stage plan">
@@ -620,10 +790,15 @@ function Plan({ project }: { project: StudioProject }) {
           </ul>
         </section>
       </div>
+      <GenerationLifecycle
+        client={generationClient}
+        project={project}
+        previewShellUrl={previewShellUrl}
+      />
       <footer className="plan-footer">
         <div>
           <strong>Direction approved</strong>
-          <span>Ready for production. No code has been generated.</span>
+          <span>Approved creative provenance is locked for generation.</span>
         </div>
         <button className="secondary" onClick={() => window.print()}>
           Print plan
@@ -634,10 +809,20 @@ function Plan({ project }: { project: StudioProject }) {
 }
 export interface StudioAppProps {
   client?: ArtDirectorClient;
+  generationClient?: GenerationLifecycleClient;
+  previewShellUrl?: string;
 }
 
-export function StudioApp({ client: suppliedClient }: StudioAppProps = {}) {
+export function StudioApp({
+  client: suppliedClient,
+  generationClient: suppliedGenerationClient,
+  previewShellUrl = 'http://127.0.0.1:5174/'
+}: StudioAppProps = {}) {
   const client = useMemo(() => suppliedClient ?? createLocalArtDirectorClient(), [suppliedClient]);
+  const generationClient = useMemo(
+    () => suppliedGenerationClient ?? createLocalGenerationLifecycleClient(),
+    [suppliedGenerationClient]
+  );
   const [stage, setStage] = useState<Stage>('discovery');
   const [project, setProject] = useState<StudioProject | null>(null);
   return (
@@ -649,7 +834,7 @@ export function StudioApp({ client: suppliedClient }: StudioAppProps = {}) {
         <a className="wordmark" href="/" aria-label="Universal home">
           UNIVERSAL
         </a>
-        <span>Studio / Phase 2</span>
+        <span>Studio / Phase 3</span>
         <span>{project?.name || 'Untitled project'}</span>
       </header>
       <Progress stage={stage} project={project} onGo={setStage} />
@@ -693,7 +878,11 @@ export function StudioApp({ client: suppliedClient }: StudioAppProps = {}) {
             }}
           />
         ) : (
-          <Plan project={project} />
+          <Plan
+            project={project}
+            generationClient={generationClient}
+            previewShellUrl={previewShellUrl}
+          />
         )}
       </main>
       <div className="perimeter" aria-hidden="true">

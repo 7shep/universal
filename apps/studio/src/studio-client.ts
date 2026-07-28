@@ -1,8 +1,9 @@
-import type {
-  CreativeBrief,
-  DesignPlanV2 as EngineDesignPlanV2,
-  DiscoveryAnswer,
-  PageMap
+import {
+  validateDesignPlanV2,
+  type CreativeBrief,
+  type DesignPlanV2 as EngineDesignPlanV2,
+  type DiscoveryAnswer,
+  type PageMap
 } from '@universal/design-engine';
 export type AnswerMode = 'exact' | 'preference' | 'unknown' | 'judgment' | 'draft';
 export interface Question {
@@ -79,6 +80,7 @@ export interface StudioProject {
   directionApproved: boolean;
   direction?: Direction;
   plan?: DesignPlanV2;
+  enginePlan?: EngineDesignPlanV2;
   session?: string;
   workflowTimestamp?: string;
 }
@@ -193,7 +195,7 @@ function fixture(prompt: string): StudioProject {
           q(
             'palette',
             'Color palette',
-            'Which colors belong—and which feel falsely luxurious?',
+            'Which colors belong - and which feel falsely luxurious?',
             'High',
             'judgment'
           ),
@@ -223,7 +225,7 @@ function fixture(prompt: string): StudioProject {
           q(
             'references',
             'References & anti-references',
-            'Name work with discipline—and patterns to reject.',
+            'Name work with discipline - and patterns to reject.',
             'High',
             'preference',
             'Apartamento intimacy and field-guide indexing. Avoid wellness beige, luxury travel, outdoor-commerce tropes.'
@@ -340,7 +342,7 @@ const direction: Direction = {
   conceptSpine:
     'A living field manual: exact enough to trust, unfinished enough to invite participation.',
   rationale:
-    'The audience does not need another polished escape fantasy. They need evidence that time away will be thoughtfully held and creatively useful. This pairs an indexed field guide’s authority with intimate traces—notes, crops, weather, and revisions.',
+    'The audience does not need another polished escape fantasy. They need evidence that time away will be thoughtfully held and creatively useful. This pairs an indexed field guide authority with intimate traces - notes, crops, weather, and revisions.',
   visualDecisions: [
     {
       title: 'Typography behaves like orientation',
@@ -381,7 +383,7 @@ function createPlan(p: StudioProject): DesignPlanV2 {
   return {
     version: '2.0',
     status: 'Approved',
-    title: `${p.name} — The Weathered Index`,
+    title: `${p.name}  -  The Weathered Index`,
     thesis:
       'Build trust through editorial precision and evidence, then make application a considered next step.',
     conceptSpine: direction.conceptSpine,
@@ -639,11 +641,18 @@ function directionFromSurface(data: unknown, concepts: unknown): Direction {
 function planFromSurface(project: StudioProject, data: unknown): DesignPlanV2 {
   if (!data || typeof data !== 'object' || !('plan' in data))
     throw new Error('Design Plan v2 response is missing.');
-  const plan = (data as { plan: EngineDesignPlanV2 }).plan;
+  const candidate =
+    typeof data === 'object' && data !== null ? Reflect.get(data, 'plan') : undefined;
+  const validated = validateDesignPlanV2(candidate);
+  if (!validated.ok)
+    throw new Error(
+      `Design Plan v2 is invalid at ${validated.error.path}: ${validated.error.message}`
+    );
+  const plan = validated.value;
   return {
     version: plan.contractVersion,
     status: 'Approved',
-    title: `${project.name} — ${plan.conceptSpine.value}`,
+    title: `${project.name}  -  ${plan.conceptSpine.value}`,
     thesis: plan.conceptSpine.rationale,
     conceptSpine: plan.conceptSpine.value,
     visualSystem: `${plan.compositionSignature.value.layoutFamily}; ${plan.typographySystem.value.scaleStrategy}`,
@@ -736,12 +745,22 @@ export function createMcpArtDirectorClient(transport: ArtDirectorMcpTransport): 
       const planned = await transport.createDesignPlanV2(requireSession(project), {
         requestId: requestId(project, 'create-plan')
       });
+      const candidate =
+        typeof planned.data === 'object' && planned.data !== null
+          ? Reflect.get(planned.data, 'plan')
+          : undefined;
+      const validated = validateDesignPlanV2(candidate);
+      if (!validated.ok)
+        throw new Error(
+          `Design Plan v2 is invalid at ${validated.error.path}: ${validated.error.message}`
+        );
       return {
         ...project,
         session: planned.session,
         directionApproved: true,
         completion: 100,
-        plan: planFromSurface(project, planned.data)
+        plan: planFromSurface(project, planned.data),
+        enginePlan: validated.value
       };
     }
   };

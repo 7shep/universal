@@ -1,226 +1,123 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { loadingPreviewState, type PreviewClient, type PreviewViewState } from './preview-client';
 
-/**
- * Fixture data for the Preview app's lifecycle states, inlined here so the
- * whole feature lives in one file. No process execution, no URL loading, no
- * runtime communication. When a real preview protocol exists, whatever
- * drives it can compute a `PreviewStateKey` (and, for the error state, a
- * diagnostic string) and feed it into the single `useState` below. Nothing
- * else needs to change.
- */
-
-type PreviewSeverity = 'idle' | 'progress' | 'warning' | 'error';
-
-type PreviewStateKey = 'no-project' | 'loading' | 'build-unavailable' | 'runtime-error';
-
-interface PreviewStateFixture {
-  key: PreviewStateKey;
-  eyebrow: string;
-  statusLabel: string;
-  severity: PreviewSeverity;
-  heading: string;
-  description: string;
-  diagnostic?: string;
-}
-
-const PREVIEW_STATE_ORDER: PreviewStateKey[] = [
-  'no-project',
-  'loading',
-  'build-unavailable',
-  'runtime-error'
-];
-
-const PREVIEW_STATE_FIXTURES: Record<PreviewStateKey, PreviewStateFixture> = {
-  'no-project': {
-    key: 'no-project',
-    eyebrow: 'Universal / Preview',
-    statusLabel: 'Status: Idle',
-    severity: 'idle',
-    heading: 'No project selected',
-    description:
-      'This isolated surface will render generated React projects in a future milestone. Choose a project to see its preview here.'
-  },
-  loading: {
-    key: 'loading',
-    eyebrow: 'Universal / Preview',
-    statusLabel: 'Status: Loading',
-    severity: 'progress',
-    heading: 'Preparing preview...',
-    description:
-      "We're bundling the generated project so it can render here. This usually takes a few seconds."
-  },
-  'build-unavailable': {
-    key: 'build-unavailable',
-    eyebrow: 'Universal / Preview',
-    statusLabel: 'Status: Unavailable',
-    severity: 'warning',
-    heading: 'Build unavailable',
-    description:
-      "This project doesn't have a build we can preview yet. Finish the build step, then check again.",
-    diagnostic: 'Diagnostic: no build artifact found for this project.'
-  },
-  'runtime-error': {
-    key: 'runtime-error',
-    eyebrow: 'Universal / Preview',
-    statusLabel: 'Status: Error',
-    severity: 'error',
-    heading: "Preview couldn't start",
-    description:
-      'Something in the generated project stopped the preview from running. Fix the error below, then try again.',
-    diagnostic:
-      "Diagnostic: TypeError: Cannot read properties of undefined (reading 'map') at src/App.tsx:42"
-  }
+const glyph: Record<PreviewViewState['phase'], string> = {
+  'no-selection': ' - ',
+  loading: '::',
+  building: '::',
+  ready: 'OK',
+  unavailable: '!',
+  cancelled: 'X',
+  failed: 'X'
 };
-
-/**
- * A small glyph per severity, distinct in shape (not just color), so the
- * status reads correctly for anyone who can't rely on color to tell states
- * apart. Purely decorative; the real status text lives in `statusLabel`.
- */
-function StatusGlyph({ severity }: { severity: PreviewSeverity }) {
-  switch (severity) {
-    case 'idle':
-      return (
-        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" className="status-glyph">
-          <circle
-            cx="12"
-            cy="12"
-            r="7"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeDasharray="3 3.2"
-          />
-        </svg>
-      );
-    case 'progress':
-      return (
-        <svg
-          viewBox="0 0 24 24"
-          width="20"
-          height="20"
-          aria-hidden="true"
-          className="status-glyph status-glyph--spin"
-        >
-          <circle
-            cx="12"
-            cy="12"
-            r="7"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeDasharray="14 30"
-            strokeLinecap="round"
-          />
-        </svg>
-      );
-    case 'warning':
-      return (
-        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" className="status-glyph">
-          <path
-            d="M12 3 L21.5 20 H2.5 Z"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinejoin="round"
-          />
-          <line
-            x1="12"
-            y1="9"
-            x2="12"
-            y2="14"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-          <circle cx="12" cy="17.2" r="1" fill="currentColor" />
-        </svg>
-      );
-    case 'error':
-      return (
-        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" className="status-glyph">
-          <path
-            d="M8.5 2.5h7L21.5 8.5v7L15.5 21.5h-7L2.5 15.5v-7Z"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinejoin="round"
-          />
-          <line
-            x1="9"
-            y1="9"
-            x2="15"
-            y2="15"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-          <line
-            x1="15"
-            y1="9"
-            x2="9"
-            y2="15"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        </svg>
-      );
-    default:
-      return null;
-  }
-}
-
-export function PreviewApp() {
-  // Local-only state selection. This `useState` is the entire seam a future
-  // runtime protocol needs to replace: swap it for whatever reports real
-  // project/build/runtime status and compute a `PreviewStateKey` (plus a
-  // diagnostic string for errors). Every fixture below already renders from
-  // `state`, so nothing else here has to change.
-  const [state, setState] = useState<PreviewStateKey>('no-project');
-  const fixture = PREVIEW_STATE_FIXTURES[state];
-  const isErrorLike = fixture.severity === 'error';
-
+export function PreviewApp({ client, projectId }: { client: PreviewClient; projectId?: string }) {
+  const [state, setState] = useState<PreviewViewState>(
+    projectId
+      ? loadingPreviewState
+      : {
+          phase: 'no-selection',
+          status: 'No selection',
+          heading: 'Choose a generated project.',
+          description:
+            'Preview opens only a successful immutable build issued by the trusted local runtime.'
+        }
+  );
+  useEffect(() => {
+    let disposed = false;
+    const refresh = async () => {
+      try {
+        const next = await client.load(projectId);
+        if (!disposed) setState(next);
+      } catch (error) {
+        if (!disposed)
+          setState({
+            phase: 'failed',
+            status: 'Runtime unavailable',
+            heading: 'Preview could not read runtime state.',
+            description: 'Return to Studio and confirm the trusted local runtime is running.',
+            diagnostic: error instanceof Error ? error.message : String(error)
+          });
+      }
+    };
+    void refresh();
+    const timer = window.setInterval(() => {
+      void refresh();
+    }, 1200);
+    return () => {
+      disposed = true;
+      window.clearInterval(timer);
+    };
+  }, [client, projectId]);
+  const descriptor = state.descriptor,
+    ready = state.phase === 'ready' && descriptor;
   return (
-    <main>
-      <div
-        className="preview-panel"
-        data-severity={fixture.severity}
-        role={isErrorLike ? 'alert' : 'status'}
-        aria-live={isErrorLike ? 'assertive' : 'polite'}
-      >
-        <p className="eyebrow">{fixture.eyebrow}</p>
-
-        <div className="status-row">
-          <StatusGlyph severity={fixture.severity} />
-          <span className="status-label">{fixture.statusLabel}</span>
+    <main className={ready ? 'preview-shell preview-shell--ready' : 'preview-shell'}>
+      <header className="preview-masthead">
+        <a href="/" className="preview-wordmark">
+          UNIVERSAL
+        </a>
+        <div>
+          <span>Preview / Phase 3</span>
+          <strong>{projectId ?? 'No project selected'}</strong>
         </div>
-
-        <h1>{fixture.heading}</h1>
-        <p className="description">{fixture.description}</p>
-
-        {fixture.diagnostic ? (
-          <pre className="diagnostic">
-            <code>{fixture.diagnostic}</code>
-          </pre>
-        ) : null}
-      </div>
-
-      <fieldset className="state-switcher">
-        <legend>Preview state (local fixture, dev only)</legend>
-        {PREVIEW_STATE_ORDER.map((key) => (
-          <label key={key} className="state-switcher__option">
-            <input
-              type="radio"
-              name="preview-state"
-              value={key}
-              checked={state === key}
-              onChange={() => setState(key)}
-            />
-            {PREVIEW_STATE_FIXTURES[key].heading}
-          </label>
-        ))}
-      </fieldset>
+        <p
+          className="preview-status"
+          data-phase={state.phase}
+          role={state.phase === 'failed' ? 'alert' : 'status'}
+        >
+          <span aria-hidden="true">{glyph[state.phase]}</span>
+          {state.status}
+        </p>
+      </header>
+      {state.newerFailure ? (
+        <aside className="failure-ribbon" role="alert">
+          <strong>Current preview retained.</strong>
+          <span>
+            Newer attempt: {state.newerFailure.code} / {state.newerFailure.message}
+          </span>
+        </aside>
+      ) : null}
+      {ready ? (
+        <section className="preview-stage" aria-label="Generated website preview">
+          <div className="preview-meta">
+            <span>Build {descriptor.buildId}</span>
+            <span>Revision {descriptor.revisionId}</span>
+            <a href={descriptor.url} target="_blank" rel="noreferrer">
+              Open isolated origin [open]
+            </a>
+          </div>
+          <iframe
+            title={`Generated preview for ${descriptor.projectId}`}
+            src={descriptor.url}
+            sandbox="allow-scripts"
+            referrerPolicy="no-referrer"
+          />
+        </section>
+      ) : (
+        <section
+          className="preview-empty"
+          data-phase={state.phase}
+          role={state.phase === 'failed' ? 'alert' : 'status'}
+          aria-live={state.phase === 'failed' ? 'assertive' : 'polite'}
+        >
+          <p className="preview-index">
+            {glyph[state.phase]} / {state.status}
+          </p>
+          <h1>{state.heading}</h1>
+          <p>{state.description}</p>
+          {state.diagnostic ? (
+            <pre>
+              <code>{state.diagnostic}</code>
+            </pre>
+          ) : null}
+          <a href="http://127.0.0.1:5173/">Return to Studio</a>
+        </section>
+      )}
+      <footer className="preview-footer">
+        <span>Sandbox / scripts only</span>
+        <span>Outbound network / denied</span>
+        <span>Runtime APIs / separate origin</span>
+      </footer>
     </main>
   );
 }
