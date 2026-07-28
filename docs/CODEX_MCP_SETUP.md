@@ -40,6 +40,16 @@ Restart or reconnect Codex after saving the configuration. The available tools s
 - `get_design_rules`
 - `get_taste_profile`
 - `review_implementation`
+- `start_art_direction`
+- `get_discovery_questions`
+- `submit_discovery_answers`
+- `get_creative_brief`
+- `revise_creative_brief`
+- `approve_creative_brief`
+- `develop_art_direction`
+- `get_selected_direction`
+- `create_design_plan_v2`
+- `get_art_direction_session`
 
 `get_taste_profile` returns the active versioned taste principles, contextual anti-pattern
 guidance, positive reference notes, and selection criteria used during planning and review.
@@ -49,8 +59,11 @@ guidance, positive reference notes, and selection criteria used during planning 
 1. Build the package with the command above.
 2. Restart Codex and inspect its MCP tools list for `universal`.
 3. Ask Codex to call `get_design_rules` with `{"category":"website"}`. A JSON response confirms the connection.
+4. For Phase 2 verification, call `start_art_direction` with a short prompt, then pass the returned
+   `session` string unchanged to `get_discovery_questions`.
 
-For copy-pasteable requests and documented response shapes for every tool, see the
+For copy-pasteable requests, session handoff rules, and documented response shapes for all 14 tools,
+see the
 [MCP tool reference](MCP_REFERENCE.md).
 
 ## Demo workflow
