@@ -259,6 +259,29 @@ h2,
   line-height: 1.25;
   resize: vertical;
 }
+.prompt-sheet textarea[aria-invalid='true'] {
+  outline: 2px solid #9f2f1a;
+  outline-offset: 0.5rem;
+}
+.prompt-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.8rem;
+  color: #5e5c56;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+.prompt-meta p {
+  margin: 0;
+}
+.prompt-error {
+  color: #8f2c18;
+  font-weight: 700;
+}
+.prompt-meta small {
+  flex: 0 0 auto;
+}
 .actions,
 .stage-actions {
   display: flex;
@@ -883,6 +906,11 @@ code {
   }
   .prompt-sheet .actions {
     flex-wrap: wrap;
+  }
+  .prompt-meta {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.35rem;
   }
   .prompt-sheet .primary {
     width: 100%;

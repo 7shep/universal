@@ -25,10 +25,11 @@ body {
 
 main {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   justify-items: center;
   align-content: center;
   gap: 2rem;
-  min-height: 100vh;
+  min-height: 100dvh;
   padding: 2rem;
 }
 
@@ -86,6 +87,7 @@ h1 {
 .preview-panel {
   --severity: var(--severity-idle);
   width: min(42rem, 100%);
+  min-width: 0;
   padding: 2rem clamp(1.25rem, 4vw, 2.5rem);
   border: 1px solid var(--border);
   border-left: 4px solid var(--severity);
@@ -110,6 +112,8 @@ h1 {
   margin: 1.25rem 0 0;
   padding: 0.85rem 1rem;
   overflow-x: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
   border-radius: 0.5rem;
   background: oklch(0.94 0.01 250);
   color: var(--ink);
@@ -118,27 +122,10 @@ h1 {
   line-height: 1.5;
 }
 
-.actions {
-  margin-top: 1.5rem;
-}
-
-.action-button {
-  padding: 0.6rem 1.1rem;
-  border: 1px solid var(--ink);
-  border-radius: 0.5rem;
-  background: var(--ink);
-  color: var(--surface);
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.action-button:hover {
-  opacity: 0.9;
-}
-
 .state-switcher {
   width: min(42rem, 100%);
+  min-width: 0;
+  min-inline-size: 0;
   padding: 1rem 1.25rem;
   border: 1px dashed var(--border);
   border-radius: 0.75rem;
@@ -164,7 +151,6 @@ h1 {
 }
 
 /* Visible keyboard focus everywhere, never suppressed. */
-.action-button:focus-visible,
 .state-switcher__option input:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 2px;

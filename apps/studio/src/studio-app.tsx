@@ -23,6 +23,20 @@ const modes: { value: AnswerMode; label: string }[] = [
   { value: 'judgment', label: 'Use your judgment' },
   { value: 'draft', label: 'Draft this for me' }
 ];
+const MINIMUM_BRIEF_LENGTH = 40;
+function getBriefGuidance(prompt: string): { invalid: boolean; message: string } {
+  const length = prompt.trim().length;
+  if (length === 0) {
+    return { invalid: true, message: 'Describe what you want to make.' };
+  }
+  if (length < MINIMUM_BRIEF_LENGTH) {
+    return {
+      invalid: true,
+      message: `Add at least ${MINIMUM_BRIEF_LENGTH - length} more characters so discovery has enough context.`
+    };
+  }
+  return { invalid: false, message: 'Ready to begin discovery.' };
+}
 const Arrow = () => <span aria-hidden="true">→</span>;
 function Progress({
   stage,
@@ -74,8 +88,11 @@ function Start({
     'A membership site for Field Notes Society, a small collective that hosts guided creative retreats in overlooked landscapes.'
   );
   const [busy, setBusy] = useState(false);
+  const [touched, setTouched] = useState(false);
+  const guidance = getBriefGuidance(prompt);
   async function run() {
-    if (!prompt.trim()) return;
+    setTouched(true);
+    if (guidance.invalid) return;
     setBusy(true);
     onStart(await client.startProject(prompt));
   }
@@ -91,10 +108,35 @@ function Start({
       </div>
       <div className="prompt-sheet">
         <label htmlFor="prompt">What are you making?</label>
-        <textarea id="prompt" rows={7} value={prompt} onChange={(e) => setPrompt(e.target.value)} />
+        <textarea
+          id="prompt"
+          rows={7}
+          value={prompt}
+          required
+          minLength={MINIMUM_BRIEF_LENGTH}
+          aria-invalid={touched && guidance.invalid}
+          aria-describedby="prompt-guidance prompt-count"
+          onBlur={() => setTouched(true)}
+          onChange={(e) => setPrompt(e.target.value)}
+        />
+        <div className="prompt-meta">
+          <p
+            id="prompt-guidance"
+            className={touched && guidance.invalid ? 'prompt-error' : 'prompt-guidance'}
+            role={touched && guidance.invalid ? 'alert' : undefined}
+          >
+            {guidance.message}
+          </p>
+          <small id="prompt-count">{prompt.length} characters</small>
+        </div>
         <div className="actions">
           <small>{prompt.trim().split(/\s+/).length} words</small>
-          <button className="primary" disabled={!prompt.trim() || busy} onClick={run}>
+          <button
+            type="button"
+            className="primary"
+            disabled={guidance.invalid || busy}
+            onClick={run}
+          >
             {busy ? 'Preparing discovery…' : 'Begin discovery'} <Arrow />
           </button>
         </div>
