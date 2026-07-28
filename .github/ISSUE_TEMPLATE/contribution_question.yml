@@ -1,0 +1,55 @@
+name: Contribution question
+description: Ask where a focused contribution belongs before investing in a large change.
+title: 'contrib: '
+labels: [question]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for offering to contribute. Describe the outcome you want to help with, not only the files you want to edit. A maintainer can help narrow the scope and identify the owning workspace.
+  - type: dropdown
+    id: interest
+    attributes:
+      label: Area of interest
+      options:
+        - Documentation or examples
+        - React UI or accessibility
+        - MCP server
+        - Design engine or contracts
+        - Prompts
+        - Composition or taste policy
+        - Design critique
+        - Benchmarking or tests
+        - Developer tooling
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Proposed outcome
+      description: What specific problem would improve for a user or contributor?
+      placeholder: I would like to make the Codex setup guide easier to verify on Windows by...
+    validations:
+      required: true
+  - type: textarea
+    id: approach
+    attributes:
+      label: Possible approach
+      description: Share the smallest change you currently have in mind. It is fine to be unsure.
+  - type: textarea
+    id: experience
+    attributes:
+      label: Relevant experience
+      description: Optional. Mention technologies or project areas you would like to learn or use.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I read the contribution guide and searched existing issues and pull requests.
+          required: true
+        - label: I have not started a large implementation that depends on this decision.
+          required: true
+        - label: I included no secrets, private prompts, or personal data.
+          required: true
