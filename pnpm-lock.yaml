@@ -44,6 +44,9 @@ importers:
 
   apps/preview:
     dependencies:
+      '@universal/runtime-contracts':
+        specifier: workspace:*
+        version: link:../../packages/runtime-contracts
       '@vitejs/plugin-react':
         specifier: ^4.6.0
         version: 4.7.0(vite@6.4.3(@types/node@24.13.3))
@@ -69,6 +72,12 @@ importers:
       '@universal/design-engine':
         specifier: workspace:*
         version: link:../../packages/design-engine
+      '@universal/generation':
+        specifier: workspace:*
+        version: link:../../packages/generation
+      '@universal/runtime-contracts':
+        specifier: workspace:*
+        version: link:../../packages/runtime-contracts
       '@universal/ui':
         specifier: workspace:*
         version: link:../../packages/ui
