@@ -182,8 +182,8 @@ test('fails explicitly for missing typed input and unresolved placeholders', () 
     /Missing required prompt input at brief/
   );
   assert.throws(
-    () => interpolatePrompt('Hello {{name}} from {{place}}', { name: 'Ada' }),
-    /missing required variable\(s\): place/
+    () => interpolatePrompt('Hello {{name}} from {{place}} for {{heroName}}', { name: 'Ada' }),
+    /missing required variable\(s\): place, heroName/
   );
   assert.throws(
     () => interpolatePrompt('Hello {{name}}', { name: '{{stillMissing}}' }),
@@ -192,6 +192,16 @@ test('fails explicitly for missing typed input and unresolved placeholders', () 
   assert.throws(
     () => buildReactGenerationPrompt({} as never),
     /Missing required prompt input at plan/
+  );
+});
+
+test('interpolates repeated and whitespace-padded variables while ignoring extra values', () => {
+  assert.equal(
+    interpolatePrompt('{{ heroName }} opens; {{heroName}} closes.', {
+      heroName: 'Atlas',
+      unused: 'ignored'
+    }),
+    'Atlas opens; Atlas closes.'
   );
 });
 

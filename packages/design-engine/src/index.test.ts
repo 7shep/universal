@@ -155,6 +155,58 @@ test('validateDesignPlan remains the trust boundary for serialized output', () =
   if (!malformed.ok) assert.equal(malformed.error.path, 'tasteDirection.decisions');
 });
 
+test('validateDesignPlan accepts a complete current plan', () => {
+  const validation = validateDesignPlan(structuredClone(fixturePlan));
+
+  assert.equal(validation.ok, true);
+});
+
+test('validateDesignPlan rejects representative nested failures with precise paths', () => {
+  const cases: readonly [string, unknown, string][] = [
+    ['empty concept', { ...fixturePlan, concept: ' ' }, 'concept'],
+    [
+      'required array item',
+      { ...fixturePlan, brandAttributes: ['considered', ''] },
+      'brandAttributes.1'
+    ],
+    [
+      'page structure field',
+      {
+        ...fixturePlan,
+        pageStructure: [{ ...fixturePlan.pageStructure[0]!, description: '' }]
+      },
+      'pageStructure.0.description'
+    ],
+    [
+      'navigation field',
+      { ...fixturePlan, navigation: { ...fixturePlan.navigation, placement: '' } },
+      'navigation.placement'
+    ],
+    [
+      'color token',
+      {
+        ...fixturePlan,
+        designTokens: {
+          ...fixturePlan.designTokens,
+          colors: { ...fixturePlan.designTokens.colors, accent: '' }
+        }
+      },
+      'designTokens.colors.accent'
+    ],
+    ['negative composition seed', { ...fixturePlan, compositionSeed: -1 }, 'compositionSeed'],
+    ['invalid novelty score', { ...fixturePlan, noveltyScore: 1.01 }, 'noveltyScore']
+  ];
+
+  for (const [name, candidate, expectedPath] of cases) {
+    const validation = validateDesignPlan(candidate);
+    assert.equal(validation.ok, false, `${name} should fail`);
+    if (!validation.ok) {
+      assert.equal(validation.error.path, expectedPath, name);
+      assert.ok(validation.error.message.length > 0, `${name} should explain the failure`);
+    }
+  }
+});
+
 test('checked-in public contract fixtures validate and round-trip byte-for-byte', () => {
   const kinds: readonly SerializedContractKind[] = [
     'brief',

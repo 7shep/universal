@@ -5,17 +5,13 @@ import { useState } from 'react';
  * whole feature lives in one file. No process execution, no URL loading, no
  * runtime communication. When a real preview protocol exists, whatever
  * drives it can compute a `PreviewStateKey` (and, for the error state, a
- * diagnostic string) and feed it into the single `useState` below — nothing
+ * diagnostic string) and feed it into the single `useState` below. Nothing
  * else needs to change.
  */
 
 type PreviewSeverity = 'idle' | 'progress' | 'warning' | 'error';
 
 type PreviewStateKey = 'no-project' | 'loading' | 'build-unavailable' | 'runtime-error';
-
-interface PreviewStateAction {
-  label: string;
-}
 
 interface PreviewStateFixture {
   key: PreviewStateKey;
@@ -25,7 +21,6 @@ interface PreviewStateFixture {
   heading: string;
   description: string;
   diagnostic?: string;
-  action?: PreviewStateAction;
 }
 
 const PREVIEW_STATE_ORDER: PreviewStateKey[] = [
@@ -50,7 +45,7 @@ const PREVIEW_STATE_FIXTURES: Record<PreviewStateKey, PreviewStateFixture> = {
     eyebrow: 'Universal / Preview',
     statusLabel: 'Status: Loading',
     severity: 'progress',
-    heading: 'Preparing preview…',
+    heading: 'Preparing preview...',
     description:
       "We're bundling the generated project so it can render here. This usually takes a few seconds."
   },
@@ -62,8 +57,7 @@ const PREVIEW_STATE_FIXTURES: Record<PreviewStateKey, PreviewStateFixture> = {
     heading: 'Build unavailable',
     description:
       "This project doesn't have a build we can preview yet. Finish the build step, then check again.",
-    diagnostic: 'Diagnostic: no build artifact found for this project.',
-    action: { label: 'Check again' }
+    diagnostic: 'Diagnostic: no build artifact found for this project.'
   },
   'runtime-error': {
     key: 'runtime-error',
@@ -74,15 +68,14 @@ const PREVIEW_STATE_FIXTURES: Record<PreviewStateKey, PreviewStateFixture> = {
     description:
       'Something in the generated project stopped the preview from running. Fix the error below, then try again.',
     diagnostic:
-      "Diagnostic: TypeError — Cannot read properties of undefined (reading 'map') at src/App.tsx:42",
-    action: { label: 'Try again' }
+      "Diagnostic: TypeError: Cannot read properties of undefined (reading 'map') at src/App.tsx:42"
   }
 };
 
 /**
  * A small glyph per severity, distinct in shape (not just color), so the
  * status reads correctly for anyone who can't rely on color to tell states
- * apart. Purely decorative — the real status text lives in `statusLabel`.
+ * apart. Purely decorative; the real status text lives in `statusLabel`.
  */
 function StatusGlyph({ severity }: { severity: PreviewSeverity }) {
   switch (severity) {
@@ -188,11 +181,6 @@ export function PreviewApp() {
   const fixture = PREVIEW_STATE_FIXTURES[state];
   const isErrorLike = fixture.severity === 'error';
 
-  // Intentionally inert. This issue only adds fixture-driven UI states — no
-  // process execution, URL loading, or runtime communication. A future
-  // protocol wires this to a real rebuild/retry call.
-  function handleAction() {}
-
   return (
     <main>
       <div
@@ -215,14 +203,6 @@ export function PreviewApp() {
           <pre className="diagnostic">
             <code>{fixture.diagnostic}</code>
           </pre>
-        ) : null}
-
-        {fixture.action ? (
-          <div className="actions">
-            <button type="button" className="action-button" onClick={handleAction}>
-              {fixture.action.label}
-            </button>
-          </div>
         ) : null}
       </div>
 

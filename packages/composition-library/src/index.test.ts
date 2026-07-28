@@ -182,8 +182,20 @@ test('page compositions require stable, unique section identities', () => {
   if (!result.ok) assert.match(result.errors.at(-1)?.message ?? '', /Duplicate section id/);
 });
 
-test('signature similarity has stable weighted boundaries', () => {
+test('signature similarity returns the expected maximum and minimum', () => {
   assert.equal(signatureSimilarity(signature, signature), 1);
+  assert.equal(
+    signatureSimilarity(signature, {
+      heroArchetype: 'different',
+      navigationMode: 'corner-controls',
+      sectionSequence: ['different'],
+      preset: 'minimal'
+    }),
+    0
+  );
+});
+
+test('signature similarity scores each weighted component independently', () => {
   assert.equal(
     signatureSimilarity(signature, {
       ...signature,
@@ -196,11 +208,56 @@ test('signature similarity has stable weighted boundaries', () => {
   assert.equal(
     signatureSimilarity(signature, {
       heroArchetype: 'different',
-      navigationMode: 'corner-controls',
+      navigationMode: 'perimeter',
       sectionSequence: ['different'],
       preset: 'minimal'
     }),
-    0
+    0.25
+  );
+  assert.equal(
+    signatureSimilarity(signature, {
+      heroArchetype: 'different',
+      navigationMode: 'corner-controls',
+      sectionSequence: ['different'],
+      preset: 'editorial'
+    }),
+    0.1
+  );
+});
+
+test('signature similarity handles partial, unequal, and empty section sequences', () => {
+  const partial: CompositionSignature = {
+    heroArchetype: 'different',
+    navigationMode: 'corner-controls',
+    sectionSequence: ['opener', 'different', 'extra'],
+    preset: 'minimal'
+  };
+  const shorter: CompositionSignature = {
+    ...partial,
+    sectionSequence: ['opener']
+  };
+  const empty: CompositionSignature = {
+    ...partial,
+    sectionSequence: []
+  };
+
+  assert.equal(signatureSimilarity(signature, partial), 0.067);
+  assert.equal(signatureSimilarity(signature, shorter), 0.1);
+  assert.equal(signatureSimilarity({ ...signature, sectionSequence: [] }, empty), 0);
+  assert.ok(Number.isFinite(signatureSimilarity({ ...signature, sectionSequence: [] }, empty)));
+  assert.equal(signatureSimilarity(signature, partial), signatureSimilarity(partial, signature));
+  assert.equal(signatureSimilarity(signature, shorter), signatureSimilarity(shorter, signature));
+});
+
+test('signature similarity rounds aggregate scores to three decimal places', () => {
+  assert.equal(
+    signatureSimilarity(signature, {
+      heroArchetype: 'different',
+      navigationMode: 'corner-controls',
+      sectionSequence: ['opener', 'different', 'extra'],
+      preset: 'minimal'
+    }),
+    0.067
   );
 });
 

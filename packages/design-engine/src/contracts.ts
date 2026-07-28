@@ -152,6 +152,21 @@ const isNonEmptyStringArray = (value: unknown): value is string[] =>
 const invalid = (path: string, message: string): Result<never, ContractValidationError> =>
   failure({ path, message });
 
+function requiredStringArrayError(
+  value: unknown,
+  path: string
+): ContractValidationError | undefined {
+  if (!Array.isArray(value) || value.length === 0)
+    return { path, message: `${path} must contain non-empty strings.` };
+  const invalidIndex = value.findIndex((item) => !isNonEmptyString(item));
+  return invalidIndex === -1
+    ? undefined
+    : {
+        path: `${path}.${invalidIndex}`,
+        message: `${path}.${invalidIndex} must be a non-empty string.`
+      };
+}
+
 const tasteCategories = new Set<TasteCategory>([
   'typography',
   'color',
@@ -283,21 +298,22 @@ export function validateDesignPlan(value: unknown): Result<DesignPlan, DesignPla
     'preferredVisualTreatments',
     'implementationNotes',
     'avoid'
-  ] as const)
-    if (!isNonEmptyStringArray(value[field]))
-      return invalid(field, `${field} must contain non-empty strings.`);
-  if (
-    !Array.isArray(value.pageStructure) ||
-    value.pageStructure.length === 0 ||
-    !value.pageStructure.every(
-      (section) =>
-        isRecord(section) &&
-        isNonEmptyString(section.id) &&
-        isNonEmptyString(section.pattern) &&
-        isNonEmptyString(section.description)
-    )
-  )
+  ] as const) {
+    const error = requiredStringArrayError(value[field], field);
+    if (error) return failure(error);
+  }
+  if (!Array.isArray(value.pageStructure) || value.pageStructure.length === 0)
     return invalid('pageStructure', 'pageStructure must contain complete sections.');
+  for (const [index, section] of value.pageStructure.entries()) {
+    if (!isRecord(section))
+      return invalid(`pageStructure.${index}`, 'Each page structure entry must be an object.');
+    for (const field of ['id', 'pattern', 'description'] as const)
+      if (!isNonEmptyString(section[field]))
+        return invalid(
+          `pageStructure.${index}.${field}`,
+          `pageStructure.${index}.${field} must be a non-empty string.`
+        );
+  }
   if (!Number.isSafeInteger(value.compositionSeed) || Number(value.compositionSeed) < 0)
     return invalid('compositionSeed', 'compositionSeed must be a non-negative safe integer.');
   if (typeof value.noveltyScore !== 'number' || value.noveltyScore < 0 || value.noveltyScore > 1)
@@ -339,46 +355,45 @@ export function validateDesignPlan(value: unknown): Result<DesignPlan, DesignPla
   if (!isRecord(tokens.colors))
     return invalid('designTokens.colors', 'Design token colors are incomplete.');
   const colors = tokens.colors;
-  if (
-    !['background', 'surface', 'text', 'muted', 'accent'].every((key) =>
-      isNonEmptyString(colors[key])
-    )
-  )
-    return invalid('designTokens.colors', 'Design token colors are incomplete.');
-  if (
-    !isRecord(tokens.typography) ||
-    !isNonEmptyString(tokens.typography.displayStyle) ||
-    !isNonEmptyString(tokens.typography.bodyStyle) ||
-    !isNonEmptyStringArray(tokens.typography.displayScale)
-  )
+  for (const key of ['background', 'surface', 'text', 'muted', 'accent'] as const)
+    if (!isNonEmptyString(colors[key]))
+      return invalid(`designTokens.colors.${key}`, `${key} color token is required.`);
+  if (!isRecord(tokens.typography))
     return invalid('designTokens.typography', 'Typography tokens are incomplete.');
-  if (
-    !isRecord(tokens.spacing) ||
-    !isNonEmptyString(tokens.spacing.sectionPadding) ||
-    !isNonEmptyString(tokens.spacing.contentGap)
-  )
+  for (const key of ['displayStyle', 'bodyStyle'] as const)
+    if (!isNonEmptyString(tokens.typography[key]))
+      return invalid(
+        `designTokens.typography.${key}`,
+        `designTokens.typography.${key} is required.`
+      );
+  const displayScaleError = requiredStringArrayError(
+    tokens.typography.displayScale,
+    'designTokens.typography.displayScale'
+  );
+  if (displayScaleError) return failure(displayScaleError);
+  if (!isRecord(tokens.spacing))
     return invalid('designTokens.spacing', 'Spacing tokens are incomplete.');
-  if (
-    !isRecord(tokens.shape) ||
-    !isNonEmptyString(tokens.shape.smallRadius) ||
-    !isNonEmptyString(tokens.shape.largeRadius)
-  )
-    return invalid('designTokens.shape', 'Shape tokens are incomplete.');
+  for (const key of ['sectionPadding', 'contentGap'] as const)
+    if (!isNonEmptyString(tokens.spacing[key]))
+      return invalid(`designTokens.spacing.${key}`, `designTokens.spacing.${key} is required.`);
+  if (!isRecord(tokens.shape)) return invalid('designTokens.shape', 'Shape tokens are incomplete.');
+  for (const key of ['smallRadius', 'largeRadius'] as const)
+    if (!isNonEmptyString(tokens.shape[key]))
+      return invalid(`designTokens.shape.${key}`, `designTokens.shape.${key} is required.`);
   const tasteError = validateTasteDirection(value.tasteDirection);
   if (tasteError) return failure(tasteError);
   if (value.motionDirection !== undefined) {
     const motion = value.motionDirection;
-    if (
-      !isRecord(motion) ||
-      motion.trigger !== 'scroll-driven' ||
-      !isNonEmptyString(motion.signature) ||
-      !isNonEmptyString(motion.technique) ||
-      !isNonEmptyString(motion.reducedMotion) ||
-      !isNonEmptyStringArray(motion.layers) ||
-      !isNonEmptyStringArray(motion.behavior) ||
-      !isNonEmptyStringArray(motion.performance)
-    )
-      return invalid('motionDirection', 'Motion direction is incomplete or invalid.');
+    if (!isRecord(motion)) return invalid('motionDirection', 'Motion direction must be an object.');
+    if (motion.trigger !== 'scroll-driven')
+      return invalid('motionDirection.trigger', 'Motion trigger must be scroll-driven.');
+    for (const key of ['signature', 'technique', 'reducedMotion'] as const)
+      if (!isNonEmptyString(motion[key]))
+        return invalid(`motionDirection.${key}`, `motionDirection.${key} is required.`);
+    for (const key of ['layers', 'behavior', 'performance'] as const) {
+      const error = requiredStringArrayError(motion[key], `motionDirection.${key}`);
+      if (error) return failure(error);
+    }
   }
   return success(value as unknown as DesignPlan);
 }
