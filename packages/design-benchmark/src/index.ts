@@ -8,3 +8,4 @@ export * from './loader.ts';
 export * from './checks.ts';
 export * from './runner.ts';
 export * from './backends.ts';
+export * from './art-direction.ts';

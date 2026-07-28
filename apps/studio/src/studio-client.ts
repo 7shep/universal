@@ -1,3 +1,9 @@
+import type {
+  CreativeBrief,
+  DesignPlanV2 as EngineDesignPlanV2,
+  DiscoveryAnswer,
+  PageMap
+} from '@universal/design-engine';
 export type AnswerMode = 'exact' | 'preference' | 'unknown' | 'judgment' | 'draft';
 export interface Question {
   id: string;
@@ -73,6 +79,8 @@ export interface StudioProject {
   directionApproved: boolean;
   direction?: Direction;
   plan?: DesignPlanV2;
+  session?: string;
+  workflowTimestamp?: string;
 }
 export interface ArtDirectorClient {
   startProject(prompt: string): Promise<StudioProject>;
@@ -409,6 +417,333 @@ function createPlan(p: StudioProject): DesignPlanV2 {
       'Never encode provenance by color alone.',
       'Render all content immediately with reduced motion.'
     ]
+  };
+}
+interface ArtDirectorSurfaceResponse {
+  session: string;
+  state: unknown;
+  data?: unknown;
+}
+
+export interface ArtDirectorMcpTransport {
+  startArtDirection(input: {
+    prompt: string;
+    requestId?: string;
+  }): Promise<ArtDirectorSurfaceResponse>;
+  getDiscoveryQuestions(session: string): Promise<ArtDirectorSurfaceResponse>;
+  submitDiscoveryAnswers(
+    session: string,
+    input: {
+      answers: readonly DiscoveryAnswer[];
+      pageMap: PageMap;
+      requestId?: string;
+    }
+  ): Promise<ArtDirectorSurfaceResponse>;
+  getCreativeBrief(
+    session: string,
+    input?: { requestId?: string }
+  ): Promise<ArtDirectorSurfaceResponse>;
+  approveCreativeBrief(
+    session: string,
+    input?: { approvedBy?: string; requestId?: string }
+  ): Promise<ArtDirectorSurfaceResponse>;
+  developArtDirection(
+    session: string,
+    input?: { requestId?: string }
+  ): Promise<ArtDirectorSurfaceResponse>;
+  getSelectedDirection(
+    session: string,
+    input?: { requestId?: string }
+  ): Promise<ArtDirectorSurfaceResponse>;
+  createDesignPlanV2(
+    session: string,
+    input?: { requestId?: string }
+  ): Promise<ArtDirectorSurfaceResponse>;
+}
+
+const TOPIC_BY_QUESTION: Readonly<Record<string, DiscoveryAnswer['topic'] | undefined>> = {
+  audience: 'audience',
+  outcome: 'emotional-response',
+  conversion: 'purpose',
+  depth: 'positioning',
+  hero: 'hero',
+  navigation: 'navigation',
+  palette: 'color',
+  typography: 'typography',
+  imagery: 'imagery',
+  assets: 'brand-assets',
+  references: 'references'
+};
+
+function stableHash(value: string): string {
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, '0');
+}
+
+function requestId(project: StudioProject, operation: string, payload: unknown = {}): string {
+  return `${project.id}:${operation}:${stableHash(JSON.stringify([project.session, payload]))}`;
+}
+
+function requireSession(project: StudioProject): string {
+  if (!project.session)
+    throw new Error('This Studio project is not connected to an Art Director session.');
+  return project.session;
+}
+
+function studioPageMap(project: StudioProject): PageMap {
+  return {
+    kind: project.pages.length === 1 ? 'single-page' : 'multi-page',
+    pages: project.pages.map((page) => ({
+      id: page.id,
+      route: page.route,
+      name: page.name,
+      userGoal: page.userGoal,
+      primaryMessage: page.primaryMessage,
+      requiredSections: page.requiredSections,
+      requiredContent: page.contentRequirements
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean),
+      ...(page.primaryAction ? { primaryAction: page.primaryAction } : {}),
+      secondaryActions: page.secondaryAction ? [page.secondaryAction] : [],
+      navigationRelationship: page.navigationRelationship,
+      uniqueResponsibility: page.visualResponsibility,
+      sharedElements: ['navigation', 'footer'],
+      pageSpecificElements: page.requiredSections
+    }))
+  };
+}
+
+function draftValue(question: Question): string {
+  if (question.answer.trim()) return question.answer.trim();
+  if (question.id === 'hero') return 'State the approved purpose in one concrete opening promise.';
+  if (question.id === 'outcome')
+    return 'Visitors should understand the offer, trust it, and take the primary action.';
+  return `Resolve ${question.label.toLowerCase()} from the approved brief.`;
+}
+
+function discoveryAnswers(project: StudioProject): readonly DiscoveryAnswer[] {
+  const now = project.workflowTimestamp ?? '1970-01-01T00:00:00.000Z';
+  const answers: DiscoveryAnswer[] = [];
+  for (const question of project.groups.flatMap((group) => group.questions)) {
+    const topic = TOPIC_BY_QUESTION[question.id];
+    if (!topic) continue;
+    const mode = question.mode === 'judgment' ? 'use-judgment' : question.mode;
+    const summary =
+      mode === 'draft'
+        ? draftValue(question)
+        : question.answer.trim() ||
+          (mode === 'use-judgment' ? `Universal may decide ${question.label.toLowerCase()}.` : '');
+    if ((mode === 'exact' || mode === 'preference') && !summary)
+      throw new Error(`${question.label} needs an answer before the brief can be compiled.`);
+    answers.push({
+      questionId: `discovery:${topic}`,
+      topic,
+      mode,
+      ...(summary ? { value: { summary } } : {}),
+      answeredAt: now
+    });
+  }
+  const pageContent = project.pages
+    .flatMap((page) => [page.primaryMessage, page.contentRequirements])
+    .filter(Boolean)
+    .join(' ');
+  if (!pageContent) throw new Error('The page map needs content requirements before brief review.');
+  answers.push({
+    questionId: 'discovery:page-content',
+    topic: 'page-content',
+    mode: 'exact',
+    value: { summary: pageContent },
+    answeredAt: now
+  });
+  return answers;
+}
+
+function provenanceLabel(
+  decision: CreativeBrief['decisions'][number]
+): BriefDecision['provenance'] {
+  if (decision.requiresConfirmation) return 'unresolved';
+  if (decision.source === 'user' && ['explicit', 'preferred'].includes(decision.disposition))
+    return 'user';
+  if (decision.disposition === 'delegated') return 'delegated';
+  return 'universal';
+}
+
+function briefDecisions(brief: CreativeBrief): BriefDecision[] {
+  return brief.decisions.map((decision) => ({
+    id: decision.id,
+    category: decision.topic,
+    title: decision.topic.replaceAll('-', ' '),
+    value: decision.value.summary,
+    rationale: decision.evidence,
+    provenance: provenanceLabel(decision)
+  }));
+}
+
+function directionFromSurface(data: unknown, concepts: unknown): Direction {
+  if (!data || typeof data !== 'object') throw new Error('Selected direction response is missing.');
+  const artifact = data as {
+    candidate?: Record<string, unknown>;
+    candidateId?: string;
+    rationale?: string;
+  };
+  const candidate = artifact.candidate;
+  if (
+    !candidate ||
+    typeof candidate.title !== 'string' ||
+    typeof candidate.centralIdea !== 'string'
+  )
+    throw new Error('Selected direction is malformed.');
+  const conceptList =
+    concepts &&
+    typeof concepts === 'object' &&
+    Array.isArray((concepts as { candidates?: unknown }).candidates)
+      ? ((concepts as { candidates: Record<string, unknown>[] }).candidates ?? [])
+      : [];
+  const alternatives = conceptList
+    .filter((item) => item.id !== artifact.candidateId)
+    .map((item) => ({
+      name: String(item.title ?? item.id ?? 'Alternative'),
+      summary: String(item.centralIdea ?? 'Alternative direction preserved for comparison.')
+    }));
+  return {
+    name: candidate.title,
+    conceptSpine: candidate.centralIdea,
+    rationale: String(artifact.rationale ?? 'Selected by policy-owned concept evaluation.'),
+    visualDecisions: [
+      {
+        title: 'Composition',
+        detail: String(candidate.composition ?? 'Defined by the selected concept.')
+      },
+      {
+        title: 'Typography',
+        detail: String(candidate.typographyIntent ?? 'Purposeful type roles.')
+      },
+      { title: 'Imagery', detail: String(candidate.imageryIntent ?? 'Evidence-led imagery.') },
+      {
+        title: 'Navigation',
+        detail: String(candidate.navigationPhilosophy ?? 'Predictable orientation.')
+      }
+    ],
+    risks: Array.isArray(candidate.risks)
+      ? candidate.risks.map(String)
+      : ['Validate the direction in implementation.'],
+    alternatives
+  };
+}
+
+function planFromSurface(project: StudioProject, data: unknown): DesignPlanV2 {
+  if (!data || typeof data !== 'object' || !('plan' in data))
+    throw new Error('Design Plan v2 response is missing.');
+  const plan = (data as { plan: EngineDesignPlanV2 }).plan;
+  return {
+    version: plan.contractVersion,
+    status: 'Approved',
+    title: `${project.name} — ${plan.conceptSpine.value}`,
+    thesis: plan.conceptSpine.rationale,
+    conceptSpine: plan.conceptSpine.value,
+    visualSystem: `${plan.compositionSignature.value.layoutFamily}; ${plan.typographySystem.value.scaleStrategy}`,
+    interactionPrinciple: plan.motionStrategy.value.principles.join(' '),
+    confidence: 100,
+    tokens: [
+      ...plan.colorSystem.value.roles.map((role) => ({
+        name: role.role,
+        value: role.value,
+        type: 'color' as const
+      })),
+      { name: 'Display', value: plan.typographySystem.value.display, type: 'type' as const },
+      { name: 'Body', value: plan.typographySystem.value.body, type: 'type' as const }
+    ],
+    pages: plan.pageMap.pages.map((page) => ({
+      route: page.route,
+      name: page.name,
+      intent: page.userGoal,
+      sections: plan.sectionIntentions
+        .filter((section) => section.pageId === page.id)
+        .map((section) => ({ name: section.requiredSection, responsibility: section.intention }))
+    })),
+    constraints: [
+      ...plan.prohibitedPatterns.value,
+      ...plan.protectedInvariants.map((invariant) => invariant.statement),
+      plan.motionStrategy.value.reducedMotion
+    ]
+  };
+}
+
+export function createMcpArtDirectorClient(transport: ArtDirectorMcpTransport): ArtDirectorClient {
+  return {
+    async startProject(prompt) {
+      const started = await transport.startArtDirection({
+        prompt,
+        requestId: `studio:start:${prompt
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .slice(0, 48)}`
+      });
+      await transport.getDiscoveryQuestions(started.session);
+      const state = started.state as { id?: string; createdAt?: string };
+      return {
+        ...fixture(prompt),
+        id: String(state.id ?? 'studio-project'),
+        session: started.session,
+        workflowTimestamp: state.createdAt ?? '1970-01-01T00:00:00.000Z'
+      };
+    },
+    async compileBrief(project) {
+      const answers = discoveryAnswers(project);
+      const pageMap = studioPageMap(project);
+      const submitted = await transport.submitDiscoveryAnswers(requireSession(project), {
+        answers,
+        pageMap,
+        requestId: requestId(project, 'discovery', { answers, pageMap })
+      });
+      const compiled = await transport.getCreativeBrief(submitted.session, {
+        requestId: requestId(project, 'brief', submitted.session)
+      });
+      const brief = compiled.data as CreativeBrief;
+      return {
+        ...project,
+        session: compiled.session,
+        brief: briefDecisions(brief),
+        completion: 56
+      };
+    },
+    async approveBrief(project) {
+      const approved = await transport.approveCreativeBrief(requireSession(project), {
+        approvedBy: 'studio-user',
+        requestId: requestId(project, 'approve-brief')
+      });
+      const developed = await transport.developArtDirection(approved.session, {
+        requestId: requestId(project, 'develop-concepts')
+      });
+      const selected = await transport.getSelectedDirection(developed.session, {
+        requestId: requestId(project, 'select-direction')
+      });
+      return {
+        ...project,
+        session: selected.session,
+        briefApproved: true,
+        completion: 76,
+        direction: directionFromSurface(selected.data, developed.data)
+      };
+    },
+    async approveDirection(project) {
+      const planned = await transport.createDesignPlanV2(requireSession(project), {
+        requestId: requestId(project, 'create-plan')
+      });
+      return {
+        ...project,
+        session: planned.session,
+        directionApproved: true,
+        completion: 100,
+        plan: planFromSurface(project, planned.data)
+      };
+    }
   };
 }
 class LocalArtDirectorClient implements ArtDirectorClient {

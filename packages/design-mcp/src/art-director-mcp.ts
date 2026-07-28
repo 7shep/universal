@@ -18,6 +18,7 @@ import {
   type StartArtDirectionInput,
   type SubmitDiscoveryInput
 } from './art-director.js';
+import { createIntegratedArtDirectorDependencies } from './art-director-services.js';
 
 export interface ArtDirectorMcpResponse {
   session: string;
@@ -68,7 +69,7 @@ function response(state: ArtDirectorSession, data?: unknown): ArtDirectorMcpResp
 }
 
 export function createArtDirectorMcpAdapter(
-  orchestrator = new ArtDirectorOrchestrator()
+  orchestrator = new ArtDirectorOrchestrator(createIntegratedArtDirectorDependencies())
 ): ArtDirectorMcpAdapter {
   return {
     async startArtDirection(input) {

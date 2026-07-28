@@ -590,8 +590,12 @@ function Plan({ project }: { project: StudioProject }) {
     </section>
   );
 }
-export function StudioApp() {
-  const client = useMemo(() => createLocalArtDirectorClient(), []);
+export interface StudioAppProps {
+  client?: ArtDirectorClient;
+}
+
+export function StudioApp({ client: suppliedClient }: StudioAppProps = {}) {
+  const client = useMemo(() => suppliedClient ?? createLocalArtDirectorClient(), [suppliedClient]);
   const [stage, setStage] = useState<Stage>('discovery');
   const [project, setProject] = useState<StudioProject | null>(null);
   return (

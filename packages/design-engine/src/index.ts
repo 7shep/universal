@@ -4,6 +4,13 @@ export * from './discovery-contracts.ts';
 export * from './discovery-policy.ts';
 export * from './discovery-session.ts';
 export * from './discovery-validation.ts';
+export * from './concept-director-contracts.ts';
+export * from './concept-director-offline-provider.ts';
+export * from './concept-director.ts';
+export * from './design-plan-v2-compiler.ts';
+export * from './design-plan-v2-contracts.ts';
+export * from './design-plan-v2-digests.ts';
+export * from './design-plan-v2-validation.ts';
 export * from './orchestration.ts';
 export {
   DESIGN_RULE_CATEGORIES,
