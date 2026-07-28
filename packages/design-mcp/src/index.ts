@@ -7,9 +7,11 @@ import {
   getActiveTasteProfile,
   getDesignRules
 } from './design.js';
+import { registerArtDirectorTools } from './art-director-mcp.js';
 import { reviewImplementation } from '@universal/design-linter';
 
 const server = new McpServer({ name: 'universal', version: '0.2.0' });
+registerArtDirectorTools(server);
 
 const tasteDirectionSchema = z.object({
   profileId: z.string().min(1),
