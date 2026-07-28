@@ -117,7 +117,7 @@ const baseInput = (suiteOverride: BenchmarkSuiteManifest = suite) => {
     },
     checkAdapters: suiteOverride.source_evidence.required_checks.map((name) => ({
       name,
-      async start(request) {
+      start(request) {
         checks.push(`${request.arm}:${name}`);
         return {
           async join() {
@@ -438,7 +438,7 @@ test('non-cooperative required check is terminated and quarantines its workspace
     index === 0
       ? {
           name: adapter.name,
-          async start() {
+          start() {
             return {
               join: () => new Promise<never>(() => undefined),
               async terminate() {
@@ -454,10 +454,27 @@ test('non-cooperative required check is terminated and quarantines its workspace
     (error: unknown) => error instanceof RunnerIsolationFailure && /check/.test(error.message)
   );
   assert.equal(terminated, 1);
+  assert.deepEqual(fixture.finalized, ['unguided']);
   assert.deepEqual(fixture.quarantined, ['dq-v1-01-fintech--unguided']);
   assert.deepEqual(fixture.released, ['dq-v1-01-fintech--universal_guided']);
 });
 
+test('promise-returning check startup is rejected without awaiting and quarantines safely', async () => {
+  const fixture = baseInput();
+  fixture.input.checkAdapters = [
+    {
+      name: suite.source_evidence.required_checks[0]!,
+      start: (() => new Promise<never>(() => undefined)) as unknown as (
+        request: ArmExecutionRequest<MemoryWorkspace>
+      ) => import('../src/index.ts').RunnerCheckHandle
+    },
+    ...fixture.input.checkAdapters.slice(1)
+  ];
+  await assert.rejects(() => executeBenchmarkPair(fixture.input), /returned asynchronous startup/);
+  assert.deepEqual(fixture.finalized, ['unguided']);
+  assert.deepEqual(fixture.quarantined, ['dq-v1-01-fintech--unguided']);
+  assert.deepEqual(fixture.released, ['dq-v1-01-fintech--universal_guided']);
+});
 test('partial local workspace materialization removes its owned temporary root', async () => {
   const ownedRoot = await mkdtemp(join(tmpdir(), 'benchmark-partial-'));
   try {

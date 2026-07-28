@@ -94,7 +94,7 @@ export interface RunnerCheckHandle {
 
 export interface RunnerCheckAdapter<Workspace extends BenchmarkWorkspace> {
   readonly name: string;
-  start(request: ArmExecutionRequest<Workspace>): Promise<RunnerCheckHandle>;
+  start(request: ArmExecutionRequest<Workspace>): RunnerCheckHandle;
 }
 
 export interface BenchmarkRunnerInput<Workspace extends BenchmarkWorkspace> {
@@ -335,6 +335,7 @@ async function executeArmWithinBudget<Workspace extends BenchmarkWorkspace>(inpu
     await input.executor.finalize();
     throw error;
   }
+  let executorJoined = false;
   try {
     const outcome = await joinWithinArmDeadline({
       label: input.arm,
@@ -344,6 +345,7 @@ async function executeArmWithinBudget<Workspace extends BenchmarkWorkspace>(inpu
       deadline,
       budget: request.budget
     });
+    executorJoined = true;
     if (!Number.isInteger(outcome.tokenUsage) || outcome.tokenUsage < 0)
       throw new Error(`Executor for ${input.arm} returned invalid tokenUsage.`);
     if (outcome.tokenUsage > request.budget.maxTokens)
@@ -352,7 +354,12 @@ async function executeArmWithinBudget<Workspace extends BenchmarkWorkspace>(inpu
       );
     const checks: ExecutedCheckResult[] = [];
     for (const name of input.requiredChecks) {
-      const checkHandle = await input.adapters.get(name)!.start(request);
+      const checkHandle = input.adapters.get(name)!.start(request);
+      if (typeof (checkHandle as unknown as { then?: unknown }).then === 'function')
+        throw new RunnerIsolationFailure(
+          input.workspace.id,
+          `${input.arm} check ${name} returned asynchronous startup; workspace quarantined.`
+        );
       const raw = await joinWithinArmDeadline({
         label: `${input.arm} check ${name}`,
         workspaceId: input.workspace.id,
@@ -369,7 +376,8 @@ async function executeArmWithinBudget<Workspace extends BenchmarkWorkspace>(inpu
     await input.executor.finalize();
     return { tokenUsage: outcome.tokenUsage, checks };
   } catch (error) {
-    if (!(error instanceof RunnerIsolationFailure)) await input.executor.finalize();
+    if (!(error instanceof RunnerIsolationFailure) || executorJoined)
+      await input.executor.finalize();
     throw error;
   }
 }
