@@ -407,13 +407,10 @@ function normalizeConceptDevelopment(value: unknown, brief: CreativeBrief, now: 
       'Approve the current brief explicitly before developing concepts.'
     );
   }
-  const sourceBriefDigest =
-    typeof value.approvedBriefDigest === 'string' ? value.approvedBriefDigest : approvedBriefDigest;
   if (
-    value.briefId !== undefined &&
-    (value.briefId !== brief.id ||
-      value.briefVersion !== brief.version ||
-      sourceBriefDigest !== approvedBriefDigest)
+    value.briefId !== brief.id ||
+    value.briefVersion !== brief.version ||
+    value.approvedBriefDigest !== approvedBriefDigest
   ) {
     throw new ArtDirectorError(
       'STALE_CONCEPTS',
@@ -465,6 +462,13 @@ function selectRecommendedDirection(
   const evaluation = concepts.evaluations.find(
     (item) => isRecord(item) && item.candidateId === concepts.recommendedCandidateId
   );
+  if (!evaluation) {
+    throw new ArtDirectorError(
+      'SERVICE_OUTPUT_INVALID',
+      'The recommended direction has no matching policy-owned evaluation.',
+      'Develop the art direction again with a complete Concept Director result.'
+    );
+  }
   const unsigned = {
     briefId: brief.id,
     briefVersion: brief.version,
@@ -472,7 +476,7 @@ function selectRecommendedDirection(
     conceptDigest: concepts.digest,
     candidateId: concepts.recommendedCandidateId,
     candidate,
-    ...(evaluation ? { evaluation } : {}),
+    evaluation,
     rationale: concepts.selectionRationale,
     selectedAt: now
   };
@@ -933,6 +937,23 @@ function hasValidPlanDigest(value: Record<string, unknown>): boolean {
     })
   );
 }
+function hasCompleteConceptSelection(value: Record<string, unknown>): boolean {
+  if (!Array.isArray(value.candidates) || !Array.isArray(value.evaluations)) return false;
+  if (!isNonEmptyString(value.recommendedCandidateId)) return false;
+  return (
+    value.candidates.some(
+      (candidate) => isRecord(candidate) && candidate.id === value.recommendedCandidateId
+    ) &&
+    value.evaluations.some(
+      (evaluation) =>
+        isRecord(evaluation) && evaluation.candidateId === value.recommendedCandidateId
+    )
+  );
+}
+
+function sameJsonValue(left: unknown, right: unknown): boolean {
+  return canonicalize(left) === canonicalize(right);
+}
 export function assertArtDirectorSession(value: unknown): ArtDirectorSession {
   if (!isRecord(value)) {
     throw new ArtDirectorError(
@@ -994,7 +1015,7 @@ export function assertArtDirectorSession(value: unknown): ArtDirectorSession {
       !hasValidConceptDigest(value.concepts) ||
       !Array.isArray(value.concepts.candidates) ||
       !Array.isArray(value.concepts.evaluations) ||
-      !isNonEmptyString(value.concepts.recommendedCandidateId) ||
+      !hasCompleteConceptSelection(value.concepts) ||
       !isNonEmptyString(value.concepts.selectionRationale) ||
       !isNonEmptyString(value.concepts.developedAt))
   ) {
@@ -1010,7 +1031,8 @@ export function assertArtDirectorSession(value: unknown): ArtDirectorSession {
       !hasValidDirectionDigest(value.selectedDirection) ||
       !isNonEmptyString(value.selectedDirection.conceptDigest) ||
       !isNonEmptyString(value.selectedDirection.candidateId) ||
-      value.selectedDirection.candidate === undefined ||
+      !isRecord(value.selectedDirection.candidate) ||
+      !isRecord(value.selectedDirection.evaluation) ||
       !isNonEmptyString(value.selectedDirection.rationale) ||
       !isNonEmptyString(value.selectedDirection.selectedAt))
   ) {
@@ -1060,6 +1082,70 @@ export function assertArtDirectorSession(value: unknown): ArtDirectorSession {
     );
   }
   const brief = discovery.value.brief;
+  const concepts = isRecord(value.concepts) ? value.concepts : undefined;
+  const selectedDirection = isRecord(value.selectedDirection) ? value.selectedDirection : undefined;
+  const designPlan = isRecord(value.designPlan) ? value.designPlan : undefined;
+  if (
+    brief &&
+    concepts &&
+    concepts.stale === undefined &&
+    (concepts.briefId !== brief.id ||
+      concepts.briefVersion !== brief.version ||
+      concepts.approvedBriefDigest !== brief.digest)
+  ) {
+    throw new ArtDirectorError(
+      'INVALID_SESSION',
+      'Current concepts are not bound to the current approved brief.',
+      'Restore the exact concept artifact returned for this approved brief.'
+    );
+  }
+  if (selectedDirection && selectedDirection.stale === undefined) {
+    const candidate = concepts?.candidates;
+    const evaluations = concepts?.evaluations;
+    const expectedCandidate = Array.isArray(candidate)
+      ? candidate.find((item) => isRecord(item) && item.id === selectedDirection.candidateId)
+      : undefined;
+    const expectedEvaluation = Array.isArray(evaluations)
+      ? evaluations.find(
+          (item) => isRecord(item) && item.candidateId === selectedDirection.candidateId
+        )
+      : undefined;
+    if (
+      !brief ||
+      !concepts ||
+      concepts.stale !== undefined ||
+      selectedDirection.briefId !== brief.id ||
+      selectedDirection.briefVersion !== brief.version ||
+      selectedDirection.approvedBriefDigest !== brief.digest ||
+      selectedDirection.conceptDigest !== concepts.digest ||
+      selectedDirection.candidateId !== concepts.recommendedCandidateId ||
+      !sameJsonValue(selectedDirection.candidate, expectedCandidate) ||
+      !sameJsonValue(selectedDirection.evaluation, expectedEvaluation)
+    ) {
+      throw new ArtDirectorError(
+        'INVALID_SESSION',
+        'Current selected direction is not bound to the current concepts and approved brief.',
+        'Restore the exact selected direction returned for this concept artifact.'
+      );
+    }
+  }
+  if (
+    designPlan &&
+    designPlan.stale === undefined &&
+    (!brief ||
+      !selectedDirection ||
+      selectedDirection.stale !== undefined ||
+      designPlan.briefId !== brief.id ||
+      designPlan.briefVersion !== brief.version ||
+      designPlan.approvedBriefDigest !== brief.digest ||
+      designPlan.directionDigest !== selectedDirection.digest)
+  ) {
+    throw new ArtDirectorError(
+      'INVALID_SESSION',
+      'Current Design Plan v2 is not bound to the current selected direction and approved brief.',
+      'Restore the exact plan returned for this selected direction.'
+    );
+  }
   if (phase === 'brief-review' && brief?.approval.status !== 'brief-ready') {
     throw new ArtDirectorError(
       'INVALID_SESSION',
@@ -1083,7 +1169,7 @@ export function assertArtDirectorSession(value: unknown): ArtDirectorSession {
   }
   if (
     ['concepts-developed', 'direction-selected', 'plan-created'].includes(phase) &&
-    !value.concepts
+    (!concepts || concepts.stale !== undefined)
   ) {
     throw new ArtDirectorError(
       'INVALID_SESSION',
@@ -1091,14 +1177,17 @@ export function assertArtDirectorSession(value: unknown): ArtDirectorSession {
       'Restore the missing concept artifact or develop art direction again.'
     );
   }
-  if (['direction-selected', 'plan-created'].includes(phase) && !value.selectedDirection) {
+  if (
+    ['direction-selected', 'plan-created'].includes(phase) &&
+    (!selectedDirection || selectedDirection.stale !== undefined)
+  ) {
     throw new ArtDirectorError(
       'INVALID_SESSION',
       `Phase "${phase}" requires a selected direction.`,
       'Restore the missing selection or retrieve the selected direction again.'
     );
   }
-  if (phase === 'plan-created' && !value.designPlan) {
+  if (phase === 'plan-created' && (!designPlan || designPlan.stale !== undefined)) {
     throw new ArtDirectorError(
       'INVALID_SESSION',
       'Phase "plan-created" requires a Design Plan v2 artifact.',

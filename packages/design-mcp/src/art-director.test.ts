@@ -326,6 +326,58 @@ test('serialized sessions reject malformed JSON and inconsistent phase artifacts
   assert.deepEqual(parseArtDirectorSession(serializeArtDirectorSession(started)), started);
 });
 
+test('serialized sessions enforce cross-artifact bindings', async () => {
+  const orchestrator = new ArtDirectorOrchestrator(dependencies());
+  const first = await completedSession(orchestrator);
+  const secondStarted = orchestrator.start({
+    prompt: 'A different release planning website.',
+    sessionId: 'art-direction:other'
+  });
+  const secondApproved = orchestrator.approve(
+    orchestrator.getBrief(completeDiscovery(orchestrator, secondStarted)),
+    { approvedBy: 'alex' }
+  );
+  const secondDeveloped = await orchestrator.develop(secondApproved);
+  const secondSelected = orchestrator.selected(secondDeveloped);
+
+  assert.throws(
+    () =>
+      parseArtDirectorSession(
+        JSON.stringify({
+          ...first,
+          phase: 'direction-selected',
+          selectedDirection: secondSelected.selectedDirection,
+          designPlan: undefined
+        })
+      ),
+    (error: unknown) =>
+      error instanceof ArtDirectorError &&
+      error.code === 'INVALID_SESSION' &&
+      /selected direction/i.test(error.message)
+  );
+});
+
+test('Concept Director service output must carry complete brief bindings', async () => {
+  const base = dependencies();
+  const orchestrator = new ArtDirectorOrchestrator({
+    ...base,
+    conceptDirector: {
+      async develop() {
+        return {
+          candidates: [{ id: 'unbound' }],
+          evaluations: [{ candidateId: 'unbound' }],
+          recommendedCandidateId: 'unbound',
+          selectionRationale: 'Unbound output must not cross the service boundary.'
+        };
+      }
+    }
+  });
+  const approved = approvedSession(orchestrator);
+  await assert.rejects(
+    () => orchestrator.develop(approved),
+    (error: unknown) => error instanceof ArtDirectorError && error.code === 'STALE_CONCEPTS'
+  );
+});
 test('MCP adapter round-trips serialized state with deterministic injected services', async () => {
   const adapter = createArtDirectorMcpAdapter(new ArtDirectorOrchestrator(dependencies()));
   const started = await adapter.startArtDirection({
