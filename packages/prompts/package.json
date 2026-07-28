@@ -10,6 +10,6 @@
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
-    "test": "tsc -p tsconfig.test.json && node --test dist/index.test.js"
+    "test": "tsc -p tsconfig.test.json && node --test dist/index.test.js && node --experimental-strip-types --test src/strip-types.test.ts"
   }
 }

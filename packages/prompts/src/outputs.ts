@@ -11,11 +11,11 @@ import {
 
 export class PromptOutputValidationError extends Error {
   override readonly name = 'PromptOutputValidationError';
-  constructor(
-    readonly path: string,
-    message: string
-  ) {
+  readonly path: string;
+
+  constructor(path: string, message: string) {
     super(`Invalid prompt output at ${path}: ${message}`);
+    this.path = path;
   }
 }
 
