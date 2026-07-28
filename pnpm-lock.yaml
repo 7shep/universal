@@ -178,7 +178,15 @@ importers:
 
   packages/design-taste: {}
 
+  packages/generation:
+    dependencies:
+      '@universal/design-engine':
+        specifier: workspace:*
+        version: link:../design-engine
+
   packages/prompts: {}
+
+  packages/runtime-contracts: {}
 
   packages/shared: {}
 
