@@ -1,0 +1,41 @@
+name: Documentation issue
+description: Report inaccurate, missing, or unclear Universal documentation.
+title: 'docs: '
+labels: [documentation]
+body:
+  - type: input
+    id: page
+    attributes:
+      label: Affected page
+      description: Provide the repository-relative path or public URL.
+      placeholder: docs/CODEX_MCP_SETUP.md
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: Current problem
+      description: Quote a short phrase or explain what is missing or unclear.
+    validations:
+      required: true
+  - type: textarea
+    id: correction
+    attributes:
+      label: Expected correction
+      description: Describe the accurate wording, example, link, or structure.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Supporting evidence
+      description: Link the implementation, command output, or other authoritative source.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing documentation issues and pull requests.
+          required: true
+        - label: I removed secrets, private prompts, local absolute paths, and personal data.
+          required: true

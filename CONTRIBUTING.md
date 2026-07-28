@@ -103,6 +103,8 @@ For client configuration and manual verification, follow [docs/CODEX_MCP_SETUP.m
 
 ## Repository Guide
 
+- See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for request flows, dependency direction,
+  implementation status, and detailed ownership guidance.
 - `apps/studio` contains the design-direction workspace.
 - `apps/preview` contains the isolated preview renderer.
 - `examples/demo-site` is the example React/Vite integration.

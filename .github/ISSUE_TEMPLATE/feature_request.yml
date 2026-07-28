@@ -1,0 +1,54 @@
+name: Feature request
+description: Propose a focused improvement that fits Universal's design-first scope.
+title: 'feat: '
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: Describe the user problem before the solution. Universal is not a general-purpose app generator.
+  - type: textarea
+    id: problem
+    attributes:
+      label: User problem
+      description: Who is affected, what are they trying to do, and where does the workflow fall short?
+    validations:
+      required: true
+  - type: textarea
+    id: fit
+    attributes:
+      label: Product fit
+      description: Explain how this reinforces design-before-code and the documented product boundaries.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Proposed scope
+      description: Describe the smallest complete outcome, likely owner, and explicit non-goals.
+    validations:
+      required: true
+  - type: textarea
+    id: workflow
+    attributes:
+      label: Example workflow or output
+      description: Give a concrete example without private prompts or data.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Note current workarounds and other approaches.
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and pull requests.
+          required: true
+        - label: I reviewed PRODUCT.md and ROADMAP.md.
+          required: true
+        - label: I included no secrets, private prompts, or personal data.
+          required: true

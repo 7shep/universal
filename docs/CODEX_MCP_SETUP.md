@@ -34,13 +34,24 @@ Add this server to your Codex MCP configuration, replacing the path if your chec
 }
 ```
 
-Restart or reconnect Codex after saving the configuration. The available tools should be `create_design_plan`, `get_design_rules`, and `review_implementation`.
+Restart or reconnect Codex after saving the configuration. The available tools should be:
+
+- `create_design_plan`
+- `get_design_rules`
+- `get_taste_profile`
+- `review_implementation`
+
+`get_taste_profile` returns the active versioned taste principles, contextual anti-pattern
+guidance, positive reference notes, and selection criteria used during planning and review.
 
 ## Verify the connection
 
 1. Build the package with the command above.
 2. Restart Codex and inspect its MCP tools list for `universal`.
 3. Ask Codex to call `get_design_rules` with `{"category":"website"}`. A JSON response confirms the connection.
+
+For copy-pasteable requests and documented response shapes for every tool, see the
+[MCP tool reference](MCP_REFERENCE.md).
 
 ## Demo workflow
 
