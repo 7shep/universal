@@ -9,3 +9,5 @@ export * from './checks.ts';
 export * from './runner.ts';
 export * from './backends.ts';
 export * from './art-direction.ts';
+
+export * from './phase3.ts';
