@@ -52,7 +52,8 @@
 
 Universal is in active early development. The monorepo, Studio and Preview applications, design contracts, and MCP prototype are in place. Some generation flows remain architectural placeholders while the design engine is built out.
 
-See the [roadmap](ROADMAP.md) for planned milestones and [product principles](PRODUCT.md) for the project's direction.
+See the [architecture and ownership guide](docs/ARCHITECTURE.md), [roadmap](ROADMAP.md),
+and [product principles](PRODUCT.md) for the current boundaries and planned direction.
 
 ## Quick Start
 
@@ -91,10 +92,12 @@ design-linter, and design-taste policy tests.
 
 ## MCP Prototype
 
-Universal includes a local MCP server that exposes three tools to compatible coding agents:
+Universal includes a local MCP server that exposes four tools to compatible coding agents:
 
 - `create_design_plan` establishes the visual and compositional direction.
 - `get_design_rules` returns category-specific design constraints.
+- `get_taste_profile` returns the active versioned taste principles, anti-pattern guidance, and
+  direction-selection criteria.
 - `review_implementation` critiques React and CSS output against the intended direction.
 
 Build the server with:
@@ -103,7 +106,9 @@ Build the server with:
 pnpm --filter @universal/design-mcp build
 ```
 
-See [Connect Universal MCP to Codex](docs/CODEX_MCP_SETUP.md) for configuration, verification, troubleshooting, and a complete demo workflow.
+See [Connect Universal MCP to Codex](docs/CODEX_MCP_SETUP.md) for configuration, verification,
+troubleshooting, and a complete demo workflow. The [MCP tool reference](docs/MCP_REFERENCE.md)
+documents request and response shapes for all four tools.
 
 ## Workspace
 
@@ -116,9 +121,11 @@ universal/
 |   `-- demo-site/             Example MCP-driven React site
 |-- packages/
 |   |-- composition-library/   Page-composition schemas
+|   |-- design-benchmark/      Offline deterministic quality benchmark
 |   |-- design-engine/         Design contracts and orchestration
 |   |-- design-linter/         Anti-generic critique interfaces
 |   |-- design-mcp/            Local MCP server
+|   |-- design-taste/          Versioned taste policy
 |   |-- prompts/               Versioned prompt assembly
 |   |-- shared/                Shared domain types and utilities
 |   `-- ui/                    Shared React UI primitives
@@ -149,6 +156,8 @@ pnpm --filter @universal/design-mcp build
 Contributions are welcome. Bug reports, focused fixes, documentation improvements, design-rule proposals, and well-scoped feature discussions all help.
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening an issue or pull request. It covers local setup, project conventions, validation, commit guidance, and the review process.
+Use the [architecture and ownership guide](docs/ARCHITECTURE.md) to identify the narrowest workspace
+that owns a change.
 
 ## License
 

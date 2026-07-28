@@ -1,0 +1,74 @@
+name: Bug report
+description: Report reproducible behavior that differs from the expected result.
+title: 'bug: '
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Remove secrets, tokens, private prompts, and personal data before submitting.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - Studio application
+        - Preview application
+        - Design engine
+        - MCP server
+        - Prompts
+        - Composition library
+        - Design linter or taste policy
+        - Shared types or UI
+        - Repository tooling
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the unexpected behavior and its impact.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: Give the smallest sequence that reproduces the problem from a clean checkout.
+      placeholder: |
+        1. Run ...
+        2. Call or open ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: Explain the expected result and cite relevant documentation when available.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include relevant OS, Node.js, pnpm, browser, and MCP client versions.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs or screenshots
+      description: Paste a concise redacted excerpt or attach evidence. Do not include secrets.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Public-report checklist
+      options:
+        - label: I searched existing issues and pull requests.
+          required: true
+        - label: I removed secrets, tokens, private prompts, and personal data.
+          required: true
+        - label: This is not a security vulnerability.
+          required: true
