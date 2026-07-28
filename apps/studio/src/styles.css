@@ -23,7 +23,13 @@ body {
   margin: 0;
   min-width: 20rem;
   min-height: 100dvh;
-  overflow-x: hidden;
+  overflow-x: clip;
+}
+html,
+body,
+#root {
+  width: 100%;
+  max-width: 100%;
 }
 button,
 textarea,
@@ -772,6 +778,138 @@ code {
   border-top: 1px solid var(--line);
 }
 .plan-page header,
+.generation-lifecycle {
+  margin-top: clamp(5rem, 10vw, 9rem);
+  padding: clamp(3rem, 6vw, 6rem) 0 2rem;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.generation-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2rem;
+  align-items: start;
+}
+.generation-heading h2 {
+  max-width: 50rem;
+  margin: 0;
+  font: 400 clamp(2.8rem, 7vw, 6.7rem) / 0.9 var(--display);
+  letter-spacing: -0.055em;
+}
+.generation-status {
+  display: inline-flex;
+  gap: 0.7rem;
+  align-items: center;
+  margin: 0;
+  padding-top: 0.4rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.generation-status span {
+  color: var(--accent);
+  font-size: 1.1rem;
+}
+.generation-status[data-state='ready'] {
+  color: var(--paper);
+}
+.generation-status[data-state='failed'] {
+  color: #ef8d73;
+}
+.generation-grid {
+  display: grid;
+  grid-template-columns: minmax(16rem, 0.7fr) minmax(20rem, 1.3fr);
+  gap: clamp(3rem, 8vw, 9rem);
+  margin-top: clamp(4rem, 8vw, 8rem);
+}
+.generation-narrative {
+  align-self: end;
+}
+.generation-narrative p {
+  max-width: 34rem;
+  color: var(--muted);
+  line-height: 1.65;
+}
+.generation-narrative code {
+  display: block;
+  margin-top: 2rem;
+}
+.generation-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.generation-steps li {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr;
+  padding: 1.25rem 0;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font: 500 clamp(1.1rem, 2vw, 1.55rem) / 1.2 var(--display);
+}
+.generation-steps li[data-current='true'] {
+  color: var(--paper);
+}
+.generation-steps span {
+  color: var(--accent);
+  font:
+    700 0.68rem/1.8 'Segoe UI',
+    sans-serif;
+  letter-spacing: 0.1em;
+}
+.last-good,
+.runtime-diagnostic {
+  margin: 2rem 0 0;
+  padding: 1.2rem 0;
+  border-top: 1px solid var(--accent);
+  border-bottom: 1px solid var(--accent);
+}
+.last-good {
+  display: grid;
+  grid-template-columns: minmax(10rem, 0.3fr) 1fr;
+  gap: 2rem;
+}
+.last-good p {
+  margin: 0;
+  color: var(--muted);
+}
+.runtime-diagnostic {
+  color: #ffad98;
+}
+.runtime-details {
+  margin-top: 1.5rem;
+  border-top: 1px solid var(--line);
+}
+.runtime-details summary {
+  padding: 1rem 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.runtime-details ul {
+  margin: 0 0 1.5rem;
+  padding-left: 1.2rem;
+  color: var(--muted);
+  font:
+    0.78rem/1.6 ui-monospace,
+    monospace;
+}
+.generation-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1.25rem;
+  align-items: center;
+  margin-top: 3rem;
+}
+.preview-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 1.5rem;
+  text-decoration: none;
+}
 .plan-footer {
   display: flex;
   justify-content: space-between;
@@ -868,6 +1006,19 @@ code {
   }
 }
 @media (max-width: 46rem) {
+  .shell,
+  .content,
+  .start,
+  .start-copy,
+  .prompt-sheet {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+  .progress ol {
+    width: max-content;
+    min-width: 100%;
+  }
   .topbar {
     grid-template-columns: auto 1fr;
   }
@@ -894,6 +1045,12 @@ code {
   .prompt-sheet {
     margin-top: 2rem;
     box-shadow: 0.55rem 0.55rem 0 #2d2d2a;
+  }
+  .start-copy > p:last-child,
+  .prompt-sheet textarea,
+  .prompt-sheet .actions > * {
+    max-width: 100%;
+    min-width: 0;
   }
   .start aside {
     margin: 2.5rem 0 0;
@@ -967,6 +1124,26 @@ code {
   .plan-doc dl > div {
     grid-template-columns: 1fr;
     gap: 0.35rem;
+  }
+  .generation-heading,
+  .generation-grid,
+  .last-good {
+    grid-template-columns: 1fr;
+  }
+  .generation-grid {
+    gap: 3rem;
+  }
+  .generation-status {
+    justify-self: start;
+  }
+  .generation-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .generation-actions .primary,
+  .generation-actions .text {
+    justify-content: center;
+    width: 100%;
   }
   .plan-footer {
     align-items: stretch;

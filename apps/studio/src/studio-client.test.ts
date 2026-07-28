@@ -1,6 +1,19 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { compileDesignPlanV2 } from '@universal/design-engine';
+import {
+  fixtureCreativeBrief,
+  fixtureSelectedDirectionEvaluation,
+  serializedFixtureDesignPlanV2Draft
+} from '@universal/design-engine/fixtures';
 import { createMcpArtDirectorClient, type ArtDirectorMcpTransport } from './studio-client.ts';
+
+const validPlan = compileDesignPlanV2({
+  brief: fixtureCreativeBrief,
+  evaluation: fixtureSelectedDirectionEvaluation,
+  providerOutput: serializedFixtureDesignPlanV2Draft,
+  now: '2026-07-28T15:10:00.000Z'
+});
 
 function response(session: string, data?: unknown) {
   return {
@@ -72,38 +85,7 @@ test('MCP Studio client carries session state and keeps retries deterministic', 
       });
     },
     async createDesignPlanV2() {
-      return response('session:plan', {
-        plan: {
-          contractVersion: '2.0.0',
-          conceptSpine: { value: 'Editorial Instrument', rationale: 'Selected direction.' },
-          compositionSignature: {
-            value: { layoutFamily: 'Editorial folio' }
-          },
-          typographySystem: {
-            value: { display: 'Condensed sans', body: 'Grotesk', scaleStrategy: 'Wide contrast' }
-          },
-          colorSystem: {
-            value: {
-              roles: [
-                { role: 'ground', value: '#171716' },
-                { role: 'text', value: '#f4f2ec' },
-                { role: 'signal', value: '#c85b3c' }
-              ]
-            }
-          },
-          motionStrategy: {
-            value: { principles: ['Clarify state.'], reducedMotion: 'Render immediately.' }
-          },
-          pageMap: {
-            pages: [{ id: 'home', route: '/', name: 'Home', userGoal: 'Understand the product.' }]
-          },
-          sectionIntentions: [
-            { pageId: 'home', requiredSection: 'Hero', intention: 'Establish the product.' }
-          ],
-          prohibitedPatterns: { value: ['Generic bento grid'] },
-          protectedInvariants: [{ statement: 'Preserve the approved page.' }]
-        }
-      });
+      return response('session:plan', { plan: validPlan });
     }
   };
 
