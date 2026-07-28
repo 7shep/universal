@@ -1,4 +1,4 @@
-﻿# Design benchmark
+# Design benchmark
 
 Offline tooling for the versioned Universal design-quality benchmark.
 
@@ -29,3 +29,7 @@ with a marker. It does not confine arbitrary process filesystem access. The opti
 executor uses an absolute command, `shell: false`, an exact non-inherited environment, the workspace
 as `cwd`, hard termination, and close-event joining. It attests separate-process lifecycle control,
 not network, host, filesystem, or tool sandboxing.
+
+## Phase 2 art-direction preflight
+
+`evaluateArtDirectionBenchmark()` evaluates serialized workflow evidence before implementation scoring. It reports six independent pass/fail dimensions: discovery coverage; no silent high-impact assumptions; concept differentiation; brief fit; generic-pattern resistance; and approval/provenance integrity. This preflight is deterministic and does not infer rendered visual quality.
