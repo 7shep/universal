@@ -72,6 +72,13 @@ test('blind scoring and paired/regression reports are deterministic without rend
         briefId: brief.brief_id,
         suiteVersion: suite.suite_version,
         arm,
+        isolation: {
+          version: '1',
+          status: 'verified',
+          comparable: true,
+          missingCapabilities: [],
+          rationale: 'Integration fixture uses verified execution provenance.'
+        },
         sourceEvidence: [{ id: 'source', path: 'src/App.tsx', digest: 'a'.repeat(64) }],
         renderedEvidence: []
       });

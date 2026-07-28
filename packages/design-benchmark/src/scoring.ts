@@ -13,10 +13,36 @@ import type {
   BlindSubmission,
   CriterionJudgment,
   CriterionScore,
+  ExecutionIsolationProvenance,
   SubmissionScore,
   UnblindedSubmissionScore
 } from './types.ts';
 
+const canonicalIsolation = (
+  isolation: ExecutionIsolationProvenance | undefined
+): ExecutionIsolationProvenance => {
+  const verified =
+    isolation?.version === '1' &&
+    isolation.status === 'verified' &&
+    isolation.comparable === true &&
+    isolation.missingCapabilities.length === 0;
+  return verified
+    ? {
+        version: '1',
+        status: 'verified',
+        comparable: true,
+        missingCapabilities: [],
+        rationale: isolation.rationale
+      }
+    : {
+        version: '1',
+        status: 'unverified',
+        comparable: false,
+        missingCapabilities: [...(isolation?.missingCapabilities ?? ['provenance_missing'])],
+        rationale:
+          isolation?.rationale || 'Execution isolation provenance is missing or unverified.'
+      };
+};
 const requiresRenderedEvidence = (
   evidenceKind: 'source' | 'rendered' | 'source-and-rendered'
 ): boolean => evidenceKind !== 'source';
@@ -96,6 +122,7 @@ export function createBlindScoringPacket(
         blindId: submission.blindId,
         briefId: submission.briefId,
         suiteVersion: submission.suiteVersion,
+        isolation: canonicalIsolation(submission.isolation),
         sourceEvidence: [...submission.sourceEvidence]
           .sort((left, right) => compareIdentifiers(left.id, right.id))
           .map((evidence) => ({
@@ -156,6 +183,7 @@ export function createSeededBlindAssignment(
         blindId,
         briefId,
         suiteVersion: candidate.suiteVersion,
+        isolation: canonicalIsolation(candidate.isolation),
         sourceEvidence: candidate.sourceEvidence,
         renderedEvidence: candidate.renderedEvidence
       });
@@ -282,18 +310,21 @@ export function scoreSubmission(
   const rubricWeight = rubric.criteria.reduce((total, criterion) => total + criterion.weight, 0);
   const sufficientCoverage =
     evaluableSourceWeight + Number.EPSILON >= rubric.minimumEvaluableSourceWeight;
+  const isolation = canonicalIsolation(submission.isolation);
   return {
     blindId: submission.blindId,
     briefId: submission.briefId,
     suiteVersion: submission.suiteVersion,
     rubricId: rubric.id,
     rubricVersion: rubric.version,
+    isolation,
+    comparability: isolation.comparable ? 'comparable' : 'not_comparable',
     criteria,
     earnedScore,
     evaluableMaxScore,
     rubricMaxScore,
     normalizedScore:
-      evaluableWeight === 0 || !sufficientCoverage
+      evaluableWeight === 0 || !sufficientCoverage || !isolation.comparable
         ? null
         : roundScore((weightedEarned / evaluableWeight) * 100),
     evaluableFraction: rubricWeight === 0 ? 0 : roundScore(evaluableWeight / rubricWeight),

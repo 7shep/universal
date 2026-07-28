@@ -88,6 +88,23 @@ export function createPairedComparisonReport(
         comparable: false,
         rationale: 'Both benchmark arms are required for a paired comparison.'
       };
+    if (
+      unguided.comparability !== 'comparable' ||
+      guided.comparability !== 'comparable' ||
+      !unguided.isolation?.comparable ||
+      !guided.isolation?.comparable
+    )
+      return {
+        briefId,
+        unguidedBlindId: unguided.blindId,
+        guidedBlindId: guided.blindId,
+        unguidedScore: null,
+        guidedScore: null,
+        delta: null,
+        winner: 'not_comparable',
+        comparable: false,
+        rationale: 'Both arms require verified execution isolation provenance.'
+      };
     if (unguidedScore === null || guidedScore === null)
       return {
         briefId,
@@ -187,6 +204,21 @@ export function createRegressionReport(
         delta: null,
         status: 'removed',
         rationale: 'No current score exists.'
+      };
+    if (
+      previous.comparability !== 'comparable' ||
+      next.comparability !== 'comparable' ||
+      !previous.isolation?.comparable ||
+      !next.isolation?.comparable
+    )
+      return {
+        briefId: present.briefId,
+        arm: present.arm,
+        baselineScore: null,
+        currentScore: null,
+        delta: null,
+        status: 'not_comparable',
+        rationale: 'Both runs require verified execution isolation provenance.'
       };
     if (base === null || now === null)
       return {

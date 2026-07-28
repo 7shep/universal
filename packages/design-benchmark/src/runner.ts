@@ -20,6 +20,7 @@ export type IsolationCapability = (typeof ISOLATION_CAPABILITIES)[number];
 
 export interface IsolationAttestation {
   readonly version: '1';
+  readonly scope: 'workspace' | 'executor' | 'system';
   readonly provider: string;
   readonly capabilities: Readonly<Record<IsolationCapability, boolean>>;
   readonly guarantees: readonly string[];
@@ -86,9 +87,14 @@ export interface ArmExecutorFactory<Workspace extends BenchmarkWorkspace> {
   create(input: { readonly arm: BenchmarkArm }): Promise<ArmExecutor<Workspace>>;
 }
 
+export interface RunnerCheckHandle {
+  join(): Promise<RawCheckResult>;
+  terminate(reason: Error): Promise<void>;
+}
+
 export interface RunnerCheckAdapter<Workspace extends BenchmarkWorkspace> {
   readonly name: string;
-  execute(request: ArmExecutionRequest<Workspace>): Promise<RawCheckResult>;
+  start(request: ArmExecutionRequest<Workspace>): Promise<RunnerCheckHandle>;
 }
 
 export interface BenchmarkRunnerInput<Workspace extends BenchmarkWorkspace> {
@@ -218,16 +224,28 @@ function workspaceIsolationKeys(
 
 function verifyIsolation(
   suite: BenchmarkSuiteManifest,
-  attestations: readonly IsolationAttestation[]
+  workspaceAttestation: IsolationAttestation,
+  executorAttestation: IsolationAttestation
 ): IsolationVerification {
+  const attestations = [workspaceAttestation, executorAttestation];
   for (const attestation of attestations) {
     if (attestation.version !== suite.isolation_policy.attestation_version)
       throw new Error(`Isolation attestation version mismatch for ${attestation.provider}.`);
   }
+  if (!['workspace', 'system'].includes(workspaceAttestation.scope))
+    throw new Error('Workspace factory must provide a workspace or system attestation.');
+  if (!['executor', 'system'].includes(executorAttestation.scope))
+    throw new Error('Executor factory must provide an executor or system attestation.');
   const required = suite.isolation_policy.required_capabilities;
-  const missing = required.filter(
-    (capability) => !attestations.some((attestation) => attestation.capabilities[capability])
-  );
+  const missing = required.filter((capability) => {
+    if (workspaceAttestation.scope === 'system' && workspaceAttestation.capabilities[capability])
+      return false;
+    if (executorAttestation.scope === 'system' && executorAttestation.capabilities[capability])
+      return false;
+    return capability === 'filesystem_isolation'
+      ? !workspaceAttestation.capabilities.filesystem_isolation
+      : !executorAttestation.capabilities[capability];
+  });
   const verified = missing.length === 0;
   return {
     version: '1',
@@ -241,8 +259,8 @@ function verifyIsolation(
       guarantees: [...attestation.guarantees]
     })),
     rationale: verified
-      ? 'All suite-required isolation capabilities are attested.'
-      : `Run is not release-comparable; missing isolation capabilities: ${missing.join(', ')}.`
+      ? 'All suite-required isolation capabilities are attested by the responsible provider scope.'
+      : `Run is not release-comparable; missing scoped isolation capabilities: ${missing.join(', ')}.`
   };
 }
 
@@ -259,6 +277,46 @@ const settled = async <Value>(
   }
 };
 
+async function joinWithinArmDeadline<Outcome>(input: {
+  readonly label: string;
+  readonly workspaceId: string;
+  readonly handle: { join(): Promise<Outcome>; terminate(reason: Error): Promise<void> };
+  readonly controller: AbortController;
+  readonly deadline: number;
+  readonly budget: RunnerBudget;
+}): Promise<Outcome> {
+  const joined = settled(input.handle.join());
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  const remaining = Math.max(0, input.deadline - Date.now());
+  const timedOut = new Promise<'timeout'>((resolve) => {
+    timeout = setTimeout(() => resolve('timeout'), remaining);
+  });
+  const first = await Promise.race([joined, timedOut]);
+  if (first !== 'timeout') {
+    if (timeout !== undefined) clearTimeout(timeout);
+    if (first.status === 'rejected') throw first.reason;
+    return first.value;
+  }
+  const timeoutError = new Error(
+    `${input.label} exceeded arm maxMilliseconds (${input.budget.maxMilliseconds}).`
+  );
+  input.controller.abort(timeoutError);
+  void settled(input.handle.terminate(timeoutError));
+  let grace: ReturnType<typeof setTimeout> | undefined;
+  const graceExpired = new Promise<'grace-expired'>((resolve) => {
+    grace = setTimeout(() => resolve('grace-expired'), input.budget.terminationGraceMilliseconds);
+  });
+  const termination = await Promise.race([joined, graceExpired]);
+  if (grace !== undefined) clearTimeout(grace);
+  if (timeout !== undefined) clearTimeout(timeout);
+  if (termination === 'grace-expired')
+    throw new RunnerIsolationFailure(
+      input.workspaceId,
+      `${input.label} termination could not be joined within ${input.budget.terminationGraceMilliseconds}ms; workspace quarantined.`
+    );
+  throw timeoutError;
+}
+
 async function executeArmWithinBudget<Workspace extends BenchmarkWorkspace>(input: {
   readonly arm: BenchmarkArm;
   readonly workspace: Workspace;
@@ -269,6 +327,7 @@ async function executeArmWithinBudget<Workspace extends BenchmarkWorkspace>(inpu
 }): Promise<{ readonly tokenUsage: number; readonly checks: readonly ExecutedCheckResult[] }> {
   const controller = new AbortController();
   const request = { ...input.request, signal: controller.signal };
+  const deadline = Date.now() + request.budget.maxMilliseconds;
   let handle: ArmExecutionHandle;
   try {
     handle = await input.executor.start(request);
@@ -276,42 +335,15 @@ async function executeArmWithinBudget<Workspace extends BenchmarkWorkspace>(inpu
     await input.executor.finalize();
     throw error;
   }
-  const joined = settled(handle.join());
-  let timeout: ReturnType<typeof setTimeout> | undefined;
-  const timedOut = new Promise<'timeout'>((resolve) => {
-    timeout = setTimeout(() => resolve('timeout'), request.budget.maxMilliseconds);
-  });
-  const first = await Promise.race([joined, timedOut]);
-  if (first === 'timeout') {
-    const timeoutError = new Error(
-      `${input.arm} exceeded maxMilliseconds (${request.budget.maxMilliseconds}).`
-    );
-    controller.abort(timeoutError);
-    void settled(handle.terminate(timeoutError));
-    let grace: ReturnType<typeof setTimeout> | undefined;
-    const graceExpired = new Promise<'grace-expired'>((resolve) => {
-      grace = setTimeout(
-        () => resolve('grace-expired'),
-        request.budget.terminationGraceMilliseconds
-      );
-    });
-    const termination = await Promise.race([joined, graceExpired]);
-    if (grace !== undefined) clearTimeout(grace);
-    if (timeout !== undefined) clearTimeout(timeout);
-    if (termination === 'grace-expired')
-      throw new RunnerIsolationFailure(
-        input.workspace.id,
-        `${input.arm} termination could not be joined within ${request.budget.terminationGraceMilliseconds}ms; workspace quarantined.`
-      );
-    await input.executor.finalize();
-    throw timeoutError;
-  }
-  if (timeout !== undefined) clearTimeout(timeout);
-  if (!controller.signal.aborted)
-    controller.abort(new Error(`${input.arm} execution joined and finalized.`));
   try {
-    if (first.status === 'rejected') throw first.reason;
-    const outcome = first.value;
+    const outcome = await joinWithinArmDeadline({
+      label: input.arm,
+      workspaceId: input.workspace.id,
+      handle,
+      controller,
+      deadline,
+      budget: request.budget
+    });
     if (!Number.isInteger(outcome.tokenUsage) || outcome.tokenUsage < 0)
       throw new Error(`Executor for ${input.arm} returned invalid tokenUsage.`);
     if (outcome.tokenUsage > request.budget.maxTokens)
@@ -320,14 +352,25 @@ async function executeArmWithinBudget<Workspace extends BenchmarkWorkspace>(inpu
       );
     const checks: ExecutedCheckResult[] = [];
     for (const name of input.requiredChecks) {
-      const result = recordExecutedCheck(name, await input.adapters.get(name)!.execute(request));
+      const checkHandle = await input.adapters.get(name)!.start(request);
+      const raw = await joinWithinArmDeadline({
+        label: `${input.arm} check ${name}`,
+        workspaceId: input.workspace.id,
+        handle: checkHandle,
+        controller,
+        deadline,
+        budget: request.budget
+      });
+      const result = recordExecutedCheck(name, raw);
       if (result.exitStatus !== 0)
         throw new Error(`Required runner check failed (${result.exitStatus}): ${name}.`);
       checks.push(result);
     }
-    return { tokenUsage: outcome.tokenUsage, checks };
-  } finally {
     await input.executor.finalize();
+    return { tokenUsage: outcome.tokenUsage, checks };
+  } catch (error) {
+    if (!(error instanceof RunnerIsolationFailure)) await input.executor.finalize();
+    throw error;
   }
 }
 
@@ -362,10 +405,11 @@ export async function executeBenchmarkPair<Workspace extends BenchmarkWorkspace>
   const missingAdapter = requiredChecks.find((name) => !adapters.has(name));
   if (missingAdapter)
     throw new Error(`No injected adapter exists for required check: ${missingAdapter}.`);
-  const isolation = verifyIsolation(input.suite, [
+  const isolation = verifyIsolation(
+    input.suite,
     input.workspaceFactory.isolation,
     input.executorFactory.isolation
-  ]);
+  );
 
   const arms = ['unguided', 'universal_guided'] as const;
   const records: ArmExecutionRecord[] = [];

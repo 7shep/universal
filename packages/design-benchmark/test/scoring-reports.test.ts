@@ -38,10 +38,18 @@ const rubric: ScoringRubric = {
   ]
 };
 
+const verifiedProvenance = {
+  version: '1',
+  status: 'verified',
+  comparable: true,
+  missingCapabilities: [],
+  rationale: 'All required capabilities are verified.'
+} as const;
 const submission = (blindId: string, rendered = false): BlindSubmission => ({
   blindId,
   briefId: 'brief-01',
   suiteVersion: '1.0.0',
+  isolation: verifiedProvenance,
   sourceEvidence: [{ id: 'source-app', path: 'src/App.tsx', digest: 'abc' }],
   renderedEvidence: rendered
     ? [
@@ -160,6 +168,7 @@ test('seeded assignments are deterministic and scorer packets strip undeclared f
     briefId: 'brief-01',
     suiteVersion: '1.0.0',
     arm,
+    isolation: verifiedProvenance,
     sourceEvidence: [{ id: 'source-app', path: 'src/App.tsx', digest: 'abc', arm_id: arm }],
     renderedEvidence: [],
     workflow: arm
@@ -205,4 +214,61 @@ test('enforces the rubric integer score scale of 1 through 5', () => {
       /integer between 1 and 5/
     );
   }
+});
+
+test('unverified or omitted provenance cannot produce comparable scores or reports', () => {
+  const unverified = {
+    ...submission('unverified'),
+    isolation: {
+      version: '1' as const,
+      status: 'unverified' as const,
+      comparable: false,
+      missingCapabilities: ['network_isolation'],
+      rationale: 'Network isolation is not verified.'
+    }
+  };
+  const scored = scoreSubmission(unverified, rubric, [
+    {
+      criterionId: 'source-quality',
+      score: 5,
+      rationale: 'Evidence.',
+      evidenceIds: ['source-app']
+    }
+  ]);
+  assert.equal(scored.normalizedScore, null);
+  assert.equal(scored.comparability, 'not_comparable');
+  const omitted = scoreSubmission(
+    { ...submission('omitted'), isolation: undefined } as unknown as BlindSubmission,
+    rubric,
+    [
+      {
+        criterionId: 'source-quality',
+        score: 5,
+        rationale: 'Evidence.',
+        evidenceIds: ['source-app']
+      }
+    ]
+  );
+  assert.equal(omitted.normalizedScore, null);
+  const pair = createPairedComparisonReport(
+    unblindScores(
+      [scored, { ...scored, blindId: 'other' }],
+      [
+        { blindId: 'unverified', arm: 'unguided' },
+        { blindId: 'other', arm: 'universal_guided' }
+      ]
+    )
+  );
+  assert.equal(pair.pairs[0]?.comparable, false);
+  assert.equal(pair.pairs[0]?.winner, 'not_comparable');
+  const forged = { ...scored, normalizedScore: 100 };
+  const regression = createRegressionReport(
+    unblindScores([forged], [{ blindId: 'unverified', arm: 'unguided' }]),
+    unblindScores(
+      [{ ...forged, normalizedScore: 80 }],
+      [{ blindId: 'unverified', arm: 'unguided' }]
+    ),
+    { regressionThreshold: 1 }
+  );
+  assert.equal(regression.entries[0]?.status, 'not_comparable');
 });

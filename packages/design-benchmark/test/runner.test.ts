@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import test from 'node:test';
@@ -13,6 +13,7 @@ import {
   ISOLATION_CAPABILITIES,
   loadBenchmarkDefinition,
   RunnerIsolationFailure,
+  UNVERIFIED_INJECTED_EXECUTOR_ISOLATION,
   UNVERIFIED_INJECTED_ISOLATION,
   UNIVERSAL_GUIDED_TOOLS,
   type ArmExecutionHandle,
@@ -41,8 +42,12 @@ type MutableRunnerInput = {
   ]: BenchmarkRunnerInput<MemoryWorkspace>[Key];
 };
 
-const verifiedIsolation = (provider: string): IsolationAttestation => ({
+const verifiedIsolation = (
+  provider: string,
+  scope: 'workspace' | 'executor'
+): IsolationAttestation => ({
   version: '1',
+  scope,
   provider,
   capabilities: Object.fromEntries(ISOLATION_CAPABILITIES.map((name) => [name, true])) as Record<
     (typeof ISOLATION_CAPABILITIES)[number],
@@ -95,7 +100,7 @@ const baseInput = (suiteOverride: BenchmarkSuiteManifest = suite) => {
       }
     },
     executorFactory: {
-      isolation: UNVERIFIED_INJECTED_ISOLATION,
+      isolation: UNVERIFIED_INJECTED_EXECUTOR_ISOLATION,
       async create({ arm }) {
         const executor: ArmExecutor<MemoryWorkspace> = {
           async start(request) {
@@ -112,9 +117,15 @@ const baseInput = (suiteOverride: BenchmarkSuiteManifest = suite) => {
     },
     checkAdapters: suiteOverride.source_evidence.required_checks.map((name) => ({
       name,
-      async execute(request) {
+      async start(request) {
         checks.push(`${request.arm}:${name}`);
-        return { exitStatus: 0, stdout: `${name} passed\r\n`, stderr: '' };
+        return {
+          async join() {
+            assert.equal(request.signal.aborted, false);
+            return { exitStatus: 0, stdout: `${name} passed\r\n`, stderr: '' };
+          },
+          async terminate() {}
+        };
       }
     }))
   };
@@ -157,15 +168,34 @@ test('creates distinct executors/workspaces with identical suite-derived inputs 
   assert.throws(() => assertReleaseComparable(result), /not release-comparable/);
 });
 
-test('marks a run comparable only when every required capability is attested', async () => {
+test('strong workspace claims cannot satisfy executor isolation requirements', async () => {
   const fixture = baseInput();
   fixture.input.workspaceFactory = {
     ...fixture.input.workspaceFactory,
-    isolation: verifiedIsolation('verified-workspace-test')
+    isolation: verifiedIsolation('verified-workspace-test', 'workspace')
+  };
+  const result = await executeBenchmarkPair(fixture.input);
+  assert.equal(result.isolation.status, 'unverified');
+  assert.deepEqual(result.isolation.missingCapabilities, [
+    'process_isolation',
+    'network_isolation',
+    'host_isolation',
+    'tool_isolation'
+  ]);
+});
+
+test('marks a run comparable when each responsible provider attests its capabilities', async () => {
+  const fixture = baseInput();
+  fixture.input.workspaceFactory = {
+    ...fixture.input.workspaceFactory,
+    isolation: verifiedIsolation('verified-workspace-test', 'workspace')
+  };
+  fixture.input.executorFactory = {
+    ...fixture.input.executorFactory,
+    isolation: verifiedIsolation('verified-executor-test', 'executor')
   };
   const result = await executeBenchmarkPair(fixture.input);
   assert.equal(result.isolation.status, 'verified');
-  assert.equal(result.isolation.comparable, true);
   assert.deepEqual(result.isolation.missingCapabilities, []);
   assert.doesNotThrow(() => assertReleaseComparable(result));
 });
@@ -207,7 +237,7 @@ test('timeout terminates, joins, finalizes, and releases a cooperative executor'
   let observedSignal: AbortSignal | undefined;
   let terminated = 0;
   fixture.input.executorFactory = {
-    isolation: UNVERIFIED_INJECTED_ISOLATION,
+    isolation: UNVERIFIED_INJECTED_EXECUTOR_ISOLATION,
     async create({ arm }) {
       return {
         async start(request) {
@@ -232,7 +262,7 @@ test('timeout terminates, joins, finalizes, and releases a cooperative executor'
   };
   await assert.rejects(
     () => executeBenchmarkPair(fixture.input),
-    /unguided exceeded maxMilliseconds \(5\)/
+    /unguided exceeded arm maxMilliseconds \(5\)/
   );
   assert.equal(observedSignal?.aborted, true);
   assert.equal(terminated, 1);
@@ -255,7 +285,7 @@ test('non-cooperative execution is quarantined and never released or finalized',
   const fixture = baseInput(timedSuite);
   let terminated = 0;
   fixture.input.executorFactory = {
-    isolation: UNVERIFIED_INJECTED_ISOLATION,
+    isolation: UNVERIFIED_INJECTED_EXECUTOR_ISOLATION,
     async create() {
       return {
         async start() {
@@ -290,7 +320,7 @@ test('rejects token overage and still finalizes the arm executor', async () => {
   };
   const fixture = baseInput(limitedSuite);
   fixture.input.executorFactory = {
-    isolation: UNVERIFIED_INJECTED_ISOLATION,
+    isolation: UNVERIFIED_INJECTED_EXECUTOR_ISOLATION,
     async create({ arm }) {
       return {
         async start() {
@@ -339,7 +369,7 @@ test('rejects shared workspace roots/backends and reused executor instances', as
     async finalize() {}
   };
   sharedExecutor.input.executorFactory = {
-    isolation: UNVERIFIED_INJECTED_ISOLATION,
+    isolation: UNVERIFIED_INJECTED_EXECUTOR_ISOLATION,
     async create() {
       return executor;
     }
@@ -391,6 +421,63 @@ test('portable path canonicalization rejects platform aliases and unsafe names',
   );
 });
 
+test('non-cooperative required check is terminated and quarantines its workspace', async () => {
+  const timedSuite: BenchmarkSuiteManifest = {
+    ...suite,
+    execution_policy: {
+      budget: {
+        ...suite.execution_policy.budget,
+        max_milliseconds: 5,
+        termination_grace_milliseconds: 5
+      }
+    }
+  };
+  const fixture = baseInput(timedSuite);
+  let terminated = 0;
+  fixture.input.checkAdapters = fixture.input.checkAdapters.map((adapter, index) =>
+    index === 0
+      ? {
+          name: adapter.name,
+          async start() {
+            return {
+              join: () => new Promise<never>(() => undefined),
+              async terminate() {
+                terminated += 1;
+              }
+            };
+          }
+        }
+      : adapter
+  );
+  await assert.rejects(
+    () => executeBenchmarkPair(fixture.input),
+    (error: unknown) => error instanceof RunnerIsolationFailure && /check/.test(error.message)
+  );
+  assert.equal(terminated, 1);
+  assert.deepEqual(fixture.quarantined, ['dq-v1-01-fintech--unguided']);
+  assert.deepEqual(fixture.released, ['dq-v1-01-fintech--universal_guided']);
+});
+
+test('partial local workspace materialization removes its owned temporary root', async () => {
+  const ownedRoot = await mkdtemp(join(tmpdir(), 'benchmark-partial-'));
+  try {
+    const factory = await createLocalFilesystemWorkspaceFactory(ownedRoot);
+    await assert.rejects(
+      () =>
+        factory.create({
+          id: 'partial-test',
+          files: [
+            { path: 'conflict', content: 'file' },
+            { path: 'conflict/child.ts', content: 'cannot create beneath file' }
+          ]
+        }),
+      /EEXIST|not a directory/i
+    );
+    assert.deepEqual(await readdir(ownedRoot), []);
+  } finally {
+    await rm(ownedRoot, { recursive: true, force: true });
+  }
+});
 test('local filesystem backend owns real roots, performs safe I/O, and quarantines in place', async () => {
   const ownedRoot = await mkdtemp(join(tmpdir(), 'benchmark-owned-'));
   try {

@@ -44,10 +44,19 @@ export interface RenderedEvidenceArtifact {
  * A scorer-facing submission intentionally excludes its experimental arm.
  * Keep arm allocation in a separate BlindAllocation record until scoring is complete.
  */
+export interface ExecutionIsolationProvenance {
+  version: '1';
+  status: 'verified' | 'unverified';
+  comparable: boolean;
+  missingCapabilities: readonly string[];
+  rationale: string;
+}
+
 export interface BlindSubmission {
   blindId: string;
   briefId: string;
   suiteVersion: string;
+  isolation: ExecutionIsolationProvenance;
   sourceEvidence: readonly SourceEvidenceReference[];
   renderedEvidence: readonly RenderedEvidenceArtifact[];
 }
@@ -96,6 +105,8 @@ export interface SubmissionScore {
   suiteVersion: string;
   rubricId: string;
   rubricVersion: string;
+  isolation: ExecutionIsolationProvenance;
+  comparability: 'comparable' | 'not_comparable';
   criteria: readonly CriterionScore[];
   earnedScore: number;
   evaluableMaxScore: number;
@@ -110,6 +121,7 @@ export interface ArmSubmission {
   briefId: string;
   suiteVersion: string;
   arm: BenchmarkArm;
+  isolation: ExecutionIsolationProvenance;
   sourceEvidence: readonly SourceEvidenceReference[];
   renderedEvidence: readonly RenderedEvidenceArtifact[];
 }

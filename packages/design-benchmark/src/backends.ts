@@ -22,6 +22,7 @@ const noIsolation = {
 
 export const UNVERIFIED_INJECTED_ISOLATION: IsolationAttestation = {
   version: '1',
+  scope: 'workspace',
   provider: 'generic-injected-provider',
   capabilities: noIsolation,
   guarantees: [
@@ -30,6 +31,16 @@ export const UNVERIFIED_INJECTED_ISOLATION: IsolationAttestation = {
   ]
 };
 
+export const UNVERIFIED_INJECTED_EXECUTOR_ISOLATION: IsolationAttestation = {
+  version: '1',
+  scope: 'executor',
+  provider: 'generic-injected-executor',
+  capabilities: noIsolation,
+  guarantees: [
+    'Dependency injection provides lifecycle structure only.',
+    'No network, host, filesystem, process, or tool isolation is implied.'
+  ]
+};
 export interface LocalFilesystemWorkspace extends BenchmarkWorkspace {
   write(relativePath: string, content: string): Promise<void>;
   read(relativePath: string): Promise<string>;
@@ -97,6 +108,7 @@ export async function createLocalFilesystemWorkspaceFactory(
   return {
     isolation: {
       version: '1',
+      scope: 'workspace',
       provider: 'local-filesystem-workspace-v1',
       capabilities: noIsolation,
       guarantees: [
@@ -113,8 +125,30 @@ export async function createLocalFilesystemWorkspaceFactory(
         throw new Error('Created workspace escaped benchmark-owned root.');
       active.add(realRoot);
       const workspace = await makeWorkspace(id, realRoot);
-      for (const file of files) await workspace.write(file.path, file.content);
-      return workspace;
+      try {
+        for (const file of files) await workspace.write(file.path, file.content);
+        return workspace;
+      } catch (materializationError) {
+        try {
+          await rm(realRoot, { recursive: true, force: true });
+          active.delete(realRoot);
+        } catch (cleanupError) {
+          try {
+            await writeFile(
+              join(realRoot, '.benchmark-quarantine.json'),
+              `${JSON.stringify({ version: 1, workspaceId: id, reason: 'Partial materialization cleanup failed.' }, null, 2)}\n`,
+              'utf8'
+            );
+          } finally {
+            active.delete(realRoot);
+          }
+          throw new AggregateError(
+            [materializationError, cleanupError],
+            'Workspace materialization failed and the partial root was quarantined.'
+          );
+        }
+        throw materializationError;
+      }
     },
     async release(workspace) {
       const root = await realpath(workspace.canonicalRoot);
@@ -155,6 +189,7 @@ export function createChildProcessExecutorFactory<Workspace extends BenchmarkWor
   return {
     isolation: {
       version: '1',
+      scope: 'executor',
       provider: 'terminable-child-process-v1',
       capabilities: { ...noIsolation, process_isolation: true },
       guarantees: [
