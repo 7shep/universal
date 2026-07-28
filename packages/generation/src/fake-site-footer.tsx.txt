@@ -1,0 +1,9 @@
+export function SiteFooter() {
+  return (
+    <footer>
+      <strong>STILL / FORM</strong>
+      <p>Instruments for considered work.</p>
+      <a href="mailto:service@example.invalid">Service desk</a>
+    </footer>
+  );
+}

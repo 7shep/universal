@@ -210,6 +210,9 @@ importers:
       '@universal/runtime-contracts':
         specifier: workspace:*
         version: link:../runtime-contracts
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
 
   packages/prompts: {}
 

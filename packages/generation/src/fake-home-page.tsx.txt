@@ -1,0 +1,17 @@
+import { materialFacts } from '../data/content';
+
+export function HomePage() {
+  return (
+    <main id="main">
+      <section className="hero">
+        <p className="folio">Mechanical works · Toronto</p>
+        <h1>Built to outlast the desk around it.</h1>
+        <p>A precisely tuned mechanical instrument, machined for daily work and decades of service.</p>
+      </section>
+      <section className="material" aria-labelledby="material-title">
+        <h2 id="material-title">Mass where it matters.</h2>
+        <dl>{materialFacts.map((fact) => <div key={fact.label}><dt>{fact.label}</dt><dd>{fact.value}</dd></div>)}</dl>
+      </section>
+    </main>
+  );
+}

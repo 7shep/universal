@@ -247,9 +247,11 @@ source contract the MCP host model must follow. It does not generate or write fi
 
 The response includes the stable project ID, Design Plan v2 identity, page map, narratives,
 typography, color, composition, navigation, responsive, motion, provenance, protected invariants,
-implementation constraints, required source files, quotas, supported asset types, and the complete
+implementation constraints, a Design Plan-derived architecture policy, required source files, quotas, supported asset types, and the complete
 runtime-owned-file denylist. Calling this before `plan-created`, with a stale plan, or with a
 modified serialized session returns an MCP error.
+
+The architecture policy scales with the plan. A nontrivial multi-route response requires one identifiable page component module per approved route, keeps `App.tsx` focused on routing/top-level composition, and extracts repeated navigation/header/footer regions. A substantial single-page response requires cohesive section or feature extraction; a genuinely small page is not forced into extra files. A common shape is `src/App.tsx` plus `src/pages/`, `src/components/`, optional `src/data/`, and organized styles behind `src/styles.css`, but those names are examples rather than subjective folder rules.
 
 ### `build_react_project`
 
@@ -283,6 +285,7 @@ entrypoints, manifests, dependencies, lockfiles, scripts, configuration, absolut
 collisions, binaries, over-quota output, credential-shaped content, and outbound network calls are
 rejected.
 
+Deterministic review blocks nontrivial App-only implementations, missing page modules or route mappings, unextracted plan-declared shared interface regions, multiple full pages in `App.tsx`, untyped configurable exported/reused component props, and substantial duplicated JSX. Large inline data, weak CSS separation, overloaded modules, and borderline App complexity are advisory. Review checks and build diagnostics carry stable `ARCH_*` IDs and evidence; callers cannot disable or tune them. Passing this gate proves compilation, runtime trust, and minimum repository organization, not subjective quality or a replacement for human review.
 A successful response includes `workspacePath`, `outputPath`, structured build diagnostics, review
 evidence, and:
 

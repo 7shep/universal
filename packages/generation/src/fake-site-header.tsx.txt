@@ -1,0 +1,20 @@
+interface SiteHeaderProps {
+  currentRoute: string;
+}
+
+const links = [
+  { href: '/', label: 'Index' },
+  { href: '/keyboards/monolith-75', label: 'Monolith 75' },
+  { href: '/craft', label: 'Craft' }
+];
+
+export function SiteHeader({ currentRoute }: SiteHeaderProps) {
+  return (
+    <header className="masthead">
+      <a className="wordmark" href="/">STILL / FORM</a>
+      <nav aria-label="Primary">
+        {links.map((link) => <a aria-current={currentRoute === link.href ? 'page' : undefined} href={link.href} key={link.href}>{link.label}</a>)}
+      </nav>
+    </header>
+  );
+}

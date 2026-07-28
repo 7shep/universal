@@ -1,0 +1,18 @@
+export const materialFacts = [
+  { label: 'Case', value: '6063 aluminum' },
+  { label: 'Mount', value: 'Leaf spring' },
+  { label: 'Warranty', value: '10 years' }
+];
+
+export const configurationRows = [
+  { label: '01 / Plate', value: 'Carbon fibre', note: 'Dry, quick return' },
+  { label: '02 / Switch', value: 'Linear 55', note: 'Quiet, progressive weight' },
+  { label: '03 / Keycap', value: 'Bone PBT', note: 'Fine texture' }
+];
+
+export const processSteps = [
+  'Machine and hand-finish every surface.',
+  'Measure the plate and tune mounting leaves.',
+  'Assemble, flash, and test every socket.',
+  'Record the build and preserve its service history.'
+];
