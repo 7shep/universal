@@ -1,4 +1,9 @@
 export * from './contracts.ts';
+export * from './creative-brief.ts';
+export * from './discovery-contracts.ts';
+export * from './discovery-policy.ts';
+export * from './discovery-session.ts';
+export * from './discovery-validation.ts';
 export * from './orchestration.ts';
 export {
   DESIGN_RULE_CATEGORIES,
