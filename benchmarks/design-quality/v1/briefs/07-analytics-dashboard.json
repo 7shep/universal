@@ -1,0 +1,41 @@
+{
+  "$schema": "../brief.schema.json",
+  "brief_id": "dq-v1-07-analytics-dashboard",
+  "brief_version": "1.0.0",
+  "title": "Northstar product analytics overview",
+  "surface": "dashboard",
+  "audience": "Product managers reviewing weekly activation and retention",
+  "scenario": "Northstar is a read-only analytics workspace for the fictional Acme Cloud product.",
+  "task": "Build a static desktop-first dashboard overview that remains usable on smaller screens and makes current filters and metric context explicit.",
+  "content": {
+    "brand": "Northstar",
+    "primary_heading": "Product overview",
+    "sections": [
+      "Application shell with Overview, Funnels, Retention, Users, and Settings",
+      "Page header with Acme Cloud workspace, Last 30 days, and All platforms filters",
+      "Metric summaries: Active users 24,892; Activation 38.4%; Week-4 retention 21.7%; Expansion $84.2k",
+      "Activation trend with a text-accessible seven-point data series",
+      "Top acquisition sources table with Organic, Partner, Paid search, and Referral",
+      "Recent insight noting a 6.2% activation lift for invited teammates",
+      "Data updated Jul 24, 2026 at 09:30 EDT"
+    ]
+  },
+  "requirements": [
+    "Associate every metric with its label, value, and comparison context",
+    "Provide a text or table equivalent for any chart",
+    "Use a real table with headers for acquisition sources",
+    "Expose selected navigation and filter states in source semantics",
+    "Provide intentional horizontal overflow or stacking behavior for narrow screens"
+  ],
+  "constraints": [
+    "Do not fetch data or implement filter behavior",
+    "Do not invent metrics beyond those supplied",
+    "Do not rely on color alone for trends or selected states",
+    "Do not use charting libraries, canvas, or remote assets"
+  ],
+  "evaluation_focus": [
+    "Dense but understandable dashboard information architecture",
+    "Accessible alternatives for visual data displays",
+    "Explicit metric, filter, update-time, and state context"
+  ]
+}

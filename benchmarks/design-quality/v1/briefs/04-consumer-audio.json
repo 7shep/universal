@@ -1,0 +1,41 @@
+{
+  "$schema": "../brief.schema.json",
+  "brief_id": "dq-v1-04-consumer-audio",
+  "brief_version": "1.0.0",
+  "title": "Morrow personal audio introduction",
+  "surface": "landing_page",
+  "audience": "Design-conscious listeners who want calmer music discovery",
+  "scenario": "Morrow is a new listening app organized around daily rituals rather than engagement feeds.",
+  "task": "Build an expressive product introduction that communicates the ritual concept and encourages visitors to join the early-access list.",
+  "content": {
+    "brand": "Morrow",
+    "primary_heading": "Music for the shape of your day",
+    "sections": [
+      "Minimal navigation with Rituals, Artists, Journal, and Join early access",
+      "Hero with the primary heading, a calm discovery statement, and Join early access",
+      "Three rituals named First Light, Deep Work, and Night Window",
+      "Product principle section titled Less feed, more feeling",
+      "Artist note featuring Nia Vale and the release Glass Hours",
+      "Early-access email form with a concise privacy note",
+      "Footer with Journal, Instagram, Privacy, and Contact"
+    ]
+  },
+  "requirements": [
+    "Give each ritual a time-of-day cue and a one-sentence listening description",
+    "Use a properly labeled email field and explicit submit control",
+    "Ensure the artist feature is content, not unexplained decoration",
+    "Respect reduced-motion preferences if motion is declared",
+    "Preserve heading and reading order at narrow widths"
+  ],
+  "constraints": [
+    "Do not implement audio playback or imply that previews function",
+    "Do not use remote album art, fonts, or services",
+    "Do not add pricing or fabricated listener counts",
+    "Avoid generic feature-card copy such as fast, powerful, or seamless"
+  ],
+  "evaluation_focus": [
+    "Distinctive product voice encoded in concrete content",
+    "Accessible email acquisition and honest static behavior",
+    "Coherent sequencing of ritual, principle, and artist story"
+  ]
+}

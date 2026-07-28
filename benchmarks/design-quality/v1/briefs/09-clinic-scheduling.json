@@ -1,0 +1,41 @@
+{
+  "$schema": "../brief.schema.json",
+  "brief_id": "dq-v1-09-clinic-scheduling",
+  "brief_version": "1.0.0",
+  "title": "Harbor clinic scheduling workspace",
+  "surface": "application",
+  "audience": "Front-desk staff coordinating appointments across clinicians",
+  "scenario": "Harbor is a static daily schedule view for a community clinic. Patient names are intentionally fictional.",
+  "task": "Build an accessible scheduling workspace that makes appointment status, time, clinician, and room easy to scan without implementing scheduling actions.",
+  "content": {
+    "brand": "Harbor",
+    "primary_heading": "Monday, July 27",
+    "sections": [
+      "Application navigation with Schedule, Patients, Messages, Reports, and Settings",
+      "Day header with Previous day, Today, Next day, and New appointment controls",
+      "Clinician columns for Dr. Imani, Dr. Patel, and J. Flores NP",
+      "Appointments for Alex Kim at 09:00, Robin Wells at 09:30, Casey Hall at 10:15, and Morgan Lee at 11:00",
+      "Statuses Checked in, Confirmed, Needs follow-up, and Arrived",
+      "Unassigned tasks for insurance verification and interpreter confirmation",
+      "Privacy reminder and last synchronized time of 08:42"
+    ]
+  },
+  "requirements": [
+    "Associate each appointment with patient, time, clinician, room, visit type, and status",
+    "Provide a linear small-screen representation rather than requiring a wide grid",
+    "Express status in text and not color alone",
+    "Give all static controls appropriate disabled or demonstrative treatment",
+    "Use fictional data exactly as supplied and include the privacy reminder"
+  ],
+  "constraints": [
+    "Do not implement patient search, schedule changes, or new appointments",
+    "Do not add diagnoses, contact details, dates of birth, or other sensitive fields",
+    "Do not use remote services, images, or fonts",
+    "Do not imply that synchronization is live"
+  ],
+  "evaluation_focus": [
+    "Accessible transformation of a schedule across viewport widths",
+    "Clear relationships among appointments, clinicians, rooms, and statuses",
+    "Privacy-conscious and honest static state"
+  ]
+}

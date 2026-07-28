@@ -1,0 +1,41 @@
+{
+  "$schema": "../brief.schema.json",
+  "brief_id": "dq-v1-01-fintech-landing",
+  "brief_version": "1.0.0",
+  "title": "Ledgerly finance operations landing page",
+  "surface": "landing_page",
+  "audience": "Finance leaders at growing companies with 50–500 employees",
+  "scenario": "Ledgerly is launching an automated close-management product that connects reconciliations, approvals, and audit trails.",
+  "task": "Build a responsive single-page marketing site that establishes trust and drives qualified visitors to request a demo.",
+  "content": {
+    "brand": "Ledgerly",
+    "primary_heading": "Close the books without closing your eyes",
+    "sections": [
+      "Navigation with Product, Security, Customers, Resources, Sign in, and Request a demo",
+      "Hero with the primary heading, a concise automation promise, Request a demo, and See how it works",
+      "Proof strip naming Northstar, Helix, Orchard, and Arcwell",
+      "Workflow section covering Reconcile, Review, Approve, and Report",
+      "Security section with SOC 2, role-based access, and immutable audit trail",
+      "Customer quote from Maya Chen, VP Finance at Northstar",
+      "Final demo call to action and complete footer"
+    ]
+  },
+  "requirements": [
+    "Use semantic header, main, section, and footer landmarks",
+    "Make Request a demo the unambiguous primary action",
+    "Represent the four-step workflow as ordered content rather than decorative labels",
+    "Include meaningful accessible text for any product illustration",
+    "Provide a narrow-screen navigation treatment and responsive section layouts"
+  ],
+  "constraints": [
+    "Do not use remote images, fonts, scripts, or APIs",
+    "Do not claim certifications beyond the supplied SOC 2 statement",
+    "Do not use lorem ipsum, placeholder copy, or invented customer metrics",
+    "The page must remain useful if decorative imagery is absent"
+  ],
+  "evaluation_focus": [
+    "Trust-building information order for a risk-sensitive buyer",
+    "Clear differentiation between primary and secondary calls to action",
+    "Accessible representation of product workflow and security claims"
+  ]
+}

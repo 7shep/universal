@@ -1,0 +1,41 @@
+{
+  "$schema": "../brief.schema.json",
+  "brief_id": "dq-v1-05-architecture-portfolio",
+  "brief_version": "1.0.0",
+  "title": "Field Office architecture portfolio",
+  "surface": "portfolio",
+  "audience": "Cultural institutions and residential clients selecting an architecture studio",
+  "scenario": "Field Office is a small architecture practice focused on adaptive reuse and materially restrained additions.",
+  "task": "Build a portfolio homepage that foregrounds project thinking, makes the studio's approach legible, and supports project inquiries.",
+  "content": {
+    "brand": "Field Office",
+    "primary_heading": "Buildings with another life ahead",
+    "sections": [
+      "Navigation with Work, Practice, Notes, Contact, and Project inquiry",
+      "Introductory statement about adaptive reuse and careful additions",
+      "Featured project: Loom House, Hamilton, 2025, residential conversion",
+      "Project index including Archive Hall, Moss Courtyard, Northline Workshop, and Quarry Rooms",
+      "Practice statement covering reuse, daylight, and durable material choices",
+      "Selected note titled What the existing wall already knows",
+      "Contact block and concise footer"
+    ]
+  },
+  "requirements": [
+    "Represent project names, locations, years, and types as accessible text",
+    "Keep the featured project and project index semantically distinct",
+    "Provide an explicit project inquiry action",
+    "Use a logical heading hierarchy suitable for a portfolio index",
+    "Make the content structure resilient when imagery is unavailable"
+  ],
+  "constraints": [
+    "Do not fabricate awards, press coverage, client names, or project dimensions",
+    "Do not use remote photography or external fonts",
+    "Do not turn the project index into non-semantic clickable containers",
+    "Avoid generic agency phrases such as award-winning or world-class"
+  ],
+  "evaluation_focus": [
+    "Editorial hierarchy across featured work, index, practice, and notes",
+    "Project metadata clarity without visual evidence",
+    "Specific studio voice and inquiry path"
+  ]
+}
