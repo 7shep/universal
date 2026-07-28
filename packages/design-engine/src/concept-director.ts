@@ -182,14 +182,24 @@ function candidateText(candidate: ConceptCandidate): string {
 }
 
 function briefFitScore(brief: CreativeBrief, candidate: ConceptCandidate): number {
-  const briefTokens = tokens(briefText(brief));
+  const meaningfulBriefTokens = [...tokens(briefText(brief))].filter((token) => token.length > 4);
   const directionTokens = tokens(
-    `${candidate.centralIdea} ${candidate.narrativeStructure} ${candidate.briefAlignment.join(' ')}`
+    [
+      candidate.centralIdea,
+      candidate.narrativeStructure,
+      candidate.composition,
+      candidate.navigationPhilosophy,
+      candidate.typographyIntent,
+      candidate.imageryIntent
+    ].join(' ')
   );
-  const meaningfulBriefTokens = [...briefTokens].filter((token) => token.length > 4);
-  const matches = meaningfulBriefTokens.filter((token) => directionTokens.has(token)).length;
-  const explicitAlignment = candidate.briefAlignment.length;
-  return clampScore(2 + Math.min(5, matches * 0.7) + Math.min(3, explicitAlignment * 0.75));
+  const conceptMatches = meaningfulBriefTokens.filter((token) => directionTokens.has(token)).length;
+  const supportedAlignment = candidate.briefAlignment.filter((statement) => {
+    const alignmentTokens = [...tokens(statement)].filter((token) => token.length > 4);
+    const matches = alignmentTokens.filter((token) => meaningfulBriefTokens.includes(token)).length;
+    return matches >= Math.max(2, Math.ceil(alignmentTokens.length / 2));
+  }).length;
+  return clampScore(1 + Math.min(8, conceptMatches * 0.8) + Math.min(1, supportedAlignment * 0.25));
 }
 
 function distinctivenessScore(

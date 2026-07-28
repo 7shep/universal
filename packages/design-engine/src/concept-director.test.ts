@@ -259,6 +259,22 @@ test('candidates that miss the approved brief are disqualified', () => {
   );
 });
 
+test('provider-authored alignment cannot qualify an unrelated concept', () => {
+  const brief = approvedBrief();
+  const candidates = tiedCandidates(brief).map((candidate, index) => ({
+    ...candidate,
+    centralIdea: `${candidate.title} ${candidate.composition} museum catalogue for ancient marine fossils ${index}.`,
+    briefAlignment: [
+      brief.content.purpose.summary,
+      brief.content.audience.summary,
+      brief.content.pageContent.summary
+    ]
+  }));
+  assert.throws(
+    () => selectConceptDirection(brief, candidates),
+    /no concept candidate satisfies brief-fit/i
+  );
+});
 test('an explicit accessibility risk disqualifies a candidate', async () => {
   const brief = approvedBrief();
   const candidates = [...(await offlineCandidates(brief))];
