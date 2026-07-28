@@ -1,0 +1,24 @@
+{
+  "name": "@universal/local-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "universal-runtime": "./src/cli.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "start": "node --experimental-strip-types src/cli.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src test",
+    "test": "node --experimental-strip-types --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@universal/generation": "workspace:*",
+    "@universal/runtime-contracts": "workspace:*",
+    "@universal/design-engine": "workspace:*"
+  }
+}
