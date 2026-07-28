@@ -1,8 +1,11 @@
 blank_issues_enabled: false
 contact_links:
   - name: Security vulnerability
-    url: https://github.com/7shep/universal/security/advisories/new
-    about: Report vulnerabilities privately. Do not disclose security issues in a public issue.
+    url: https://github.com/7shep/universal/blob/main/SECURITY.md
+    about: Follow the private reporting instructions. Do not disclose security issues publicly.
   - name: Contribution guide
     url: https://github.com/7shep/universal/blob/main/CONTRIBUTING.md
     about: Review setup, scope, validation, and submission guidance before opening an issue.
+  - name: Roadmap and project status
+    url: https://github.com/7shep/universal/blob/main/ROADMAP.md
+    about: Check what is implemented, planned, and intentionally out of scope.

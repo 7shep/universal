@@ -4,9 +4,7 @@
 
 ## Linked issues
 
-<!-- Use "Closes #123" for every issue this PR fully resolves. -->
-
-Closes #
+<!-- Use "Closes #123" for an issue this PR fully resolves. Otherwise write "None". -->
 
 ## Validation
 
@@ -30,3 +28,4 @@ Closes #
 - [ ] Public setup, command, schema, or workflow changes are documented.
 - [ ] No secrets, tokens, private prompts, generated local files, or personal data are included.
 - [ ] Compatibility, migration, and follow-up work are described when relevant.
+- [ ] I read and followed `CONTRIBUTING.md` and `CODE_OF_CONDUCT.md`.

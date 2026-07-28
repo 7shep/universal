@@ -7,7 +7,8 @@ Universal is an AI Art Director for React applications. Its core principle is **
 ## Table of Contents
 
 - [Before You Start](#before-you-start)
-- [Ways to Contribute](#ways-to-contribute)
+- [Choose a Contribution](#choose-a-contribution)
+- [Definition of Done](#definition-of-done)
 - [Development Setup](#development-setup)
 - [Repository Guide](#repository-guide)
 - [Development Workflow](#development-workflow)
@@ -31,19 +32,49 @@ For anything beyond a small documentation or typo fix:
 
 Please keep pull requests focused. A small, complete change is easier to review and merge than a broad change that combines refactoring, features, and formatting.
 
-## Ways to Contribute
+## Choose a Contribution
 
-Good first contributions include:
+You do not need an open issue to report a bug or correct a small documentation error. For code,
+policy, prompt, or behavior changes, open or claim an issue first so the scope can be confirmed.
 
-- Reproducing and documenting a reported bug
-- Improving setup or troubleshooting documentation
-- Adding tests for existing MCP behavior
-- Fixing keyboard, focus, contrast, or reduced-motion issues
-- Improving types and error messages without changing public behavior
-- Adding a narrowly scoped composition or design-lint rule
-- Removing dead code or clarifying an internal package boundary
+Use this menu to find work that matches your experience:
 
-For help finding a starting point, browse issues labeled `good first issue`, `help wanted`, or `documentation` when those labels are available.
+| Area                 | Starter-sized contribution                                                           | Primary location                                  | Evidence to include                  |
+| -------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------- | ------------------------------------ |
+| Documentation        | Verify one setup flow on Windows, macOS, or Linux and fix inaccurate steps           | `README.md`, `docs/`                              | Commands and environment used        |
+| MCP behavior         | Add a regression test for an existing tool, invalid input, or error message          | `packages/design-mcp`                             | Focused test output                  |
+| Design contracts     | Improve validation for an existing public contract without inventing a parallel type | `packages/design-engine`                          | Passing and failing fixtures         |
+| Prompts              | Add coverage for an existing prompt builder or serialization edge case               | `packages/prompts`                                | Updated golden fixture and rationale |
+| Composition          | Add one focused composition rule with valid and invalid examples                     | `packages/composition-library`                    | Schema or unit tests                 |
+| Design critique      | Add a deterministic lint rule tied to a documented taste principle                   | `packages/design-linter`, `packages/design-taste` | Finding fixture and tests            |
+| Evaluation           | Add a representative benchmark brief or strengthen a deterministic check             | `packages/design-benchmark`, `benchmarks/`        | Before/after benchmark evidence      |
+| Accessibility        | Fix a specific keyboard, focus, contrast, semantics, or reduced-motion problem       | `apps/studio`, `apps/preview`, `packages/ui`      | Manual steps and visual evidence     |
+| Developer experience | Improve an actionable diagnostic or a package-level workflow                         | Owning package                                    | Reproduction before and after        |
+
+Good first changes are narrow enough to explain in one or two sentences and validate in one
+workspace. Avoid starting with a new cross-package abstraction, a new provider architecture, or an
+entire roadmap milestone.
+
+Browse [`good first issue`](https://github.com/7shep/universal/labels/good%20first%20issue) and
+[`help wanted`](https://github.com/7shep/universal/labels/help%20wanted) for maintainer-scoped work.
+If neither list contains a suitable task, open a
+[contribution question](https://github.com/7shep/universal/issues/new?template=contribution_question.yml)
+with your interests and proposed outcome.
+
+## Definition of Done
+
+Every contribution should:
+
+- solve one clearly stated problem in the narrowest owning workspace;
+- include tests when behavior, contracts, prompts, or rules change;
+- update public documentation when commands or interfaces change;
+- preserve compatibility or explain the intended break and migration;
+- pass the relevant package checks; and
+- avoid unrelated formatting, dependency, or refactoring changes.
+
+User-interface changes should also include desktop and mobile evidence, keyboard verification, and
+reduced-motion verification when motion is involved. A maintainer may request the full repository
+gate for changes that affect shared contracts or multiple workspaces.
 
 ## Development Setup
 
@@ -254,7 +285,9 @@ Maintainers may close pull requests that conflict with the product direction, du
 
 ## Reporting Bugs
 
-Open a [GitHub issue](https://github.com/7shep/universal/issues/new) and include:
+Open a
+[bug report](https://github.com/7shep/universal/issues/new?template=bug_report.yml)
+and include:
 
 - A clear description of the unexpected behavior
 - Steps to reproduce it from a clean checkout when possible
@@ -265,11 +298,14 @@ Open a [GitHub issue](https://github.com/7shep/universal/issues/new) and include
 
 Remove secrets, tokens, private prompts, and personal data from logs before posting them publicly.
 
-Security vulnerabilities should not be disclosed in a public issue. Use GitHub's private security reporting feature if it is enabled for the repository; otherwise contact the maintainer privately through the repository owner's published contact channel.
+Security vulnerabilities should not be disclosed in a public issue. Follow
+[SECURITY.md](SECURITY.md) to report them privately.
 
 ## Proposing Features
 
-Open an issue before implementing a substantial feature. Describe:
+Open a
+[feature request](https://github.com/7shep/universal/issues/new?template=feature_request.yml)
+before implementing a substantial feature. Describe:
 
 - The user problem, not only the proposed UI or API
 - Why it fits Universal's design-first scope
@@ -287,9 +323,10 @@ When a code change affects installation, configuration, scripts, MCP tool behavi
 
 ## Community Expectations
 
-Be respectful, specific, and constructive. Discuss ideas and code rather than people. Assume good intent, welcome contributors with different experience levels, and make technical disagreement useful by explaining evidence and tradeoffs.
-
-Harassment, discrimination, personal attacks, and disclosure of another person's private information are not acceptable. Project maintainers may edit, remove, or reject contributions and interactions that make the community unsafe or unproductive.
+Be respectful, specific, and constructive. Discuss ideas and code rather than people. Assume good
+intent, welcome contributors with different experience levels, and make technical disagreement
+useful by explaining evidence and tradeoffs. All project interactions are governed by the
+[Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 

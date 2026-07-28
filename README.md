@@ -1,77 +1,83 @@
-<h1 align="center">
-  <br>
-  Universal
-</h1>
+<h1 align="center">Universal</h1>
 
-<h4 align="center">An open-source AI Art Director for developers building React interfaces with coding agents.</h4>
+<h4 align="center">An open-source AI art director for React interfaces built with coding agents.</h4>
 
 <p align="center">
   <img src="https://img.shields.io/badge/node-22%2B-339933?style=flat-square&logo=node.js&logoColor=white" alt="Node 22+">
   <img src="https://img.shields.io/badge/pnpm-11%2B-F69220?style=flat-square&logo=pnpm&logoColor=white" alt="pnpm 11+">
   <img src="https://img.shields.io/badge/typescript-5.x-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript">
   <img src="https://img.shields.io/badge/react-19-61DAFB?style=flat-square&logo=react&logoColor=black" alt="React 19">
-</p>
-
-<p align="center">
-  <a href="https://github.com/7shep/universal/stargazers"><img src="https://img.shields.io/github/stars/7shep/universal?style=flat-square&label=stars" alt="Stars"></a>
-  <a href="https://github.com/7shep/universal/forks"><img src="https://img.shields.io/github/forks/7shep/universal?style=flat-square&label=forks" alt="Forks"></a>
-  <a href="https://github.com/7shep/universal/issues"><img src="https://img.shields.io/github/issues/7shep/universal?style=flat-square&label=issues" alt="Issues"></a>
-  <a href="https://github.com/7shep/universal/pulls"><img src="https://img.shields.io/github/issues-pr/7shep/universal?style=flat-square&label=pull%20requests" alt="Pull requests"></a>
   <a href="LICENSE.MD"><img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="MIT License"></a>
 </p>
 
 <p align="center">
-  Universal establishes composition and visual direction before implementation. It gives coding agents a structured design plan, reusable design rules, and a critique loop so generated interfaces feel deliberately art-directed instead of generically assembled.
+  <a href="https://github.com/7shep/universal/stargazers">Star Universal</a>
+  ·
+  <a href="docs/CODEX_MCP_SETUP.md">Connect to Codex</a>
+  ·
+  <a href="CONTRIBUTING.md">Contribute</a>
+  ·
+  <a href="ROADMAP.md">Roadmap</a>
 </p>
 
-<table>
-<tr>
-<td>
+Coding agents are good at producing functional React code, but they often fall back to the same
+visual defaults: generic heroes, repeated card grids, arbitrary gradients, and weak hierarchy.
+Universal adds a design-direction step before implementation and a critique step after it.
 
-**What it provides**
+It gives a compatible coding agent:
 
-- Structured design plans
-- Composition guidance
-- Reusable design rules
-- Anti-generic design critique
-- Local MCP integration
+- a structured creative brief and art direction;
+- composition, typography, color, motion, and accessibility constraints;
+- a versioned design plan that can be carried into implementation; and
+- an implementation review that finds generic or off-direction choices.
 
-**What it uses**
+Universal is for developers building React interfaces with coding agents who want deliberate
+design decisions without turning their workflow into a full visual editor.
 
-- React and Vite
-- TypeScript
-- pnpm workspaces
-- Turborepo
-- Model Context Protocol
+## How it works
 
-</td>
-</tr>
-</table>
+```text
+project context
+      ↓
+discovery questions → approved creative brief
+      ↓
+art direction → selected direction → Design Plan v2
+      ↓
+React implementation
+      ↓
+source and visual review → prioritized findings
+```
 
-## Project Status
+Universal exposes this workflow through a local
+[Model Context Protocol](https://modelcontextprotocol.io/) server. The Studio application provides
+a deterministic, credential-free way to inspect the current art-direction flow.
 
-Universal is in active early development. The monorepo, deterministic discovery and art-direction
-workflow, Design Plan v2 compiler, Studio and Preview applications, and local MCP server are in
-place. Studio demonstrates the complete design-direction sequence through a local fixture client
-and can be hosted with an injected MCP transport adapter. React project generation, runtime process
-supervision, and live preview integration remain architectural work.
+## What is ready today
 
-See the [architecture and ownership guide](docs/ARCHITECTURE.md), [roadmap](ROADMAP.md),
-[Studio guide](docs/STUDIO.md), and [product principles](PRODUCT.md) for the current boundaries and
-planned direction.
+Universal is in active early development. It is useful for experimenting with structured art
+direction and MCP-driven design workflows, but it is not yet a production-ready website generator.
 
-## Quick Start
+| Available                               | Still in progress                      |
+| --------------------------------------- | -------------------------------------- |
+| Discovery and creative-brief workflow   | React project generation               |
+| Art-direction development and selection | Runtime process supervision            |
+| Design Plan v2 compiler and validation  | Live generated-project preview         |
+| Design rules and taste policy           | End-to-end model-backed generation     |
+| Source-aware implementation critique    | Automated visual evidence capture      |
+| Local MCP server with 14 tools          | Packaging and one-command distribution |
+| Studio, Preview, and demo applications  | Stable public release guarantees       |
 
-Downstream product agents should use the canonical [orchestration API](docs/DOWNSTREAM_API.md)
-instead of importing MCP transport internals.
+The [roadmap](ROADMAP.md) tracks planned milestones. The
+[architecture guide](docs/ARCHITECTURE.md) distinguishes implemented behavior from planned
+boundaries.
 
-### Prerequisites
+## Try the local Studio
 
+### Requirements
+
+- Git
 - Node.js 22 or newer
 - pnpm 11 or newer
-- Git
-
-### Install and run
 
 ```bash
 git clone https://github.com/7shep/universal.git
@@ -80,9 +86,88 @@ pnpm install
 pnpm dev
 ```
 
-`pnpm dev` starts the Studio and Preview applications together.
+`pnpm dev` starts the Studio and Preview applications. Studio uses local deterministic fixtures, so
+exploring the design-direction sequence does not require model credentials.
 
-For a full production check:
+To connect the MCP server to Codex, follow the
+[step-by-step Codex setup guide](docs/CODEX_MCP_SETUP.md). Downstream products should use the
+[orchestration API](docs/DOWNSTREAM_API.md) instead of importing MCP transport internals.
+
+## MCP workflow
+
+The recommended Phase 2 art-director sequence is:
+
+```text
+start_art_direction
+  → get_discovery_questions
+  → submit_discovery_answers
+  → get_creative_brief
+  → approve_creative_brief
+  → develop_art_direction
+  → get_selected_direction
+  → create_design_plan_v2
+```
+
+`revise_creative_brief` supports review changes, and `get_art_direction_session` validates or
+inspects a serialized session. Every Phase 2 response returns the complete serialized session that
+must be passed to the next operation.
+
+Compatibility and policy tools are also available:
+
+- `create_design_plan` establishes visual and compositional direction.
+- `get_design_rules` returns category-specific design constraints.
+- `get_taste_profile` returns the active taste principles and anti-pattern guidance.
+- `review_implementation` critiques React and CSS against the intended direction.
+
+Build and test the MCP server independently:
+
+```bash
+pnpm --filter @universal/design-mcp build
+pnpm --filter @universal/design-mcp test
+```
+
+See the [MCP tool reference](docs/MCP_REFERENCE.md) for all tool inputs and outputs.
+
+## Repository map
+
+| Path                           | Responsibility                            |
+| ------------------------------ | ----------------------------------------- |
+| `apps/studio`                  | Design-direction workspace                |
+| `apps/preview`                 | Isolated preview surface                  |
+| `examples/demo-site`           | Example React/Vite interface              |
+| `packages/design-engine`       | Design contracts and orchestration        |
+| `packages/design-mcp`          | Local MCP server                          |
+| `packages/composition-library` | Page-composition schemas                  |
+| `packages/design-linter`       | Implementation critique contracts         |
+| `packages/design-taste`        | Versioned taste policy                    |
+| `packages/design-benchmark`    | Deterministic quality benchmark           |
+| `packages/prompts`             | Versioned prompt definitions and assembly |
+| `packages/shared`              | Cross-package domain utilities            |
+| `packages/ui`                  | Shared React primitives                   |
+
+Read [Architecture and ownership](docs/ARCHITECTURE.md) before changing cross-package contracts.
+
+## Contribute
+
+You do not need to understand the entire monorepo to contribute. Useful entry points include:
+
+| If you enjoy…           | A useful starting point                                                    |
+| ----------------------- | -------------------------------------------------------------------------- |
+| Documentation           | Verify a setup guide on your platform and report unclear or missing steps  |
+| Testing                 | Add a regression case around an existing MCP tool or validation boundary   |
+| React and accessibility | Improve keyboard, focus, contrast, or reduced-motion behavior              |
+| Design systems          | Propose a focused composition rule or anti-pattern with fixtures and tests |
+| Developer tooling       | Improve diagnostics, local setup, or package-level workflows               |
+| Evaluation              | Add a representative benchmark brief or strengthen deterministic checks    |
+
+Start with the [contribution guide](CONTRIBUTING.md). It explains how to choose a scoped change,
+where it belongs, what “done” means, and which checks to run. If you are unsure where an idea fits,
+open a [contribution question](https://github.com/7shep/universal/issues/new?template=contribution_question.yml)
+before writing a large patch.
+
+## Validation
+
+Run the full repository gate with:
 
 ```bash
 pnpm lint
@@ -92,98 +177,17 @@ pnpm format:check
 pnpm test
 ```
 
-`pnpm test` runs every maintained automated suite, including the MCP,
-design-linter, and design-taste policy tests.
+## Documentation
 
-## MCP Prototype
-
-Universal includes a local MCP server that exposes 14 tools to compatible coding agents.
-
-The Phase 2 Art Director workflow is the recommended path when a project needs discovery,
-provenance, explicit approval, concept selection, and a digest-bound Design Plan v2:
-
-```text
-start_art_direction
-  -> get_discovery_questions
-  -> submit_discovery_answers
-  -> get_creative_brief
-  -> approve_creative_brief
-  -> develop_art_direction
-  -> get_selected_direction
-  -> create_design_plan_v2
-```
-
-`revise_creative_brief` supports review changes, and `get_art_direction_session` validates or
-inspects a serialized session. Every Phase 2 response returns the complete serialized session that
-must be passed to the next operation.
-
-Four compatibility and policy tools remain available:
-
-- `create_design_plan` establishes the visual and compositional direction.
-- `get_design_rules` returns category-specific design constraints.
-- `get_taste_profile` returns the active versioned taste principles, anti-pattern guidance, and
-  direction-selection criteria.
-- `review_implementation` critiques React and CSS output against the intended direction.
-
-Build the server with:
-
-```bash
-pnpm --filter @universal/design-mcp build
-```
-
-See [Connect Universal MCP to Codex](docs/CODEX_MCP_SETUP.md) for configuration, verification,
-troubleshooting, and a complete demo workflow. The [MCP tool reference](docs/MCP_REFERENCE.md)
-documents request and response shapes for all 14 tools.
-
-## Workspace
-
-```text
-universal/
-|-- apps/
-|   |-- studio/                Design-direction workspace
-|   `-- preview/               Isolated generated-project preview
-|-- examples/
-|   `-- demo-site/             Example MCP-driven React site
-|-- packages/
-|   |-- composition-library/   Page-composition schemas
-|   |-- design-benchmark/      Offline deterministic quality benchmark
-|   |-- design-engine/         Design contracts and orchestration
-|   |-- design-linter/         Anti-generic critique interfaces
-|   |-- design-mcp/            Local MCP server
-|   |-- design-taste/          Versioned taste policy
-|   |-- prompts/               Versioned prompt assembly
-|   |-- shared/                Shared domain types and utilities
-|   `-- ui/                    Shared React UI primitives
-|-- docs/                      Setup and integration guides
-|   `-- STUDIO.md              Studio workflow and client integration
-|-- PRODUCT.md                 Product principles and boundaries
-`-- ROADMAP.md                 Milestones and future direction
-```
-
-## Scripts
-
-- `pnpm dev` starts all development tasks in parallel.
-- `pnpm build` builds every workspace package through Turborepo.
-- `pnpm lint` runs ESLint across the repository.
-- `pnpm typecheck` type-checks all workspaces.
-- `pnpm test` runs every maintained workspace test suite.
-- `pnpm format` formats supported files with Prettier.
-- `pnpm format:check` checks formatting without changing files.
-
-Use pnpm filters to target one workspace, for example:
-
-```bash
-pnpm --filter @universal/studio dev
-pnpm --filter @universal/design-mcp build
-```
-
-## Contributing
-
-Contributions are welcome. Bug reports, focused fixes, documentation improvements, design-rule proposals, and well-scoped feature discussions all help.
-
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening an issue or pull request. It covers local setup, project conventions, validation, commit guidance, and the review process.
-Use the [architecture and ownership guide](docs/ARCHITECTURE.md) to identify the narrowest workspace
-that owns a change.
+- [Product principles and non-goals](PRODUCT.md)
+- [Roadmap](ROADMAP.md)
+- [Architecture and ownership](docs/ARCHITECTURE.md)
+- [Studio workflow](docs/STUDIO.md)
+- [Connect Universal MCP to Codex](docs/CODEX_MCP_SETUP.md)
+- [MCP tool reference](docs/MCP_REFERENCE.md)
+- [Downstream orchestration API](docs/DOWNSTREAM_API.md)
+- [Security policy](SECURITY.md)
+- [Code of Conduct](CODE_OF_CONDUCT.md)
 
 ## License
 
