@@ -48,6 +48,23 @@ test('serves compatible public design tools over stdio', async () => {
   await client.connect(new StdioClientTransport({ command: process.execPath, args: [serverPath] }));
   try {
     const tools = await client.listTools();
+    for (const name of [
+      'start_art_direction',
+      'get_discovery_questions',
+      'submit_discovery_answers',
+      'get_creative_brief',
+      'revise_creative_brief',
+      'approve_creative_brief',
+      'develop_art_direction',
+      'get_selected_direction',
+      'create_design_plan_v2',
+      'get_art_direction_session'
+    ]) {
+      assert.ok(
+        tools.tools.some((tool) => tool.name === name),
+        `missing MCP tool ${name}`
+      );
+    }
     assert.ok(tools.tools.some((tool) => tool.name === 'create_design_plan'));
     assert.ok(tools.tools.some((tool) => tool.name === 'get_design_rules'));
     assert.ok(tools.tools.some((tool) => tool.name === 'get_taste_profile'));
