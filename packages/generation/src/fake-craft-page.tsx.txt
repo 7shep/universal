@@ -1,0 +1,11 @@
+import { processSteps } from '../data/content';
+
+export function CraftPage() {
+  return (
+    <main id="main">
+      <section className="intro"><p className="folio">Workshop / Toronto</p><h1>Designed to be opened.</h1><p>Every fastener is standard and every drawing is retained.</p>
+        <p>Repair promise / ten years.</p></section>
+      <section className="process" aria-labelledby="process-title"><h2 id="process-title">Four hands. Forty-seven checks.</h2><ol>{processSteps.map((step, index) => <li key={step}><span>0{index + 1}</span>{step}</li>)}</ol></section>
+    </main>
+  );
+}

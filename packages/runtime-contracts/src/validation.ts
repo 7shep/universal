@@ -301,7 +301,27 @@ function validateReview(value: unknown): RuntimeContractResult<ImplementationRev
     const status = (['pass', 'fail', 'human-review'] as const).find(
       (candidate) => candidate === item.status
     )!;
-    checks.push({ id: item.id, status, message: item.message });
+    const severity =
+      item.severity === undefined
+        ? undefined
+        : (['info', 'warning', 'error'] as const).find((candidate) => candidate === item.severity);
+    if (item.severity !== undefined && !severity)
+      return invalid(
+        'Implementation review check severity is invalid.',
+        `review.checks.${index}.severity`
+      );
+    if (item.evidence !== undefined && !record(item.evidence))
+      return invalid(
+        'Implementation review check evidence must be an object.',
+        `review.checks.${index}.evidence`
+      );
+    checks.push({
+      id: item.id,
+      status,
+      message: item.message,
+      ...(severity ? { severity } : {}),
+      ...(record(item.evidence) ? { evidence: item.evidence } : {})
+    });
   }
   const status = value.status === 'pass' ? ('pass' as const) : ('revision_recommended' as const);
   return { ok: true, value: { status, checkedAt: value.checkedAt, checks } };

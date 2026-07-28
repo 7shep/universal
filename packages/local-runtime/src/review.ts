@@ -1,5 +1,6 @@
 import type { GeneratedProject, ProjectGenerationRequest } from '@universal/generation';
 import type { ImplementationReviewRecord } from '@universal/runtime-contracts';
+import { analyzeReactArchitecture } from './architecture.ts';
 export function reviewGeneratedImplementation(
   project: GeneratedProject,
   request: ProjectGenerationRequest,
@@ -57,6 +58,22 @@ export function reviewGeneratedImplementation(
     'Generated code contains no outbound network call.',
     'Generated code attempts outbound network access.'
   );
+  const architecture = analyzeReactArchitecture(project, request);
+  checks.push({
+    id: 'architecture-summary',
+    status: 'pass',
+    severity: 'info',
+    message: 'React repository architecture was analyzed with the TypeScript compiler API.',
+    evidence: architecture.evidence
+  });
+  for (const finding of architecture.findings)
+    checks.push({
+      id: finding.id,
+      status: finding.severity === 'error' ? 'fail' : 'pass',
+      severity: finding.severity,
+      message: finding.message,
+      evidence: finding.evidence
+    });
   checks.push({
     id: 'visual-quality',
     status: 'human-review',

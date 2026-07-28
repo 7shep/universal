@@ -1,4 +1,5 @@
 export * from './errors.ts';
+export * from './architecture.ts';
 export * from './http-server.ts';
 export * from './preview-server.ts';
 export * from './process-supervisor.ts';

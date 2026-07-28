@@ -19,6 +19,7 @@
   "dependencies": {
     "@universal/generation": "workspace:*",
     "@universal/runtime-contracts": "workspace:*",
-    "@universal/design-engine": "workspace:*"
+    "@universal/design-engine": "workspace:*",
+    "typescript": "^5.8.3"
   }
 }

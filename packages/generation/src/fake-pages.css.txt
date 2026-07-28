@@ -1,0 +1,7 @@
+main { min-height: 100vh; overflow: hidden; }
+.hero, .intro, .material, .ledger, .process { padding: clamp(4rem, 10vw, 10rem) clamp(1rem, 7vw, 8rem); }
+h1, h2 { font-family: Georgia, serif; font-weight: 400; letter-spacing: -.05em; }
+h1 { max-width: 12ch; font-size: clamp(3rem, 9vw, 8rem); line-height: .9; }
+.folio { color: var(--signal); letter-spacing: .14em; text-transform: uppercase; }
+.ledger article, dl div, .process li { border-top: 1px solid #4a4943; padding: 1.25rem 0; }
+@media (max-width: 720px) { .masthead, footer { align-items: flex-start; flex-direction: column; gap: 1rem; } }

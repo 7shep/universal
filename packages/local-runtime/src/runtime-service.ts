@@ -283,7 +283,26 @@ export class RuntimeService {
       await this.store.putBuild(build);
       operation = await this.transition(operation, 'reviewing', { buildId });
       const review = reviewGeneratedImplementation(generated.project, request, this.now());
-      build = { ...build, review, updatedAt: this.now() };
+      const architectureDiagnostics = review.checks
+        .filter(
+          (check) =>
+            check.id.startsWith('ARCH_') &&
+            (check.status === 'fail' || check.severity === 'warning')
+        )
+        .map((check) => ({
+          code: check.id,
+          stage: 'review' as const,
+          severity: check.status === 'fail' ? ('error' as const) : ('warning' as const),
+          message: check.message,
+          ...(check.evidence ? { output: JSON.stringify(check.evidence) } : {})
+        }));
+      build = {
+        ...build,
+        review,
+        diagnostics: [...build.diagnostics, ...architectureDiagnostics],
+        updatedAt: this.now()
+      };
+      await this.store.putBuild(build);
       await this.store.event('review.updated', build.updatedAt, {
         projectId: request.projectId,
         operationId: operation.id,
