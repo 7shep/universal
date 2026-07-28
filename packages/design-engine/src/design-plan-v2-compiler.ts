@@ -126,21 +126,29 @@ function assertProvenanceTrust(
         !decision ||
         decision.source !== 'user' ||
         decision.requiresConfirmation ||
-        decision.disposition === 'assumed'
+        !['explicit', 'preferred'].includes(decision.disposition)
       )
         fail(
           'invalid-provenance',
           path,
-          'User-decision provenance must reference a confirmed user decision in the brief.'
+          'User-decision provenance must reference a confirmed explicit or preferred user decision in the brief.'
         );
     } else if (source.sourceKind === 'supplied-evidence') {
       const referenceMatch = /^brief-reference:(\d+)$/.exec(source.sourceId);
       const referenceIndex = referenceMatch ? Number(referenceMatch[1]) : -1;
-      if (!decision && (referenceIndex < 0 || referenceIndex >= brief.content.references.length))
+      const trustedDecision =
+        decision &&
+        ['user', 'repository'].includes(decision.source) &&
+        ['explicit', 'preferred'].includes(decision.disposition) &&
+        !decision.requiresConfirmation;
+      if (
+        !trustedDecision &&
+        (referenceIndex < 0 || referenceIndex >= brief.content.references.length)
+      )
         fail(
           'invalid-provenance',
           path,
-          'Supplied evidence must reference a brief decision or brief-reference:<index>.'
+          'Supplied evidence must reference confirmed user/repository evidence or brief-reference:<index>.'
         );
     } else if (source.sourceKind === 'approved-assumption') {
       if (
@@ -155,13 +163,12 @@ function assertProvenanceTrust(
         );
     } else if (
       source.sourceKind === 'universal-recommendation' &&
-      source.sourceId !== evaluation.selectedDirection.id &&
-      !source.sourceId.startsWith('universal:')
+      source.sourceId !== evaluation.selectedDirection.id
     ) {
       fail(
         'invalid-provenance',
         path,
-        'Universal recommendations must reference the selected direction or an explicit universal:* policy.'
+        'Universal recommendations must reference the digest-bound selected direction.'
       );
     }
   }

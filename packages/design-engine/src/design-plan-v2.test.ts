@@ -94,6 +94,28 @@ test('rejects invalid decision provenance at the trust boundary', () => {
   expectCompilerError(() => compile(fixtureCreativeBrief, draft), 'invalid-provenance');
 });
 
+test('rejects provider attempts to forge provenance classifications', () => {
+  const delegatedAsUser = structuredClone(fixtureDesignPlanV2Draft);
+  const delegated = delegatedAsUser.decisionProvenance.find(
+    (item) => item.id === 'prov:direction'
+  )!;
+  delegated.sourceKind = 'user-decision';
+  delegated.sourceId = 'decision:typography:1';
+  expectCompilerError(() => compile(fixtureCreativeBrief, delegatedAsUser), 'invalid-provenance');
+
+  const modelAsEvidence = structuredClone(fixtureDesignPlanV2Draft);
+  const direction = modelAsEvidence.decisionProvenance.find(
+    (item) => item.id === 'prov:direction'
+  )!;
+  direction.sourceKind = 'supplied-evidence';
+  direction.sourceId = 'decision:imagery:1';
+  expectCompilerError(() => compile(fixtureCreativeBrief, modelAsEvidence), 'invalid-provenance');
+
+  const inventedPolicy = structuredClone(fixtureDesignPlanV2Draft);
+  const policy = inventedPolicy.decisionProvenance.find((item) => item.id === 'prov:direction')!;
+  policy.sourceId = 'universal:invented-policy';
+  expectCompilerError(() => compile(fixtureCreativeBrief, inventedPolicy), 'invalid-provenance');
+});
 test('rejects missing page requirements', () => {
   const draft = structuredClone(fixtureDesignPlanV2Draft);
   draft.sectionIntentions = draft.sectionIntentions.filter(
