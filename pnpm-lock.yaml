@@ -184,6 +184,18 @@ importers:
         specifier: workspace:*
         version: link:../design-engine
 
+  packages/local-runtime:
+    dependencies:
+      '@universal/design-engine':
+        specifier: workspace:*
+        version: link:../design-engine
+      '@universal/generation':
+        specifier: workspace:*
+        version: link:../generation
+      '@universal/runtime-contracts':
+        specifier: workspace:*
+        version: link:../runtime-contracts
+
   packages/prompts: {}
 
   packages/runtime-contracts: {}
