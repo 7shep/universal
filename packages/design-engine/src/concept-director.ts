@@ -94,7 +94,7 @@ function validateCandidate(value: unknown, index: number): ConceptCandidate {
   };
 }
 
-function validateProviderOutput(
+export function validateConceptProviderOutput(
   output: unknown,
   expectedCount: number
 ): readonly ConceptCandidate[] {
@@ -478,6 +478,6 @@ export async function developConceptDirection(
   if (!Number.isSafeInteger(candidateCount) || candidateCount < MINIMUM_CANDIDATES)
     throw new Error(`candidateCount must be an integer of at least ${MINIMUM_CANDIDATES}.`);
   const output = await provider.developConcepts({ brief, candidateCount });
-  const candidates = validateProviderOutput(output, candidateCount);
+  const candidates = validateConceptProviderOutput(output, candidateCount);
   return selectConceptDirection(brief, candidates);
 }

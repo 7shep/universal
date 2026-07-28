@@ -1,0 +1,231 @@
+import { useEffect, useState } from 'react';
+
+const knownRoutes = ['/', '/keyboards/monolith-75', '/craft'] as const;
+type Route = (typeof knownRoutes)[number];
+const currentRoute = (): Route =>
+  knownRoutes.find((route) => route === window.location.pathname) ?? '/';
+function go(path: Route) {
+  window.history.pushState({}, '', path);
+  window.dispatchEvent(new PopStateEvent('popstate'));
+}
+function Link({ to, children }: { to: Route; children: React.ReactNode }) {
+  return (
+    <a
+      href={to}
+      onClick={(event) => {
+        event.preventDefault();
+        go(to);
+      }}
+    >
+      {children}
+    </a>
+  );
+}
+function Navigation({ route }: { route: Route }) {
+  return (
+    <header className="masthead">
+      <Link to="/">
+        <span className="wordmark">STILL / FORM</span>
+      </Link>
+      <nav aria-label="Primary">
+        <Link to="/">Index</Link>
+        <Link to="/keyboards/monolith-75">Monolith 75</Link>
+        <Link to="/craft">Craft</Link>
+      </nav>
+      <span
+        className="route-mark"
+        aria-label={`Current page: ${route === '/' ? 'Home' : route.includes('keyboards') ? 'Product' : 'Craft'}`}
+      >
+        {route === '/' ? '01' : route.includes('keyboards') ? '02' : '03'} / 03
+      </span>
+    </header>
+  );
+}
+function KeyboardFigure() {
+  return (
+    <figure className="product-figure">
+      <div
+        className="keyboard"
+        role="img"
+        aria-label="Monolith 75 mechanical keyboard in dark anodized aluminum with bone keycaps"
+      >
+        {Array.from({ length: 60 }, (_, index) => (
+          <i key={index} />
+        ))}
+      </div>
+      <figcaption>
+        <span>Object 001</span> Black anodized aluminum / Bone PBT / 2.4 kg
+      </figcaption>
+    </figure>
+  );
+}
+function Home() {
+  return (
+    <main id="main">
+      <section className="hero">
+        <p className="folio">Mechanical works · Toronto</p>
+        <h1>
+          <span>Built to</span>
+          <span>outlast the</span>
+          <span>desk around it.</span>
+        </h1>
+        <p className="lede">
+          A precisely tuned mechanical instrument, machined for daily work and designed to remain
+          serviceable for decades.
+        </p>
+        <Link to="/keyboards/monolith-75">Explore the flagship ↗</Link>
+      </section>
+      <KeyboardFigure />
+      <section className="material">
+        <p className="folio">Material study / 6063</p>
+        <h2>Mass where it matters. Restraint everywhere else.</h2>
+        <div>
+          <p>
+            The case begins as a 4.8 kg billet and is cut in two patient passes. The remaining mass
+            gives every keystroke a quiet authority.
+          </p>
+          <dl>
+            <div>
+              <dt>Case</dt>
+              <dd>6063 aluminum</dd>
+            </div>
+            <div>
+              <dt>Mount</dt>
+              <dd>Leaf spring</dd>
+            </div>
+            <div>
+              <dt>Warranty</dt>
+              <dd>10 years</dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+      <section className="light">
+        <p className="folio">Tuning note / 02</p>
+        <h2>The sound of less.</h2>
+        <p>
+          Poron, silicone, and a tuned brass weight remove hollowness without erasing the character
+          of the switch.
+        </p>
+      </section>
+    </main>
+  );
+}
+function Product() {
+  return (
+    <main id="main">
+      <section className="intro">
+        <p className="folio">Configure / Monolith 75</p>
+        <h1>A 75% instrument, tuned to you.</h1>
+        <p>
+          Choose the plate, switch character, and keycap surface. The architecture remains
+          repairable and every wear component is replaceable.
+        </p>
+      </section>
+      <KeyboardFigure />
+      <section className="ledger">
+        <h2>Configuration ledger</h2>
+        {[
+          ['01 / Plate', 'Carbon fibre', 'Dry, quick return'],
+          ['02 / Switch', 'Linear 55', 'Quiet, progressive weight'],
+          ['03 / Keycap', 'Bone PBT', 'Fine texture, dye-sublimated']
+        ].map(([label, value, note]) => (
+          <div className="row" key={label}>
+            <span>{label}</span>
+            <strong>{value}</strong>
+            <p>{note}</p>
+          </div>
+        ))}
+      </section>
+      <section className="specs">
+        <h2>Measured, not embellished.</h2>
+        <dl>
+          <div>
+            <dt>Layout</dt>
+            <dd>75%, exploded arrows</dd>
+          </div>
+          <div>
+            <dt>Dimensions</dt>
+            <dd>326 × 145 × 32 mm</dd>
+          </div>
+          <div>
+            <dt>Lead time</dt>
+            <dd>6–8 weeks</dd>
+          </div>
+          <div>
+            <dt>Price</dt>
+            <dd>From CAD $890</dd>
+          </div>
+        </dl>
+      </section>
+    </main>
+  );
+}
+function Craft() {
+  return (
+    <main id="main">
+      <section className="intro">
+        <p className="folio">Workshop / Toronto</p>
+        <h1>Designed to be opened.</h1>
+        <p>
+          A lasting object is one its owner can understand. Every fastener is standard, every wear
+          part replaceable, every drawing retained.
+        </p>
+      </section>
+      <section className="exploded" aria-label="Exploded assembly diagram">
+        <span>Keycaps</span>
+        <div className="layer keys" />
+        <span>Plate + PCB</span>
+        <div className="layer plate" />
+        <span>Chassis</span>
+        <div className="layer chassis" />
+      </section>
+      <section className="process">
+        <h2>Four hands. Forty-seven checks.</h2>
+        <ol>
+          {[
+            'Machine and hand-finish every surface.',
+            'Measure the plate and tune mounting leaves.',
+            'Assemble, flash, and test every socket.',
+            'Record the build and preserve its service history.'
+          ].map((step, index) => (
+            <li key={step}>
+              <span>0{index + 1}</span>
+              {step}
+            </li>
+          ))}
+        </ol>
+      </section>
+      <section className="light repair">
+        <p className="folio">Repair promise / 10 years</p>
+        <h2>Keep it in use.</h2>
+        <p>
+          We stock wear parts, publish service drawings, and repair every keyboard we have
+          made—regardless of owner.
+        </p>
+      </section>
+    </main>
+  );
+}
+export default function App() {
+  const [route, setRoute] = useState<Route>(currentRoute);
+  useEffect(() => {
+    const update = () => setRoute(currentRoute());
+    window.addEventListener('popstate', update);
+    return () => window.removeEventListener('popstate', update);
+  }, []);
+  return (
+    <>
+      <a className="skip" href="#main">
+        Skip to content
+      </a>
+      <Navigation route={route} />
+      {route === '/' ? <Home /> : route.includes('keyboards') ? <Product /> : <Craft />}
+      <footer>
+        <strong>STILL / FORM</strong>
+        <p>Instruments for considered work.</p>
+        <a href="mailto:service@example.invalid">Service desk</a>
+      </footer>
+    </>
+  );
+}
