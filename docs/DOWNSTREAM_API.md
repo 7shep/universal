@@ -1,8 +1,10 @@
-# Downstream orchestration API
+# Downstream APIs
 
-`@universal/design-engine` is the single domain boundary for plan development and validation. The
-generator, local runtime, Studio, and Preview should import contracts from this package and must not
-import `@universal/design-mcp` internals.
+Universal exposes three public Phase 3 boundaries: creative planning in
+`@universal/design-engine`, provider-neutral project generation in `@universal/generation`, and
+runtime/browser exchange records in `@universal/runtime-contracts`. Trusted host code may import
+`@universal/local-runtime`. Consumers should import the narrowest owner and must not import
+`@universal/design-mcp` internals.
 
 ## Phase 1 compatibility: develop a plan
 
@@ -267,17 +269,61 @@ untrusted provenance, selected-direction changes, and invalid final plans. Persi
 `DesignPlanV2.source` block and `digest`; they are the audit trail for downstream generation and
 review.
 
+## Phase 3: generate a validated React project
+
+Use `createProjectGenerationRequest` to bind an approved Design Plan v2 to opaque project and
+revision IDs. The request captures the approved brief, approval digest, selected direction, plan
+digest/version, creative context, implementation constraints, and decision provenance. Browser
+bundles should use the browser-safe export.
+
+```ts
+import { createProjectGenerationRequest } from '@universal/generation/browser';
+
+const request = createProjectGenerationRequest({
+  projectId: 'project:keyboard',
+  revisionId: 'revision:keyboard:1',
+  designPlan: approvedPlan
+});
+```
+
+Trusted Node code can inject a `ReactGenerationProvider` into `ReactGenerator`. Provider output is
+untrusted and must pass `validateProviderProject`; runtime-owned files, path aliases, quotas,
+unexpected binary types, case collisions, and secret-bearing content fail closed.
+`DeterministicReactProvider` is the credential-free development and golden-test default.
+
+## Phase 3 runtime: `@universal/runtime-contracts` and `@universal/local-runtime`
+
+Browser clients exchange only `@universal/runtime-contracts` DTOs and validate deserialized state
+and preview descriptors. They do not import runtime implementation. The trusted process constructs
+`RuntimeService`, then optionally exposes it through `RuntimeHttpServer`.
+
+The principal versioned commands and queries are:
+
+- `POST /api/v1/bootstrap`
+- `GET /api/v1/state`
+- `POST /api/v1/projects/generate` with `Idempotency-Key`
+- `GET /api/v1/operations/:id`
+- `POST /api/v1/operations/:id/cancel`
+- `GET /api/v1/projects/:id/preview`
+- `GET /api/v1/events?after=<event-id>`
+
+Every response that crosses a trust boundary is validated. Preview descriptors are accepted only
+when loopback-only and bound to the selected project's latest successful build and revision. The
+browser never receives raw provider credentials or filesystem/process authority.
+
 ## Validate untrusted data
 
-Use `design.validatePlan(value)` or `validateDesignPlan(value)` before accepting provider, disk, or
-transport data. Additional validators cover the stable downstream DTOs:
+Use `design.validatePlan(value)` or `validateDesignPlan(value)` before accepting Phase 1 provider,
+disk, or transport data. Design Plan v2 has its own strict validator. The generation and runtime
+packages validate their own serialized boundaries:
 
-- `validateDesignPlanBrief`
-- `validateDesignDirection`
-- `validateProjectGenerationRequest`
-- `validateDesignReviewContext`
+- `validateDesignPlanBrief`, `validateDesignDirection`, and `validateDesignReviewContext` for legacy
+  downstream DTOs.
+- `validateDesignPlanV2` for the canonical approved creative input.
+- `validateProjectGenerationRequest` and `validateProviderProject` for generation input/output.
+- `validateRuntimeState` and `validatePreviewDescriptor` for persisted/browser runtime data.
 
-Each validator returns a discriminated `Result` with an actionable `path` on failure.
+Each validator returns a discriminated result with an actionable property `path` on failure.
 
 ## Serialized fixtures
 
@@ -296,16 +342,18 @@ Contract tests validate every fixture and require byte-for-byte serialization ro
 
 ## Consumer map
 
-| Consumer       | Public contracts and functions                                                                                        |
-| -------------- | --------------------------------------------------------------------------------------------------------------------- |
-| Generator      | `ProjectGenerationRequest`, `DesignPlan`, `DesignPlanV2`, prompt builders, `GeneratedProject`                         |
-| Local runtime  | `DesignOrchestrator`, Phase 1 session contracts, Phase 2 discovery/brief state, validation and persistence boundaries |
-| Studio         | `DiscoverySession`, `CreativeBrief`, `ConceptDirectionSelection`, `DesignPlanV2`, validation functions                |
-| MCP            | Engine discovery, concept, compiler, digest, and validation APIs behind transport/session adapters                    |
-| Benchmark      | Approved brief, concept selection, Design Plan v2 evidence, and deterministic art-direction preflight                 |
-| Preview/review | `DesignReviewContext`, `ProjectFile`, `VisualEvidence`, review result types                                           |
+| Consumer      | Imports and public boundaries                                                                         |
+| ------------- | ----------------------------------------------------------------------------------------------------- |
+| Studio        | `design-engine`, `generation/browser`, `runtime-contracts`, shared UI                                 |
+| Preview       | `runtime-contracts`                                                                                   |
+| Generator     | Design Plan v2 plus `generation` request/provider contracts                                           |
+| Local runtime | `generation`, `runtime-contracts`, provider adapters injected by trusted startup code                 |
+| MCP           | `design-engine` and design-policy packages; runtime/generation only from golden-test development code |
+| Benchmark     | Workflow evidence plus explicit rendered/human-review evidence contracts                              |
 
-The Phase 1 MCP handler preserves its existing tool name, schema, and plan response shape. It
-translates the legacy flat `recentSignatures` field into the explicit orchestration session and
-returns the plan. Phase 2 MCP tools add their own serialized Art Director session and must not be
-reimplemented by importing MCP internals into a downstream consumer.
+The Phase 1 MCP handler preserves its existing tool name, schema, and plan response shape. Phase 2
+MCP tools add their own serialized Art Director session and must not be reimplemented by importing
+MCP internals into a downstream consumer.
+
+See [Phase 3 local runtime](PHASE3_RUNTIME.md) for setup, security boundaries, lifecycle, errors,
+testing, and current limitations.

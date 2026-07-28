@@ -1,14 +1,16 @@
 # Architecture and Ownership
 
-Universal is a pnpm monorepo for turning a design brief into a structured, art-directed React
-implementation workflow. This guide describes code that exists on `main`; roadmap milestones are not
-presented as shipped behavior.
+Universal is a local-first pnpm monorepo for turning explicit discovery decisions into an approved
+Design Plan v2, a validated React project, and an isolated production preview. This guide describes
+code that exists on `main`; roadmap milestones are not presented as shipped behavior.
 
 ## Current system boundary
 
-Universal currently has two implemented local paths: the Phase 1 compatibility planning/review
-path and the Phase 2 Art Director path. Phase 2 adds deterministic discovery, an explicitly
-approved creative brief, concept development, direction selection, and Design Plan v2 compilation.
+Universal has three implemented local paths: the Phase 1 compatibility planning/review path, the
+Phase 2 Art Director path, and the Phase 3 generated-project path. Phase 2 adds deterministic
+discovery, explicit creative-brief approval, concept development, direction selection, and Design
+Plan v2 compilation. Phase 3 binds that approved plan to provider-neutral generation, a trusted
+loopback runtime, a fixed React/Vite template, a production build, and an isolated preview.
 
 ```mermaid
 flowchart LR
@@ -40,23 +42,29 @@ Director orchestrator owns session phase transitions, request idempotency, and b
 approved briefs and downstream artifacts; discovery policy, concept selection, and plan contracts
 remain in `design-engine`.
 
-Studio implements the discovery, brief-review, direction, and plan presentation stages. Its default
-`createLocalArtDirectorClient()` is an in-browser fixture/demo client. A host can instead inject an
-`ArtDirectorClient`, including one built with `createMcpArtDirectorClient()` and an
-`ArtDirectorMcpTransport`. The browser application does not connect directly to stdio MCP. Preview
-still renders a static empty state and does not start projects or load generated URLs. Local runtime,
-generated-project materialization, build supervision, live reload, and revision loops remain
-architectural work.
+Studio implements discovery, brief review, direction selection, Design Plan v2 presentation, and
+generation/build lifecycle UI. Its deterministic local Art Director and runtime adapters remain
+available for isolated UI development. A host can inject MCP and runtime-backed adapters; the
+browser application never connects to stdio MCP, writes project files, installs dependencies,
+spawns processes, or receives provider credentials.
+
+Preview queries validated runtime records and accepts only a loopback descriptor bound to the
+selected project's latest successful build and revision. It loads that descriptor in a scripts-only
+sandboxed iframe, retains the last successful build when a newer attempt fails, and never accepts an
+arbitrary URL.
 
 ## Workspace responsibilities
 
 | Workspace                      | Owns                                                                                                                                             | Boundary or current status                                                                  |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
-| `apps/studio`                  | Phase 2 discovery, brief approval, direction review, and Design Plan v2 presentation UI plus injectable client adapters.                         | Defaults to local fixture data; does not generate code or manage runtime lifecycle.         |
-| `apps/preview`                 | React shell intended to present preview lifecycle UI.                                                                                            | Currently a static empty state; it does not load or supervise generated apps.               |
+| `apps/studio`                  | Discovery, approvals, direction/plan presentation, and generation/build lifecycle UI plus deterministic and injected adapters.                   | Browser-only and unprivileged; runtime records remain authoritative.                        |
+| `apps/preview`                 | Runtime-derived preview states and scripts-only iframe for a bound successful build.                                                             | Rejects arbitrary or stale descriptors and has no filesystem/process authority.             |
 | `examples/demo-site`           | Standalone React/Vite example for the MCP-guided workflow.                                                                                       | Not a reusable package or runtime template.                                                 |
 | `packages/design-engine`       | Canonical Phase 1 and Phase 2 contracts, discovery policy, creative briefs, concept selection, plan compilation, validation, and downstream API. | Provider and transport concerns stay outside the engine.                                    |
 | `packages/design-mcp`          | Stdio server, 14 tool schemas, MCP envelopes, and serialized Art Director session orchestration.                                                 | Owns transport/session state transitions, not domain policy or privileged runtime behavior. |
+| `packages/generation`          | Digest-bound generation contracts, provider port, schema/quota/secret validation, and deterministic React provider.                              | Does not write files, install packages, or control runtime configuration.                   |
+| `packages/runtime-contracts`   | JSON-safe project, revision, operation, build, review, preview, event records and validators.                                                    | No storage, networking, process, or UI implementation.                                      |
+| `packages/local-runtime`       | Session boundary, provider configuration, records, workspaces, locked builds, deterministic review, preview, and recovery.                       | Trusted loopback process; does not invent creative policy or provide hosting.               |
 | `packages/prompts`             | Versioned provider-neutral definitions, interpolation, rendering, serialization, and fixtures.                                                   | No provider-specific chat formatting or transport.                                          |
 | `packages/composition-library` | Hero/navigation catalogs, contracts, signatures, validation, diversity scoring, and selection primitives.                                        | No React rendering or MCP handling.                                                         |
 | `packages/design-linter`       | Deterministic source/evidence review, structural-signature extraction, and actionable findings.                                                  | Does not inspect screenshot pixels or mutate source.                                        |
@@ -64,6 +72,34 @@ architectural work.
 | `packages/design-benchmark`    | Offline benchmark schemas, fixtures, runners, checks, scoring, and reports.                                                                      | Evaluation tooling, not part of an MCP request.                                             |
 | `packages/shared`              | Small stable cross-package domain types and `Result` utilities.                                                                                  | Not a catch-all for code without a clear owner.                                             |
 | `packages/ui`                  | Small shared React primitives for Universal applications.                                                                                        | No engine policy or application state.                                                      |
+
+## Phase 3 generated-project flow
+
+```mermaid
+flowchart LR
+  U[User] --> ST[Studio]
+  ST -->|approved brief and direction| DP[Design Plan v2]
+  DP -->|digest-bound request| RT[trusted local runtime]
+  RT --> G[provider-neutral React generator]
+  G -->|validated source manifest| WS[immutable workspace revision]
+  WS -->|frozen offline install| B[production build]
+  B --> RV[deterministic implementation review]
+  RV --> PS[separate loopback preview origin]
+  PS --> PV[Preview sandboxed iframe]
+  RT -->|projects, operations, builds, events| ST
+  RT -->|bound preview descriptor| PV
+```
+
+The fixed generated-project template is `packages/local-runtime/template`; it is not
+`examples/demo-site` and cannot be authored by a provider. Model output is limited to validated
+source files/assets. It cannot choose dependencies, scripts, Vite/TypeScript configuration, preview
+policy, shell commands, or filesystem destinations.
+
+The runtime persists and validates project, revision, operation, build, review, preview, and event
+records. Mutations require an idempotency key. A restart marks active records interrupted.
+Cancellation and timeout terminate the process tree. A new build becomes visible only after
+generation, materialization, locked install, production build, and deterministic review succeed. A
+failed newer attempt leaves the prior ready build active.
 
 ## Current request flows
 
@@ -121,30 +157,24 @@ analyze image files.
 Dependencies point from applications and transport toward domain owners:
 
 ```text
-apps/studio --------------------> design-engine
-      `-------------------------> ui
+apps/studio --------------------> design-engine, generation/browser, runtime-contracts, ui
+apps/preview -------------------> runtime-contracts
+local-runtime ------------------> generation, runtime-contracts
+generation ---------------------> design-engine
+runtime-contracts --------------> no internal workspace package
 
-design-mcp ---------------------> design-engine
-      |-------------------------> design-linter
-      |-------------------------> composition-library
-      |-------------------------> design-taste
-      |-------------------------> prompts
-      `-------------------------> shared
+design-mcp ---------------------> design-engine and design-policy packages
+      `-------------------------> generation/local-runtime only in golden-test dev dependencies
 
-design-engine ------------------> composition-library ---> shared
-      |-------------------------> design-linter ----------> design-taste
-      |-------------------------> design-taste
-      |-------------------------> prompts
-      `-------------------------> shared
-
-apps/preview, examples/demo-site, design-benchmark,
-design-taste, prompts, shared     (no internal workspace dependencies)
+design-engine ------------------> composition-library, design-linter, design-taste, prompts, shared
+design-benchmark ---------------> no runtime authority
 ```
 
-`apps/studio` also defines a transport-shaped client adapter, but it does not import MCP package
-internals. A host supplies the transport implementation. `packages/ui` has React peer dependencies
-but no domain-package dependency. Avoid reversing these arrows: domain packages should not import
-MCP, Studio, or Preview.
+`apps/studio` defines transport-shaped adapters but does not import MCP or runtime implementation.
+A host supplies those implementations. Runtime contracts have no dependency on runtime
+implementation. Browser-safe generation request construction is exported separately from
+Node/provider behavior. `packages/ui` has React peer dependencies but no domain-package dependency.
+Avoid reversing these arrows: domain packages must not import MCP, Studio, Preview, or local runtime.
 
 ## Implemented and planned boundaries
 
@@ -163,23 +193,27 @@ Implemented now:
 - Versioned prompt assembly and taste policy.
 - Deterministic implementation review.
 - Four Phase 1 compatibility/policy MCP tools and ten Phase 2 Art Director tools.
-- A multi-stage Studio UI with a local fixture client and injectable MCP transport adapter.
-- Static Preview and demo React applications.
-- Offline design-quality benchmark tooling.
+- A multi-stage Studio UI with deterministic and injectable MCP/runtime adapters.
+- Provider-neutral, digest-bound React generation with a nontrivial offline default provider.
+- A trusted loopback runtime with validated immutable workspaces, frozen installs, process-tree
+  supervision, structured recovery, and separate-origin static preview serving.
+- A Preview application that validates runtime-issued descriptors and preserves last-known-good.
+- Offline design-quality benchmark tooling with explicit desktop/mobile rendered evidence and
+  independent negative detection for every Phase 3 dimension.
 
-Architectural placeholders or future work:
+Deferred boundaries:
 
-- A trusted local runtime for generation, filesystem writes, builds, and preview serving.
-- Model-provider adapters and credential handling.
-- Wiring the browser Studio to a host-provided MCP transport in the shipped application.
-- Studio-to-runtime project generation after direction selection.
-- Generated-project materialization and process supervision.
-- Preview URL loading, iframe isolation, reload recovery, and lifecycle errors.
-- Automated section revision and regeneration.
+- Hosted backend, deployment, public preview URLs, and multi-user authentication.
+- Arbitrary provider-authored dependencies, scripts, configuration, or shell commands.
+- A production live-provider adapter; trusted runtime injection is the implemented boundary.
+- OS/container sandboxing and a complete Windows/macOS/Linux end-to-end matrix.
+- Automated section revision/regeneration, visual variants, and collaborative editing.
+- Runtime-hosted UI assets, WebSockets, and automatic retention beyond safe abandoned-work cleanup.
 
-For the proposed runtime boundary and threat model, see
-[ADR 0001: Local Runtime Architecture](adr/0001-local-runtime-architecture.md). For code using current
-engine behavior, see [Downstream API](DOWNSTREAM_API.md).
+See [Phase 3 local runtime](PHASE3_RUNTIME.md),
+[ADR 0001](adr/0001-local-runtime-architecture.md),
+[ADR 0002](adr/0002-phase3-runtime-protocol-narrowing.md), and
+[Downstream API](DOWNSTREAM_API.md).
 
 ## Choosing the owning workspace
 
@@ -195,10 +229,17 @@ Choose the narrowest package that can express and test the behavior:
   `composition-library`.
 - Change review detection or finding construction in `design-linter`.
 - Change a principle, contextual anti-pattern, or rationale policy in `design-taste`.
-- Change evaluation fixtures, checks, scores, or reports in `design-benchmark`.
+- Change evaluation fixtures, rendered-evidence contracts, checks, scores, or reports in
+  `design-benchmark`.
+- Change generation request/output contracts, provider validation, or deterministic source in
+  `generation`.
+- Change runtime records exchanged with browser clients in `runtime-contracts`.
+- Change filesystem, process, provider-credential, HTTP-session, build, or preview authority in
+  `local-runtime`.
 - Add a shared type only when at least two domain owners genuinely exchange it.
-- Change Studio stages, answer editing, plan presentation, or client adaptation in `apps/studio`;
-  change Preview presentation in `apps/preview`; promote only a broadly reusable primitive to `ui`.
+- Change Studio stages, answer editing, plan presentation, generation lifecycle, or client
+  adaptation in `apps/studio`; change Preview presentation in `apps/preview`; promote only a
+  broadly reusable primitive to `ui`.
 
 If a change spans transport and domain behavior, implement behavior in its domain owner and keep MCP
 changes to validation and delegation. If a feature requires runtime, filesystem, network, process, or
