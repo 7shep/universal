@@ -1,9 +1,17 @@
 # Universal
 > An AI Art Director for React applications.
 
-## Implementation status (2026-07-28)
+## Implementation status (2026-07-29)
 
-Phases 1-3 are implemented: discovery and approval, differentiated concepts, Design Plan v2, deterministic provider-neutral React generation, immutable runtime workspaces, locked offline builds, isolated loopback previews, connected Studio/Preview lifecycle states, rendered-evidence benchmarking, and last-known-good recovery. See [Phase 3 local runtime](docs/PHASE3_RUNTIME.md).
+Phases 1-3 and the Phase 3 follow-ups are implemented: discovery and approval,
+differentiated concepts, Design Plan v2, deterministic provider-neutral React generation,
+proportional architecture review, immutable runtime workspaces, locked offline builds, isolated
+loopback previews, connected Studio/Preview lifecycle states, desktop and mobile rendered QA, one
+bounded child-revision loop, explicit acceptance/export, provenance-aware asset processing,
+permanent benchmark reporting, and last-known-good recovery. CI is active, and `main` requires
+strict, up-to-date `Quality gate` and `Trusted runtime and security` checks. See
+[Phase 3 local runtime](docs/PHASE3_RUNTIME.md) and
+[Phase 3 follow-up closeout](docs/PHASE3_FOLLOW_UPS.md).
 
 Future milestones below describe direction, not shipped hosted, deployment, arbitrary-package, or production-provider capabilities.
 
@@ -235,6 +243,12 @@ Output
 
 Human-readable report.
 
+Phase 3 status
+
+Implemented with deterministic plan, source, architecture, runtime-policy, and rendered-evidence
+checks. Subjective visual judgment remains explicitly human rather than being represented as a
+machine guarantee.
+
 ---
 
 # Milestone 7
@@ -255,6 +269,12 @@ Select Hero
 
 Regenerate Hero only.
 
+Phase 3.2 status
+
+Implemented as one bounded child revision driven by rendered findings, followed by rebuild,
+recapture, comparison, and explicit accept or reject. Interactive section selection, multi-step
+revision history, and user-directed rollback remain Phase 4 product work.
+
 ---
 
 # Milestone 8
@@ -270,6 +290,10 @@ Version B
 Version C
 
 Compare visually.
+
+Status
+
+Not started. Three-way variant generation and comparison remain Phase 4 product work.
 
 ---
 
