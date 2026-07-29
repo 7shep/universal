@@ -102,7 +102,9 @@ Common stable codes include `INVALID_REQUEST`, `STALE_ARTIFACT`, `IDEMPOTENCY_CO
 
 Each ready build is served from a distinct ephemeral loopback origin. The server exposes static `dist` files only, applies `Cache-Control: no-store`, `X-Content-Type-Options: nosniff`, and a CSP whose `connect-src` is `'none'`. It has no runtime API. Preview never accepts an arbitrary URL and does not reveal a descriptor before the build is ready. Client-side routes fall back to `index.html`; traversal remains rejected.
 
-This is strong browser-origin and process-supervision isolation, not an OS/container sandbox. Generated JavaScript still executes in a browser sandboxed iframe. Stronger filesystem/process containment and cross-platform junction coverage remain future hardening.
+This is strong browser-origin and process-supervision isolation, not an OS/container sandbox.
+Generated JavaScript still executes in a browser sandboxed iframe. Workspace and export containment
+tests exercise POSIX symlinks and Windows junctions without a privileged-test skip.
 
 ## Verification
 

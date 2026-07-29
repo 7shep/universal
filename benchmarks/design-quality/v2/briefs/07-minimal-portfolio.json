@@ -1,0 +1,15 @@
+{
+  "id": "dq-v2-minimal-portfolio",
+  "version": "1.0.0",
+  "category": "minimal-portfolio",
+  "title": "Mara Venn Type Practice",
+  "prompt": "Create a minimal portfolio for an independent type designer where work, process, and contact information feel edited rather than empty.",
+  "approvedRoutes": ["/", "/work/field-serif"],
+  "requirements": ["Selected work index", "Detailed case study", "Direct contact information"],
+  "constraints": [
+    "No ornamental gradients",
+    "Whitespace must be earned",
+    "Small project architecture stays proportional"
+  ],
+  "mobileFirst": false
+}

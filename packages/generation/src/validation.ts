@@ -15,6 +15,7 @@ import {
 } from './contracts.ts';
 import { digestValue } from './digest.ts';
 import { createGenerationContext } from './request.ts';
+import { validateAssetManifest } from './assets.ts';
 
 type ValidationResult<T> = { ok: true; value: T } | { ok: false; error: GenerationValidationError };
 const fail = (
@@ -214,7 +215,10 @@ function parseAsset(value: unknown, index: number): ValidationResult<GeneratedAs
     value.path.split('/').includes('..')
   )
     return fail('forbidden_file', `${base}.path`, 'Generated asset path is invalid.');
-  if (!text(value.mediaType) || !/^image\/(?:png|jpeg|webp|svg\+xml)$/.test(value.mediaType))
+  if (
+    !text(value.mediaType) ||
+    !/^(?:image\/(?:png|jpeg|webp|svg\+xml)|font\/(?:woff2?|ttf|otf))$/.test(value.mediaType)
+  )
     return fail(
       'provider_schema_violation',
       `${base}.mediaType`,
@@ -232,7 +236,23 @@ function parseAsset(value: unknown, index: number): ValidationResult<GeneratedAs
       mediaType: value.mediaType,
       encoding: 'base64',
       content: value.content,
-      digest: digestValue(value.content)
+      digest: digestValue(value.content),
+      ...(text(value.role) ? { role: value.role as GeneratedAsset['role'] } : {}),
+      ...(record(value.provenance)
+        ? { provenance: value.provenance as unknown as NonNullable<GeneratedAsset['provenance']> }
+        : {}),
+      ...(record(value.license)
+        ? { license: value.license as unknown as NonNullable<GeneratedAsset['license']> }
+        : {}),
+      ...(record(value.dimensions)
+        ? {
+            dimensions: {
+              width: Number(value.dimensions.width),
+              height: Number(value.dimensions.height)
+            }
+          }
+        : {}),
+      ...(text(value.responsiveGroup) ? { responsiveGroup: value.responsiveGroup } : {})
     }
   };
 }
@@ -271,6 +291,17 @@ export function validateProviderProject(
     if (!parsed.ok) return { ok: false, error: parsed.error };
     assets.push(parsed.value);
   }
+  const checkedAssets = validateAssetManifest(assets);
+  if (!checkedAssets.ok) {
+    const first = checkedAssets.findings[0]!;
+    return fail(
+      first.code.includes('SIZE') || first.code.includes('COUNT')
+        ? 'quota_exceeded'
+        : 'forbidden_file',
+      first.path,
+      first.message
+    );
+  }
   const total =
     files.reduce((sum, file) => sum + Buffer.byteLength(file.content), 0) +
     assets.reduce((sum, asset) => sum + Buffer.from(asset.content, 'base64').byteLength, 0);
@@ -286,7 +317,7 @@ export function validateProviderProject(
       framework: 'react-vite',
       entrypoint: 'src/main.tsx',
       files,
-      assets,
+      assets: checkedAssets.assets,
       diagnostics: [
         {
           code: 'GENERATION_VALIDATED',

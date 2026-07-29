@@ -83,16 +83,23 @@ function appendBounded(
 }
 async function killTree(child: ChildProcess): Promise<void> {
   if (!child.pid || child.exitCode !== null) return;
-  if (process.platform === 'win32')
+  if (process.platform === 'win32') {
     await new Promise<void>((resolve) => {
       const killer = spawn('taskkill.exe', ['/pid', String(child.pid), '/T', '/F'], {
         stdio: 'ignore',
         windowsHide: true,
         shell: false
       });
-      killer.once('exit', () => resolve());
+      // `exit` can arrive before taskkill has released every inherited handle.  Waiting for
+      // `close` ensures the tree termination operation has completed before we report a
+      // cancelled command to the caller.
+      killer.once('close', () => resolve());
       killer.once('error', () => resolve());
     });
+    // Windows may expose a process briefly while its termination is being finalized. This
+    // keeps cancellation from returning before a descendant can be observed as orphaned.
+    await delay(50);
+  }
   else {
     try {
       process.kill(-child.pid, 'SIGTERM');

@@ -8,6 +8,7 @@ import {
 } from '@universal/design-engine/fixtures';
 import { createProjectGenerationRequest } from '@universal/generation';
 import { analyzeReactArchitecture } from '../src/architecture.ts';
+import { reviewGeneratedImplementation } from '../src/review.ts';
 import {
   multiPageMap,
   organizedFiles,
@@ -155,5 +156,16 @@ test('reports large inline data and weak stylesheet organization as warnings', (
   assert.equal(
     result.findings.find((finding) => finding.id === 'ARCH_STYLESHEET_ORGANIZATION')?.severity,
     'warning'
+  );
+  const review = reviewGeneratedImplementation(
+    project(files),
+    requestWithPageMap(baseRequest, multiPageMap),
+    '2026-07-28T12:20:00.000Z'
+  );
+  assert.equal(review.status, 'pass');
+  assert.ok(
+    review.checks.some(
+      (check) => check.id === 'ARCH_STYLESHEET_ORGANIZATION' && check.severity === 'warning'
+    )
   );
 });

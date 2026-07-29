@@ -1,0 +1,19 @@
+{
+  "id": "dq-v2-luxury-product",
+  "version": "1.0.0",
+  "category": "luxury-product",
+  "title": "Atelier No. 7 Mechanical Watch",
+  "prompt": "Create a restrained launch site for a numbered mechanical watch, led by material detail and provenance rather than generic black-and-gold luxury cues.",
+  "approvedRoutes": ["/", "/craft", "/provenance"],
+  "requirements": [
+    "Numbered edition story",
+    "Movement and material specifications",
+    "Repair and provenance record"
+  ],
+  "constraints": [
+    "No ecommerce checkout",
+    "No black-and-gold default palette",
+    "Use only local media"
+  ],
+  "mobileFirst": false
+}

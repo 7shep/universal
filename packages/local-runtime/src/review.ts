@@ -12,13 +12,29 @@ export function reviewGeneratedImplementation(
     .map((file) => file.content)
     .join('\n');
   const checks: ImplementationReviewRecord['checks'][number][] = [];
-  const machine = (id: string, condition: boolean, pass: string, fail: string) =>
-    checks.push({ id, status: condition ? 'pass' : 'fail', message: condition ? pass : fail });
+  const machine = (
+    id: string,
+    condition: boolean,
+    pass: string,
+    fail: string,
+    evidence?: Readonly<Record<string, unknown>>
+  ) =>
+    checks.push({
+      id,
+      status: condition ? 'pass' : 'fail',
+      severity: condition ? 'info' : 'error',
+      message: condition ? pass : fail,
+      ...(evidence ? { evidence } : {})
+    });
+  const missingRoutes = request.context.pageMap.pages
+    .map((page) => page.route)
+    .filter((route) => !source.includes(route));
   machine(
     'page-map-coverage',
-    request.context.pageMap.pages.every((page) => source.includes(page.route)),
+    missingRoutes.length === 0,
     'Every approved route is represented in generated source.',
-    'One or more approved routes is missing.'
+    `Approved routes are missing: ${missingRoutes.join(', ')}.`,
+    { approvedRoutes: request.context.pageMap.pages.map((page) => page.route), missingRoutes }
   );
   machine(
     'semantic-navigation',
@@ -54,9 +70,21 @@ export function reviewGeneratedImplementation(
   );
   machine(
     'network-denial',
-    !/\bfetch\s*\(|XMLHttpRequest|new WebSocket|https?:\/\//.test(source),
+    !/\bfetch\s*\(|XMLHttpRequest|new\s+WebSocket|new\s+EventSource|navigator\.sendBeacon|https?:\/\//.test(
+      source
+    ),
     'Generated code contains no outbound network call.',
-    'Generated code attempts outbound network access.'
+    'Generated code attempts outbound network access.',
+    {
+      forbiddenApis: [
+        'fetch',
+        'XMLHttpRequest',
+        'WebSocket',
+        'EventSource',
+        'navigator.sendBeacon',
+        'http(s) URL'
+      ]
+    }
   );
   const architecture = analyzeReactArchitecture(project, request);
   checks.push({

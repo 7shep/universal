@@ -1,0 +1,19 @@
+{
+  "briefId": "dq-v2-cultural-archive",
+  "arm": "universal-guided",
+  "revisionId": "fixture:failed:1",
+  "deterministic": {
+    "designPlanV2Fidelity": true,
+    "responsiveBehavior": true,
+    "routeContentCompleteness": false,
+    "accessibility": true,
+    "repositoryOrganization": false,
+    "buildSuccess": true,
+    "runtimePolicyCompliance": true
+  },
+  "subjective": {
+    "visualOriginality": null,
+    "reviewer": null,
+    "rationale": "Not evaluated because deterministic completeness failed."
+  }
+}

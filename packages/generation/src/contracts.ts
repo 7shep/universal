@@ -64,6 +64,24 @@ export interface GeneratedAsset {
   encoding: 'base64';
   content: string;
   digest: string;
+  role?: 'image' | 'font' | 'illustration' | 'icon' | undefined;
+  provenance?:
+    | {
+        source: 'generated' | 'supplied';
+        generator?: string | undefined;
+        sourceDigest?: string | undefined;
+        transformer?: string | undefined;
+      }
+    | undefined;
+  license?:
+    | {
+        identifier: string;
+        attribution?: string | undefined;
+        sourceUrl?: string | undefined;
+      }
+    | undefined;
+  dimensions?: { width: number; height: number } | undefined;
+  responsiveGroup?: string | undefined;
 }
 export type GenerationDiagnosticSeverity = 'info' | 'warning' | 'error';
 export interface GenerationDiagnostic {
