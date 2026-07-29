@@ -92,7 +92,7 @@ The fixed template pins React, Vite, TypeScript, and the React plugin. Installat
 
 ## Process supervision and recovery
 
-Install/build processes receive a minimal environment without provider credentials. Output is bounded and redacted. Cancellation, timeout, and shutdown abort the operation, terminate the process tree, and wait for settlement. On restart, active operations/builds are marked `interrupted`; persisted data is validated before use. Ready build outputs are reattached when present.
+Install/build processes receive a minimal environment without provider credentials. Output is bounded and redacted. Cancellation, timeout, and shutdown abort the operation, terminate the POSIX process group, and wait for settlement. Windows uses taskkill while the root PID remains available; commands must not orphan descendants before termination begins. On restart, active operations/builds are marked `interrupted`; persisted data is validated before use. Ready build outputs are reattached when present.
 
 A failed or cancelled newer revision never replaces `latestSuccessfulBuildId`. Studio shows the newer diagnostic while Preview keeps serving the prior immutable artifact.
 

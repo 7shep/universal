@@ -36,17 +36,25 @@ test('cancellation terminates the complete child process tree', { timeout: 10_00
     pidFile = path.join(root, 'child.pid');
   const parent = `const {spawn}=require('node:child_process');const {writeFileSync}=require('node:fs');const c=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'ignore'});writeFileSync(${JSON.stringify(pidFile)},String(c.pid));setInterval(()=>{},1000);`;
   const controller = new AbortController();
-  setTimeout(() => controller.abort(), 150);
-  await assert.rejects(() =>
-    runSupervisedCommand({
-      command: process.execPath,
-      args: ['-e', parent],
-      cwd: root,
-      timeoutMs: 5000,
-      signal: controller.signal
-    })
-  );
-  const pid = Number(await readFile(pidFile, 'utf8'));
+  const result = runSupervisedCommand({
+    command: process.execPath,
+    args: ['-e', parent],
+    cwd: root,
+    timeoutMs: 5_000,
+    signal: controller.signal
+  });
+  let pid = 0;
+  for (let attempt = 0; attempt < 40 && pid === 0; attempt += 1) {
+    try {
+      pid = Number((await readFile(pidFile, 'utf8')).trim());
+    } catch {
+      // The parent may still be creating the PID file on a busy Windows runner.
+    }
+    if (pid === 0) await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  controller.abort();
+  await assert.rejects(() => result);
+  assert.ok(pid > 0, 'expected the parent to record a child PID');
   await new Promise((resolve) => setTimeout(resolve, 300));
   let alive = true;
   try {
@@ -141,11 +149,20 @@ test('timeout terminates a spawned process tree', { timeout: 10_000 }, async () 
           command: process.execPath,
           args: ['-e', parent],
           cwd: root,
-          timeoutMs: 100
+          timeoutMs: 500
         }),
       (error: unknown) => error instanceof RuntimeFailure && error.detail.code === 'TIMEOUT'
     );
-    const pid = Number(await readFile(pidFile, 'utf8'));
+    let pid = 0;
+    for (let attempt = 0; attempt < 20 && pid === 0; attempt += 1) {
+      try {
+        pid = Number((await readFile(pidFile, 'utf8')).trim());
+      } catch {
+        // The parent may still be creating the PID file on a busy Windows runner.
+      }
+      if (pid === 0) await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+    assert.ok(pid > 0, 'expected the parent to record a child PID');
     await new Promise((resolve) => setTimeout(resolve, 300));
     let alive = true;
     try {
@@ -183,3 +200,88 @@ test('observes aborts that race listener registration', async () => {
       error instanceof RuntimeFailure && error.detail.code === 'CANCELLED_OPERATION'
   );
 });
+
+test('collects bounded output through stream close', async () => {
+  const result = await runSupervisedCommand({
+    command: process.execPath,
+    args: [
+      '-e',
+      "process.stdout.write('a'.repeat(70_000));process.stderr.write('b'.repeat(70_000));"
+    ],
+    cwd: process.cwd(),
+    timeoutMs: 5_000
+  });
+  assert.equal(result.exitCode, 0);
+  assert.equal(result.truncated, true);
+  assert.ok(Buffer.byteLength(result.stdout) <= 64 * 1024);
+  assert.ok(Buffer.byteLength(result.stderr) <= 64 * 1024);
+});
+
+test('asynchronous spawn failures settle with a secret-safe structured failure', async () => {
+  const secret = 'secret-invalid-working-directory';
+  await assert.rejects(
+    () =>
+      runSupervisedCommand({
+        command: process.execPath,
+        args: ['-e', 'process.exit(0)'],
+        cwd: path.join(os.tmpdir(), secret),
+        timeoutMs: 1_000
+      }),
+    (error: unknown) =>
+      error instanceof RuntimeFailure &&
+      error.detail.code === 'INTERNAL_FAILURE' &&
+      !error.message.includes(secret)
+  );
+});
+
+test('natural completion remains successful when cancellation arrives afterwards', async () => {
+  const controller = new AbortController();
+  const result = await runSupervisedCommand({
+    command: process.execPath,
+    args: ['-e', "process.stdout.write('complete')"],
+    cwd: process.cwd(),
+    timeoutMs: 1_000,
+    signal: controller.signal
+  });
+  controller.abort();
+  assert.deepEqual(result, {
+    exitCode: 0,
+    stdout: 'complete',
+    stderr: '',
+    truncated: false
+  });
+});
+
+test(
+  'POSIX timeout terminates an inherited-stream descendant after its group leader exits',
+  { skip: process.platform === 'win32', timeout: 10_000 },
+  async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'universal-process-leader-exit-'));
+    const pidFile = path.join(root, 'child.pid');
+    const parent = `const {spawn}=require('node:child_process');const {writeFileSync}=require('node:fs');const c=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:['ignore','inherit','inherit']});writeFileSync(${JSON.stringify(pidFile)},String(c.pid));process.exit(0);`;
+    try {
+      await assert.rejects(
+        () =>
+          runSupervisedCommand({
+            command: process.execPath,
+            args: ['-e', parent],
+            cwd: root,
+            timeoutMs: 300
+          }),
+        (error: unknown) => error instanceof RuntimeFailure && error.detail.code === 'TIMEOUT'
+      );
+      const pid = Number((await readFile(pidFile, 'utf8')).trim());
+      assert.ok(pid > 0, 'expected the parent to record a descendant PID');
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      let alive = true;
+      try {
+        process.kill(pid, 0);
+      } catch {
+        alive = false;
+      }
+      assert.equal(alive, false, `descendant ${pid} survived timeout`);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  }
+);
