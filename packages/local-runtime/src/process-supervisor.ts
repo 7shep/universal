@@ -8,6 +8,8 @@ import { RuntimeFailure } from './errors.ts';
 
 const MAX_OUTPUT = 64 * 1024;
 const installLockPath = path.join(os.tmpdir(), 'universal-pnpm-install.lock');
+const PROCESS_EXIT_GRACE_MS = 250;
+const TASKKILL_TIMEOUT_MS = 5_000;
 const delay = (milliseconds: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, milliseconds));
 
@@ -84,35 +86,23 @@ function appendBounded(
 async function killTree(child: ChildProcess): Promise<void> {
   if (!child.pid || child.exitCode !== null) return;
   if (process.platform === 'win32') {
-    await new Promise<void>((resolve) => {
-      const killer = spawn('taskkill.exe', ['/pid', String(child.pid), '/T', '/F'], {
-        stdio: 'ignore',
-        windowsHide: true,
-        shell: false
-      });
-      // `exit` can arrive before taskkill has released every inherited handle.  Waiting for
-      // `close` ensures the tree termination operation has completed before we report a
-      // cancelled command to the caller.
-      killer.once('close', () => resolve());
-      killer.once('error', () => resolve());
-    });
-    // Windows may expose a process briefly while its termination is being finalized. This
-    // keeps cancellation from returning before a descendant can be observed as orphaned.
-    await delay(50);
-  }
-  else {
-    try {
-      process.kill(-child.pid, 'SIGTERM');
-    } catch {
-      child.kill('SIGTERM');
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      await terminateWithTaskkill(child.pid);
+      await waitForChildExit(child, PROCESS_EXIT_GRACE_MS);
+      if (child.exitCode !== null || child.signalCode !== null) return;
     }
-    await new Promise((resolve) => setTimeout(resolve, 250));
-    try {
-      process.kill(-child.pid, 'SIGKILL');
-    } catch {
-      if (child.exitCode === null) child.kill('SIGKILL');
-    }
+  } else {
+    sendProcessGroupSignal(child, 'SIGTERM');
+    await waitForChildExit(child, PROCESS_EXIT_GRACE_MS);
+    sendProcessGroupSignal(child, 'SIGKILL');
+    await waitForChildExit(child, PROCESS_EXIT_GRACE_MS);
+    if (child.exitCode !== null || child.signalCode !== null) return;
   }
+  throw new RuntimeFailure(
+    'INTERNAL_FAILURE',
+    'Unable to confirm termination of the supervised command process tree.',
+    { retryable: true }
+  );
 }
 export async function runSupervisedCommand(input: {
   command: string;
@@ -122,6 +112,8 @@ export async function runSupervisedCommand(input: {
   signal?: AbortSignal;
   environment?: Readonly<Record<string, string>>;
 }): Promise<CommandResult> {
+  if (input.signal?.aborted)
+    throw new RuntimeFailure('CANCELLED_OPERATION', 'Operation was cancelled.');
   return await new Promise<CommandResult>((resolve, reject) => {
     let stdout = '',
       stderr = '',
@@ -147,46 +139,80 @@ export async function runSupervisedCommand(input: {
       NO_COLOR: '1',
       ...input.environment
     };
-    const child = spawn(input.command, [...input.args], {
-      cwd: input.cwd,
-      env: safeEnvironment,
-      shell: false,
-      windowsHide: true,
-      detached: process.platform !== 'win32',
-      stdio: ['ignore', 'pipe', 'pipe']
-    });
+    let child: ChildProcess;
+    try {
+      child = spawn(input.command, [...input.args], {
+        cwd: input.cwd,
+        env: safeEnvironment,
+        shell: false,
+        windowsHide: true,
+        detached: process.platform !== 'win32',
+        stdio: ['ignore', 'pipe', 'pipe']
+      });
+    } catch {
+      reject(
+        new RuntimeFailure('INTERNAL_FAILURE', 'Unable to start the supervised command.', {
+          retryable: true
+        })
+      );
+      return;
+    }
+    const cleanup = () => {
+      if (timer) clearTimeout(timer);
+      input.signal?.removeEventListener('abort', abort);
+      child.stdout?.removeListener('data', onStdout);
+      child.stderr?.removeListener('data', onStderr);
+      child.removeListener('exit', onChildExit);
+    };
     const finishError = async (error: unknown) => {
       if (settled) return;
       settled = true;
-      clearTimeout(timer);
-      input.signal?.removeEventListener('abort', abort);
-      await killTree(child);
-      reject(error);
+      cleanup();
+      try {
+        await killTree(child);
+        reject(error);
+      } catch (terminationError) {
+        reject(
+          terminationError instanceof RuntimeFailure
+            ? terminationError
+            : new RuntimeFailure(
+                'INTERNAL_FAILURE',
+                'Unable to terminate the supervised command process tree.',
+                { retryable: true }
+              )
+        );
+      }
     };
-    child.stdout?.on('data', (chunk: Buffer) => {
+    const onStdout = (chunk: Buffer) => {
       const next = appendBounded(stdout, chunk);
       stdout = next.value;
       truncated ||= next.truncated;
-    });
-    child.stderr?.on('data', (chunk: Buffer) => {
+    };
+    const onStderr = (chunk: Buffer) => {
       const next = appendBounded(stderr, chunk);
       stderr = next.value;
       truncated ||= next.truncated;
-    });
-    child.once('error', (error) => {
-      void finishError(error);
-    });
-    child.once('exit', (code) => {
+    };
+    const onChildError = () => {
+      void finishError(
+        new RuntimeFailure('INTERNAL_FAILURE', 'Unable to start the supervised command.', {
+          retryable: true
+        })
+      );
+    };
+    const onChildExit = (code: number | null) => {
       if (settled) return;
       settled = true;
-      clearTimeout(timer);
-      input.signal?.removeEventListener('abort', abort);
+      cleanup();
       resolve({ exitCode: code ?? -1, stdout, stderr, truncated });
-    });
+    };
     const abort = () => {
       void finishError(new RuntimeFailure('CANCELLED_OPERATION', 'Operation was cancelled.'));
     };
-    input.signal?.addEventListener('abort', abort, { once: true });
+    child.stdout?.on('data', onStdout);
+    child.stderr?.on('data', onStderr);
+    child.once('error', onChildError);
+    child.once('exit', onChildExit);
     const timer = setTimeout(() => {
       void finishError(
         new RuntimeFailure('TIMEOUT', `Command exceeded ${input.timeoutMs} ms.`, {
@@ -194,6 +220,8 @@ export async function runSupervisedCommand(input: {
         })
       );
     }, input.timeoutMs);
+    input.signal?.addEventListener('abort', abort, { once: true });
+    if (input.signal?.aborted) abort();
   });
 }
 async function exists(file: string): Promise<boolean> {
@@ -289,4 +317,64 @@ export async function installAndBuild(input: {
   if (!(await stat(outputPath)).isDirectory())
     throw new RuntimeFailure('BUILD_FAILURE', 'Build completed without a dist directory.');
   return { outputPath, diagnostics };
+}
+function waitForChildExit(child: ChildProcess, timeoutMs: number): Promise<void> {
+  if (child.exitCode !== null || child.signalCode !== null) return Promise.resolve();
+  return new Promise((resolve) => {
+    const finish = () => {
+      if (timer) clearTimeout(timer);
+      child.removeListener('exit', finish);
+      child.removeListener('error', finish);
+      resolve();
+    };
+    child.once('exit', finish);
+    child.once('error', finish);
+    const timer = setTimeout(finish, timeoutMs);
+  });
+}
+function sendProcessGroupSignal(child: ChildProcess, signal: NodeJS.Signals): void {
+  if (!child.pid || child.exitCode !== null) return;
+  try {
+    process.kill(-child.pid, signal);
+  } catch {
+    try {
+      child.kill(signal);
+    } catch {
+      // The process may have exited between the state check and the signal.
+    }
+  }
+}
+async function terminateWithTaskkill(pid: number): Promise<void> {
+  await new Promise<void>((resolve) => {
+    let finished = false;
+    let killer: ChildProcess;
+    try {
+      killer = spawn('taskkill.exe', ['/pid', String(pid), '/T', '/F'], {
+        stdio: 'ignore',
+        windowsHide: true,
+        shell: false
+      });
+    } catch {
+      resolve();
+      return;
+    }
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer);
+      killer.removeListener('close', finish);
+      resolve();
+    };
+    const timeout = () => {
+      try {
+        killer.kill();
+      } catch {
+        // The terminator may have exited while the timeout fired.
+      }
+      finish();
+    };
+    killer.once('close', finish);
+    killer.once('error', finish);
+    const timer = setTimeout(timeout, TASKKILL_TIMEOUT_MS);
+  });
 }
