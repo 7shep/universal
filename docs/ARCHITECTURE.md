@@ -100,7 +100,7 @@ policy, shell commands, or filesystem destinations.
 
 The runtime persists and validates project, revision, operation, build, review, preview, and event
 records. Mutations require an idempotency key. A restart marks active records interrupted.
-Cancellation and timeout terminate the process tree. A new build becomes visible only after
+Cancellation and timeout terminate the process tree on POSIX; on Windows this requires the root process to remain alive until termination begins. A new build becomes visible only after
 generation, materialization, locked install, production build, and deterministic review succeed. A
 failed newer attempt leaves the prior ready build active.
 
