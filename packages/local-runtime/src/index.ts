@@ -3,6 +3,7 @@ export * from './architecture.ts';
 export * from './asset-optimizer.ts';
 export * from './acceptance-export.ts';
 export * from './http-server.ts';
+export * from './mutation-coordinator.ts';
 export * from './preview-server.ts';
 export * from './playwright-capture.ts';
 export * from './process-supervisor.ts';

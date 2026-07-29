@@ -136,9 +136,9 @@ test('applies count and age boundaries with deterministic ties', async () => {
 });
 test('dry run, partial failure, and repeated cleanup are safe', async () => {
   const f = await fixture(['revision:1', 'revision:2']);
-  const dry = await retainRevisions(async () => f.input, { dryRun: true });
+  const dry = await retainRevisions(async (work) => work(f.input), { dryRun: true });
   assert.equal(dry.removed.length, 0);
-  const partial = await executeRevisionRetention(async () => f.input, {
+  const partial = await executeRevisionRetention(async (work) => work(f.input), {
     remove: async (entry) => {
       if (entry.revisionId === 'revision:2') throw new Error('locked');
       await rm(entry.workspacePath, { recursive: true });
@@ -184,18 +184,5 @@ test('does not cross project boundaries or remove unknown lookalike directories'
   assert.equal(
     plan.eligible.some((entry) => entry.workspacePath === lookalike),
     false
-  );
-});
-test('re-plans between deletions and skips a revision that becomes active', async () => {
-  const f = await fixture(['revision:1', 'revision:2']);
-  const result = await executeRevisionRetention(async () => f.input, {
-    remove: async (entry) => {
-      if (entry.revisionId === 'revision:2') f.input.activePreviewRevisionIds.push('revision:1');
-      await rm(entry.workspacePath, { recursive: true });
-    }
-  });
-  assert.deepEqual(
-    result.removed.map((entry) => entry.revisionId),
-    ['revision:2']
   );
 });

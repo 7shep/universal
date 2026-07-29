@@ -23,7 +23,9 @@ export interface RevisionRetentionInput {
   activePreviewRevisionIds: readonly string[];
   pinnedRevisionIds?: readonly string[];
 }
-export type RevisionRetentionStateReader = () => Promise<RevisionRetentionInput>;
+export type RevisionRetentionStateLock = <T>(
+  work: (state: RevisionRetentionInput) => Promise<T>
+) => Promise<T>;
 export type RevisionRetentionReason =
   | 'newest-successful'
   | 'current-revision'
@@ -170,38 +172,31 @@ async function safeDelete(root: string, e: RevisionRetentionEntry) {
     throw new Error('Revision target resolved through a link or outside its revision directory.');
   await rm(target, { recursive: true, force: false });
 }
-/**
- * Applies retention from authoritative input, never from a caller-supplied plan.
- * The policy is re-planned immediately before each deletion so an entry that has
- * become current, active, preview-bound, latest-successful, or pinned is skipped.
- */
+/** Applies retention while the authoritative runtime mutation boundary is held. */
 export async function executeRevisionRetention(
-  readState: RevisionRetentionStateReader,
+  withExclusiveState: RevisionRetentionStateLock,
   options: { dryRun?: boolean; remove?: (entry: RevisionRetentionEntry) => Promise<void> } = {}
 ): Promise<RevisionRetentionResult> {
-  const plan = await planRevisionRetention(await readState());
-  if (options.dryRun) return { ...plan, dryRun: true, removed: [], failed: [] };
-  const removed: RevisionRetentionEntry[] = [],
-    failed: (RevisionRetentionEntry & { error: string })[] = [];
-  for (const candidate of plan.eligible) {
-    const fresh = await planRevisionRetention(await readState()),
-      entry = fresh.eligible.find(
-        (item) => item.projectId === candidate.projectId && item.revisionId === candidate.revisionId
-      );
-    if (!entry) continue;
-    try {
-      await (options.remove ? options.remove(entry) : safeDelete(fresh.workspaceRoot, entry));
-      removed.push(entry);
-    } catch (error) {
-      failed.push({ ...entry, error: error instanceof Error ? error.message : String(error) });
-    }
-  }
-  return { ...plan, dryRun: false, removed, failed };
-}
-/** Plans then optionally applies retention. Dry-run is the default. */
+  return withExclusiveState(async (state) => {
+    const plan = await planRevisionRetention(state);
+    if (options.dryRun) return { ...plan, dryRun: true, removed: [], failed: [] };
+    const removed: RevisionRetentionEntry[] = [],
+      failed: (RevisionRetentionEntry & { error: string })[] = [];
+    for (const entry of plan.eligible)
+      try {
+        await (options.remove ? options.remove(entry) : safeDelete(plan.workspaceRoot, entry));
+        removed.push(entry);
+      } catch (error) {
+        failed.push({ ...entry, error: error instanceof Error ? error.message : String(error) });
+      }
+    return { ...plan, dryRun: false, removed, failed };
+  });
+} /** Plans then optionally applies retention. Dry-run is the default. */
 export async function retainRevisions(
-  readState: RevisionRetentionStateReader,
+  withExclusiveState: RevisionRetentionStateLock,
   options: { dryRun?: boolean } = {}
 ): Promise<RevisionRetentionResult> {
-  return executeRevisionRetention(readState, { dryRun: options.dryRun ?? true });
+  return executeRevisionRetention(withExclusiveState, {
+    dryRun: options.dryRun ?? true
+  });
 }

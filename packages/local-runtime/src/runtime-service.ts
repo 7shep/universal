@@ -22,6 +22,11 @@ import {
 import { BuildPipelineFailure, installAndBuild } from './process-supervisor.ts';
 import { startPreviewServer, type PreviewServer } from './preview-server.ts';
 import { RuntimeRecordStore } from './record-store.ts';
+import {
+  executeRevisionRetention,
+  type RevisionRetentionPolicy,
+  type RevisionRetentionResult
+} from './retention.ts';
 import { reviewGeneratedImplementation } from './review.ts';
 import { materializeProject } from './workspace.ts';
 
@@ -44,6 +49,7 @@ export class RuntimeService {
   private readonly controllers = new Map<string, AbortController>();
   private readonly tasks = new Map<string, Promise<void>>();
   private readonly previews = new Map<string, PreviewServer>();
+  private readonly acceptedRevisionIds = new Set<string>();
   private accepting = false;
   constructor(options: RuntimeServiceOptions) {
     this.workspaceRoot = options.workspaceRoot;
@@ -61,6 +67,10 @@ export class RuntimeService {
   }
   async initialize(): Promise<void> {
     await this.store.load(this.now());
+    await this.store.mutations.run(async () => {
+      for (const revisionId of await this.acceptanceExport.acceptedRevisionIds())
+        this.acceptedRevisionIds.add(revisionId);
+    });
     for (const build of this.store
       .snapshot()
       .builds.filter((item) => item.status === 'ready' && item.outputPath)) {
@@ -73,7 +83,9 @@ export class RuntimeService {
           buildId: build.id,
           now: this.now()
         });
-        this.previews.set(build.id, server);
+        await this.store.mutations.run(async () => {
+          this.previews.set(build.id, server);
+        });
       } catch {
         /* persisted records remain queryable; descriptor reports unavailable */
       }
@@ -101,6 +113,34 @@ export class RuntimeService {
         { retryable: true }
       );
     return server.descriptor;
+  }
+  async retainRevisions(
+    policy: RevisionRetentionPolicy,
+    options: {
+      dryRun?: boolean;
+      remove?: (entry: import('./retention.ts').RevisionRetentionEntry) => Promise<void>;
+    } = {}
+  ): Promise<RevisionRetentionResult> {
+    return executeRevisionRetention(
+      async (work) =>
+        this.store.mutations.run(() => {
+          const state = this.store.snapshot();
+          return work({
+            workspaceRoot: this.workspaceRoot,
+            now: this.now(),
+            policy,
+            revisions: state.revisions,
+            projects: state.projects,
+            builds: state.builds,
+            operations: state.operations,
+            activePreviewRevisionIds: [...this.previews.values()].map(
+              (preview) => preview.descriptor.revisionId
+            ),
+            pinnedRevisionIds: [...this.acceptedRevisionIds]
+          });
+        }),
+      options
+    );
   }
   async startGeneration(
     value: unknown,
@@ -236,9 +276,13 @@ export class RuntimeService {
     };
   }
   async acceptRevision(revisionId: string, acceptedBy: string): Promise<AcceptanceRecord> {
-    return this.acceptanceExport.accept(this.revisionProvenance(revisionId), {
-      acceptedBy,
-      confirmation: true
+    return this.store.mutations.run(async () => {
+      const acceptance = await this.acceptanceExport.accept(this.revisionProvenance(revisionId), {
+        acceptedBy,
+        confirmation: true
+      });
+      this.acceptedRevisionIds.add(revisionId);
+      return acceptance;
     });
   }
   async exportAcceptedRevision(input: {
@@ -382,7 +426,9 @@ export class RuntimeService {
         buildId,
         now: this.now()
       });
-      this.previews.set(buildId, server);
+      await this.store.mutations.run(async () => {
+        this.previews.set(buildId, server);
+      });
       build = { ...build, status: 'ready', updatedAt: this.now() };
       await this.store.putBuild(build);
       const project = this.store.project(request.projectId)!;
@@ -444,7 +490,9 @@ export class RuntimeService {
       controller.abort(new Error('Runtime shutdown.'));
     await Promise.allSettled(this.tasks.values());
     await Promise.allSettled([...this.previews.values()].map((server) => server.close()));
-    this.previews.clear();
-    await this.store.event('runtime.shutdown', this.now());
+    await this.store.mutations.run(async () => {
+      this.previews.clear();
+      await this.store.event('runtime.shutdown', this.now());
+    });
   }
 }
