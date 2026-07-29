@@ -10,5 +10,6 @@ export * from './provider-config.ts';
 export * from './record-store.ts';
 export * from './review.ts';
 export * from './rendered-qa.ts';
+export * from './retention.ts';
 export * from './runtime-service.ts';
 export * from './workspace.ts';
