@@ -135,7 +135,7 @@ For client configuration and manual verification, follow [docs/CODEX_MCP_SETUP.m
 
 ## Generation and Local Runtime
 
-For the supported path from clean checkout through generation, immutable revisions, rendered QA, and evidence, read [docs/RUNTIME_CONTRIBUTOR_WORKFLOW.md](docs/RUNTIME_CONTRIBUTOR_WORKFLOW.md). It also documents the intentionally unavailable acceptance, export, and Playwright workflows so contributors do not infer unsupported commands.
+For the supported path from clean checkout through generation, immutable revisions, rendered QA, and evidence, read [docs/RUNTIME_CONTRIBUTOR_WORKFLOW.md](docs/RUNTIME_CONTRIBUTOR_WORKFLOW.md). It documents the pinned Playwright capture, explicit acceptance, and controlled export workflow from PR #75.
 
 ## Repository Guide
 

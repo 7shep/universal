@@ -28,7 +28,13 @@ pnpm install --frozen-lockfile
 
 ### Playwright / Chromium boundary
 
-This checkout has no Playwright dependency, no pinned browser binary, and no repository Playwright runner. Therefore there is no supported `pnpm exec playwright install chromium` command: it would resolve a package outside the lockfile and violate the frozen-install workflow. Rendered QA currently uses an injected trusted render harness with canonical desktop/mobile observations. If a future change pins Playwright, that change must add its exact version and Chromium-install command; do not infer one today.
+PR #75 pins `playwright@^1.62.0` in `@universal/local-runtime` and provides the runtime script below. Run it after the repository install to download the matching Chromium binary for the trusted capture adapter.
+
+```sh
+pnpm --filter @universal/local-runtime playwright:install
+```
+
+`PlaywrightRenderedQaCapture` is the production capture adapter: it accepts loopback preview URLs only, blocks outbound requests and service workers, emulates reduced motion, and writes revision-scoped screenshots atomically. The adapter remains injectable for tests; use the pinned Chromium path for real rendered QA.
 
 ## Run and validate
 
@@ -48,7 +54,7 @@ pnpm --filter @universal/design-mcp test
 pnpm --filter @universal/design-benchmark test
 ```
 
-The runtime test covers materialization, supervision, recovery, HTTP, and security. The MCP test builds its package first. The benchmark uses deterministic fixtures and negative mutations; it does not launch a browser.
+The runtime test covers materialization, supervision, recovery, HTTP, security, Chromium capture, rendered QA, acceptance/export, asset policy, and Windows containment. The MCP test builds its package first. The benchmark uses deterministic fixtures and negative mutations; it does not launch a browser.
 
 Run the complete repository gate before a cross-workspace change:
 
@@ -78,9 +84,9 @@ approved brief + selected direction + Design Plan v2
 
 `prepare_react_generation` supplies the exact source contract. `build_react_project` validates the source again, creates `<workspace>/projects/<project>/revisions/<revision>/`, and rejects an existing revision path. A failed newer build does not replace the prior successful preview. Runtime state, diagnostics, revision records, and reviews are persisted at `<workspace>/runtime-state.json`; by default the workspace is `~/.universal/workspaces` (`%USERPROFILE%\.universal\workspaces` on Windows).
 
-The built-in review is deterministic source/policy review and can return `pass` or `revision_recommended`; it does not inspect pixels. Rendered QA requires desktop and mobile observations from a trusted harness plus identified human reviews of selected-direction fidelity and composition. Store screenshots and harness output in the caller's evidence system, retaining SHA-256 digests, viewport metadata, and the linked immutable revision/build IDs. The runtime does not copy screenshot files or offer a remote evidence store.
+The built-in review is deterministic source/policy review and can return `pass` or `revision_recommended`; it does not inspect pixels. `runRenderedQaWithPlaywright()` builds and captures every approved route at the default 1440×1000 desktop and 390×844 mobile viewports. It records screenshot digests, route/viewport metrics, machine findings, and separate human findings in a revision-scoped evidence directory. The lifecycle may evaluate one bounded child revision, then accepts it only when it passes, reduces errors, and introduces no route-specific regression.
 
-There is no acceptance transition or export command implemented on this branch. A successful build/review is readiness evidence, not an accepted release. Do not copy an immutable runtime workspace into another repository or publish it as an export: explicit export is deliberately deferred.
+Acceptance and export are separate privileged actions. `RuntimeService.acceptRevision(revisionId, acceptedBy)` requires an explicitly identified acceptance and records metadata without changing the immutable revision. `RuntimeService.exportAcceptedRevision({ acceptance, destination, requestedBy })` requires a second authorization, accepts only an absolute destination under a configured runtime root, stages the copy atomically, and embeds `.universal/provenance.json` with project, revision, plan, review, acceptance, and export provenance. Generated source never selects the destination.
 
 ## Troubleshooting
 
@@ -88,7 +94,7 @@ There is no acceptance transition or export command implemented on this branch. 
 | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | pnpm resolves the wrong version              | Run `corepack enable`, open a new shell, then run `pnpm --version`. It must be `11.7.0`; remove competing shims from `PATH` rather than changing the lockfile.                                                                                                                                                                                               |
 | Offline runtime install cannot find packages | The runtime intentionally refuses network access. First run root `pnpm install --frozen-lockfile` with normal network access to populate the pnpm store, then retry. Do not remove `--offline` or edit the template lockfile.                                                                                                                                |
-| Playwright cache is inaccessible             | No supported repository command uses a Playwright cache. Do not create one to unblock the current QA path; consult the injected harness owner.                                                                                                                                                                                                               |
+| Playwright cache is inaccessible             | Run `pnpm --filter @universal/local-runtime playwright:install` from a shell that can write Playwright's browser cache. If the cache is managed or inaccessible, configure access through the environment that owns it, then rerun the same pinned-package script; do not install a different global Playwright version.                                     |
 | Port 5173 or 5174 is occupied                | Windows: `Get-NetTCPConnection -LocalPort 5173,5174 -ErrorAction SilentlyContinue                                                                                                                                                                                                                                                                            | Select-Object LocalPort,OwningProcess`, then `Stop-Process -Id <pid>`. macOS/Linux: `lsof -nP -iTCP:5173 -sTCP:LISTEN`(repeat for`5174`), then `kill <pid>`. |
 | Installer lock is stale                      | Wait for active builds. The lock is `universal-pnpm-install.lock` in the OS temp directory and the runtime removes locks older than ten minutes. After confirming no runtime is active, remove only that file: Windows `Remove-Item (Join-Path $env:TEMP 'universal-pnpm-install.lock')`; macOS/Linux `rm -f "${TMPDIR:-/tmp}/universal-pnpm-install.lock"`. |
 | Build fails                                  | Read structured install/build diagnostics in the MCP result or runtime state. Fix the allowed source and submit a new revision; never modify an immutable revision.                                                                                                                                                                                          |
