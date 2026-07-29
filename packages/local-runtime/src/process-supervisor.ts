@@ -84,10 +84,12 @@ function appendBounded(
     : { value: bytes.subarray(0, limit).toString('utf8'), truncated: true };
 }
 async function killTree(child: ChildProcess): Promise<void> {
-  if (!child.pid || hasExited(child)) return;
+  if (!child.pid) return;
   if (process.platform === 'win32') {
-    // Windows does not expose POSIX process groups. taskkill /T keeps the target
-    // tree intact while requesting graceful termination; /F is the escalation.
+    // taskkill cannot traverse descendants once its root PID has already exited.
+    // The documented Windows contract therefore requires the root to remain alive
+    // until cancellation or timeout begins.
+    if (hasExited(child)) return;
     await terminateWithTaskkill(child.pid, false);
     await waitForChildExit(child, PROCESS_EXIT_GRACE_MS);
     if (hasExited(child)) return;
@@ -95,12 +97,8 @@ async function killTree(child: ChildProcess): Promise<void> {
     await waitForChildExit(child, PROCESS_EXIT_GRACE_MS);
     if (hasExited(child)) return;
   } else {
-    sendProcessGroupSignal(child, 'SIGTERM');
-    await waitForChildExit(child, PROCESS_EXIT_GRACE_MS);
-    if (hasExited(child)) return;
-    sendProcessGroupSignal(child, 'SIGKILL');
-    await waitForChildExit(child, PROCESS_EXIT_GRACE_MS);
-    if (hasExited(child)) return;
+    await terminateProcessGroup(child.pid);
+    return;
   }
   throw new RuntimeFailure(
     'INTERNAL_FAILURE',
@@ -356,19 +354,38 @@ function waitForChildExit(child: ChildProcess, timeoutMs: number): Promise<void>
 function hasExited(child: ChildProcess): boolean {
   return child.exitCode !== null || child.signalCode !== null;
 }
-function sendProcessGroupSignal(child: ChildProcess, signal: NodeJS.Signals): void {
-  if (!child.pid || hasExited(child)) return;
+async function terminateProcessGroup(pid: number): Promise<void> {
+  sendProcessGroupSignal(pid, 'SIGTERM');
+  if (await waitForProcessGroupExit(pid, PROCESS_EXIT_GRACE_MS)) return;
+  sendProcessGroupSignal(pid, 'SIGKILL');
+  if (await waitForProcessGroupExit(pid, PROCESS_EXIT_GRACE_MS)) return;
+  throw new RuntimeFailure(
+    'INTERNAL_FAILURE',
+    'Unable to confirm termination of the supervised command process group.',
+    { retryable: true }
+  );
+}
+async function waitForProcessGroupExit(pid: number, timeoutMs: number): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  while (processGroupExists(pid)) {
+    if (Date.now() >= deadline) return false;
+    await delay(25);
+  }
+  return true;
+}
+function processGroupExists(pid: number): boolean {
   try {
-    process.kill(-child.pid, signal);
-  } catch {
-    sendChildSignal(child, signal);
+    process.kill(-pid, 0);
+    return true;
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code !== 'ESRCH';
   }
 }
-function sendChildSignal(child: ChildProcess, signal: NodeJS.Signals): void {
+function sendProcessGroupSignal(pid: number, signal: NodeJS.Signals): void {
   try {
-    child.kill(signal);
+    process.kill(-pid, signal);
   } catch {
-    // The process may have exited between the state check and the signal.
+    // The group may have exited between existence checks and signal delivery.
   }
 }
 async function terminateWithTaskkill(pid: number, force: boolean): Promise<void> {

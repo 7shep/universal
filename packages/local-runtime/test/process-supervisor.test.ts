@@ -251,3 +251,37 @@ test('natural completion remains successful when cancellation arrives afterwards
     truncated: false
   });
 });
+
+test(
+  'POSIX timeout terminates an inherited-stream descendant after its group leader exits',
+  { skip: process.platform === 'win32', timeout: 10_000 },
+  async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'universal-process-leader-exit-'));
+    const pidFile = path.join(root, 'child.pid');
+    const parent = `const {spawn}=require('node:child_process');const {writeFileSync}=require('node:fs');const c=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:['ignore','inherit','inherit']});writeFileSync(${JSON.stringify(pidFile)},String(c.pid));process.exit(0);`;
+    try {
+      await assert.rejects(
+        () =>
+          runSupervisedCommand({
+            command: process.execPath,
+            args: ['-e', parent],
+            cwd: root,
+            timeoutMs: 300
+          }),
+        (error: unknown) => error instanceof RuntimeFailure && error.detail.code === 'TIMEOUT'
+      );
+      const pid = Number((await readFile(pidFile, 'utf8')).trim());
+      assert.ok(pid > 0, 'expected the parent to record a descendant PID');
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      let alive = true;
+      try {
+        process.kill(pid, 0);
+      } catch {
+        alive = false;
+      }
+      assert.equal(alive, false, `descendant ${pid} survived timeout`);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  }
+);
