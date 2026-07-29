@@ -1,0 +1,10 @@
+import { configurationRows } from '../data/content';
+
+export function ProductPage() {
+  return (
+    <main id="main">
+      <section className="intro"><p className="folio">Configure / Monolith 75</p><h1>A 75% instrument, tuned to you.</h1><p>Every wear component remains replaceable.</p></section>
+      <section className="ledger" aria-labelledby="ledger-title"><h2 id="ledger-title">Configuration ledger</h2>{configurationRows.map((row) => <article key={row.label}><span>{row.label}</span><strong>{row.value}</strong><p>{row.note}</p></article>)}</section>
+    </main>
+  );
+}

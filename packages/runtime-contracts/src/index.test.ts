@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   RUNTIME_CONTRACT_VERSION,
+  validateBuildRecord,
   validatePreviewDescriptor,
   validateRuntimeOperation,
   validateRuntimeState
@@ -44,4 +45,44 @@ test('runtime state validation reports the malformed revision path', () => {
   });
   assert.equal(checked.ok, false);
   if (!checked.ok) assert.match(checked.error.path ?? '', /^revisions\.0\./);
+});
+test('architecture diagnostics preserve severity and evidence through validation', () => {
+  const now = '2026-07-28T12:00:00.000Z';
+  const checked = validateBuildRecord({
+    contractVersion: RUNTIME_CONTRACT_VERSION,
+    id: 'build:architecture',
+    projectId: 'project:architecture',
+    revisionId: 'revision:architecture',
+    generatedProjectDigest: 'digest',
+    status: 'failed',
+    createdAt: now,
+    updatedAt: now,
+    diagnostics: [
+      {
+        code: 'ARCH_ROUTE_PAGE_COVERAGE',
+        stage: 'review',
+        severity: 'error',
+        message: 'Route is unmapped.'
+      }
+    ],
+    review: {
+      status: 'revision_recommended',
+      checkedAt: now,
+      checks: [
+        {
+          id: 'ARCH_ROUTE_PAGE_COVERAGE',
+          status: 'fail',
+          severity: 'error',
+          message: 'Route is unmapped.',
+          evidence: { routeMappings: { '/field-notes': null } }
+        }
+      ]
+    }
+  });
+  assert.equal(checked.ok, true);
+  if (!checked.ok) return;
+  assert.equal(checked.value.review?.checks[0]?.severity, 'error');
+  assert.deepEqual(checked.value.review?.checks[0]?.evidence, {
+    routeMappings: { '/field-notes': null }
+  });
 });

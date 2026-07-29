@@ -68,6 +68,14 @@ workspace for local inspection. The generated source never controls the command,
 set, configuration, or workspace destination. This local Vite server is a developer convenience,
 not the CSP-isolated Preview security boundary.
 
+## Proportional React architecture gate
+
+`prepare_react_generation` returns a non-configurable `architecturePolicy` derived from Design Plan v2 page count, approved routes, required sections, and plan-declared shared elements. Multi-route work is asked to use route-specific page modules and reusable shared interface modules; substantial single-page work is asked to compose cohesive section or feature modules. Small sites may remain compact. Folder and filename preferences alone never fail a build, and tiny wrapper components do not count as meaningful extraction.
+
+After TypeScript and Vite succeed, the trusted runtime uses the TypeScript compiler API to analyze component declarations, imports and JSX usage, route-to-page mappings, App composition, props typing, shared regions, duplicated JSX subtrees, inline collections, module responsibilities, and stylesheet distribution. Blocking checks reject App-only nontrivial implementations, missing multi-route page modules or route mappings, duplicated plan-declared shared regions, multiple full pages inside App, untyped configurable exported/reused components, and substantial copy-pasted JSX. Advisory checks report large inline content collections, weak stylesheet separation, overloaded modules, and borderline App complexity.
+
+Architecture checks emit stable `ARCH_*` IDs, severity, actionable messages, and JSON-safe evidence in the implementation review. Errors produce review-stage build diagnostics and prevent a new preview from becoming ready. Warnings remain visible without failing an otherwise valid build. Generated source and MCP callers cannot configure or disable the policy. A successful build therefore covers compilation, runtime trust constraints, and a minimum maintainable repository architecture; it is still not a substitute for human code review or rendered visual judgment.
+
 ## Workspace and dependency policy
 
 The CLI workspace defaults to `~/.universal/workspaces`; tests use temporary directories. Revisions are stored under:
@@ -94,7 +102,9 @@ Common stable codes include `INVALID_REQUEST`, `STALE_ARTIFACT`, `IDEMPOTENCY_CO
 
 Each ready build is served from a distinct ephemeral loopback origin. The server exposes static `dist` files only, applies `Cache-Control: no-store`, `X-Content-Type-Options: nosniff`, and a CSP whose `connect-src` is `'none'`. It has no runtime API. Preview never accepts an arbitrary URL and does not reveal a descriptor before the build is ready. Client-side routes fall back to `index.html`; traversal remains rejected.
 
-This is strong browser-origin and process-supervision isolation, not an OS/container sandbox. Generated JavaScript still executes in a browser sandboxed iframe. Stronger filesystem/process containment and cross-platform junction coverage remain future hardening.
+This is strong browser-origin and process-supervision isolation, not an OS/container sandbox.
+Generated JavaScript still executes in a browser sandboxed iframe. Workspace and export containment
+tests exercise POSIX symlinks and Windows junctions without a privileged-test skip.
 
 ## Verification
 

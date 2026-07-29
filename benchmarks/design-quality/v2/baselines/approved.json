@@ -1,0 +1,21 @@
+{
+  "format": "universal.design-benchmark.baseline",
+  "formatVersion": "2",
+  "suiteVersion": "2.0.0",
+  "status": "approved-fixture",
+  "intent": "Representative evidence shapes, not showcase output.",
+  "results": [
+    {
+      "briefId": "dq-v2-technical-developer-tool",
+      "outcome": "successful",
+      "evidence": ["fixtures/successful-report.json"],
+      "rationale": "All deterministic checks passed and subjective review was explicitly scored."
+    },
+    {
+      "briefId": "dq-v2-cultural-archive",
+      "outcome": "failed",
+      "evidence": ["fixtures/failed-report.json"],
+      "rationale": "Approved evidence preserves a route-coverage and repository-organization failure."
+    }
+  ]
+}

@@ -118,6 +118,51 @@ function projectIdFor(plan: DesignPlanV2): string {
   return `mcp-project:${plan.digest.slice(0, 24)}`;
 }
 
+function architecturePolicyFor(plan: DesignPlanV2) {
+  const pages = plan.pageMap.pages,
+    multiRoute = plan.pageMap.kind === 'multi-page' || pages.length > 1,
+    requiredSections = pages.reduce((total, page) => total + page.requiredSections.length, 0),
+    sharedElements = [...new Set(pages.flatMap((page) => page.sharedElements))],
+    complexity = multiRoute
+      ? ('multi-route' as const)
+      : requiredSections >= 4
+        ? ('substantial-single-page' as const)
+        : ('small' as const);
+  return {
+    policyVersion: '1.0.0',
+    complexity,
+    approvedRoutes: pages.map((page) => page.route),
+    requiredSectionCount: requiredSections,
+    planDeclaredSharedElements: sharedElements,
+    expectations: [
+      ...(multiRoute
+        ? [
+            'Create an identifiable page component module outside App.tsx for every approved route.',
+            'Keep App.tsx focused on route selection and top-level composition.',
+            'Do not place multiple complete page implementations in one source module.'
+          ]
+        : requiredSections >= 4
+          ? [
+              'Compose substantial required sections from cohesive section or feature modules outside App.tsx.'
+            ]
+          : [
+              'Keep small static leaf content local when extraction would add no meaningful boundary.'
+            ]),
+      ...(sharedElements.length > 0
+        ? [
+            `Extract reusable plan-declared interface regions where they repeat: ${sharedElements.join(', ')}.`
+          ]
+        : []),
+      'Give configurable exported or reused components explicit TypeScript props types.',
+      'Move substantial content collections into data modules when they are not rendering logic.',
+      'Avoid substantial copy-pasted JSX; extract a cohesive shared component instead.',
+      'For visually substantial work, organize tokens/shared/page styles behind src/styles.css without requiring one file per component.',
+      'Do not create meaningless one-line wrappers merely to increase component or file counts.'
+    ],
+    exampleOnly:
+      'A nontrivial site commonly uses src/pages, src/components, src/data, and src/styles modules, but filenames and folders are judged by responsibilities rather than preference.'
+  };
+}
 function normalizeSubmission(input: BuildReactProjectInput): RawGeneratedProject {
   return {
     files: [...input.files]
@@ -210,7 +255,8 @@ export function createRuntimeBuildMcpAdapter(
           maximumAssets: 16,
           maximumFileBytes: 256 * 1024,
           maximumTotalBytes: 2 * 1024 * 1024,
-          assetMediaTypes: ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml']
+          assetMediaTypes: ['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'],
+          architecturePolicy: architecturePolicyFor(plan)
         },
         next: {
           tool: 'build_react_project',
@@ -218,6 +264,7 @@ export function createRuntimeBuildMcpAdapter(
             'Generate complete source files from this exact Design Plan v2 context.',
             'Do not emit runtime-owned files, dependencies, configuration, or commands.',
             'Include every approved route literally in source and preserve page responsibilities.',
+            'Follow sourceContract.architecturePolicy; architecture errors fail deterministic review and warnings remain in diagnostics.',
             'Include semantic nav/main/h1 landmarks, :focus-visible, and prefers-reduced-motion.',
             'Use a new stable requestId when intentionally retrying a failed build.'
           ]

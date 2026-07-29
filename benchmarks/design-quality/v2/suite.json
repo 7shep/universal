@@ -1,0 +1,26 @@
+{
+  "id": "universal-design-benchmark",
+  "version": "2.0.0",
+  "contentRevision": 1,
+  "briefPaths": [
+    "briefs/01-luxury-product.json",
+    "briefs/02-editorial-publication.json",
+    "briefs/03-technical-developer-tool.json",
+    "briefs/04-playful-consumer-brand.json",
+    "briefs/05-data-heavy-dashboard.json",
+    "briefs/06-cultural-archive.json",
+    "briefs/07-minimal-portfolio.json",
+    "briefs/08-mobile-first-product.json"
+  ],
+  "criteria": [
+    { "id": "visual-originality", "evidenceKind": "subjective", "weight": 0.15 },
+    { "id": "design-plan-v2-fidelity", "evidenceKind": "deterministic", "weight": 0.15 },
+    { "id": "responsive-behavior", "evidenceKind": "deterministic", "weight": 0.12 },
+    { "id": "route-content-completeness", "evidenceKind": "deterministic", "weight": 0.14 },
+    { "id": "accessibility", "evidenceKind": "deterministic", "weight": 0.12 },
+    { "id": "repository-organization", "evidenceKind": "deterministic", "weight": 0.1 },
+    { "id": "build-success", "evidenceKind": "deterministic", "weight": 0.1 },
+    { "id": "runtime-policy-compliance", "evidenceKind": "deterministic", "weight": 0.12 }
+  ],
+  "baselinePath": "baselines/approved.json"
+}

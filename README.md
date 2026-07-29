@@ -84,6 +84,9 @@ boundaries.
 - Node.js 22 or newer
 - pnpm 11 or newer
 
+Verify versions, enable the repository-pinned pnpm, and troubleshoot PowerShell or occupied ports
+with the [cross-platform local setup guide](docs/SETUP.md).
+
 ```bash
 git clone https://github.com/7shep/universal.git
 cd universal
@@ -91,8 +94,8 @@ pnpm install
 pnpm dev
 ```
 
-`pnpm dev` starts the Studio and Preview applications. Studio uses local deterministic fixtures, so
-exploring the design-direction sequence does not require model credentials.
+`pnpm dev` starts Studio, Preview, and the Axis 65 demo site. Studio uses local deterministic
+fixtures, so exploring the design-direction sequence does not require model credentials.
 
 To connect the MCP server to Codex, follow the
 [step-by-step Codex setup guide](docs/CODEX_MCP_SETUP.md). Downstream products should use the
@@ -189,12 +192,17 @@ pnpm test
 
 - [Product principles and non-goals](PRODUCT.md)
 - [Roadmap](ROADMAP.md)
+- [Cross-platform local setup](docs/SETUP.md)
+- [Design and provenance glossary](docs/GLOSSARY.md)
 - [Architecture and ownership](docs/ARCHITECTURE.md)
 - [Generation and local-runtime contributor workflow](docs/RUNTIME_CONTRIBUTOR_WORKFLOW.md)
 - [Studio workflow](docs/STUDIO.md)
 - [Connect Universal MCP to Codex](docs/CODEX_MCP_SETUP.md)
 - [MCP tool reference](docs/MCP_REFERENCE.md)
 - [Downstream orchestration API](docs/DOWNSTREAM_API.md)
+- [Composition-library guide](packages/composition-library/README.md)
+- [Design-linter guide](packages/design-linter/README.md)
+- [Shared UI guide](packages/ui/README.md)
 - [Security policy](SECURITY.md)
 - [Code of Conduct](CODE_OF_CONDUCT.md)
 

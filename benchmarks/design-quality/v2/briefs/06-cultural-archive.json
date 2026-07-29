@@ -1,0 +1,15 @@
+{
+  "id": "dq-v2-cultural-archive",
+  "version": "1.0.0",
+  "category": "multi-page-cultural-archive",
+  "title": "River Voices Oral History Archive",
+  "prompt": "Create a multi-page public archive for oral histories with collection context, item records, transcripts, and community attribution.",
+  "approvedRoutes": ["/", "/collections", "/people", "/record/estuary-14"],
+  "requirements": ["Collection index", "People index", "Record page with transcript and rights"],
+  "constraints": [
+    "Every route has a unique responsibility",
+    "Respect cultural attribution",
+    "No remote media"
+  ],
+  "mobileFirst": false
+}

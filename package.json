@@ -15,7 +15,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "turbo run typecheck",
-    "test": "turbo run test"
+    "test": "turbo run test",
+    "test:trusted-runtime-security": "pnpm --filter @universal/local-runtime exec node --experimental-strip-types --test test/security.test.ts test/http-server.test.ts test/workspace.test.ts test/runtime.integration.test.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.31.0",
@@ -23,7 +24,7 @@
     "eslint": "^9.31.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react-hooks": "^5.2.0",
-    "eslint-plugin-react-refresh": "^0.4.20",
+    "eslint-plugin-react-refresh": "^0.5.3",
     "globals": "^16.3.0",
     "prettier": "^3.6.2",
     "turbo": "^2.5.5",

@@ -1,5 +1,8 @@
 # Architecture and Ownership
 
+Terminology used by the contracts and flows below is defined in the
+[Universal glossary](GLOSSARY.md).
+
 Universal is a local-first pnpm monorepo for turning explicit discovery decisions into an approved
 Design Plan v2, a validated React project, and an isolated production preview. This guide describes
 code that exists on `main`; roadmap milestones are not presented as shipped behavior.
@@ -129,7 +132,7 @@ bindings without advancing it.
 
 1. A client completes the Phase 2 flow through `create_design_plan_v2`.
 2. `prepare_react_generation` validates the exact plan-created session and exposes the canonical
-   `GenerationContext`, source allowlist, quotas, required files, and runtime-owned-file denylist.
+   `GenerationContext`, source allowlist, quotas, required files, runtime-owned-file denylist, and a proportional architecture policy derived from routes, sections, and shared elements.
 3. The MCP host model authors React, TypeScript, CSS, text, and optional approved image assets. It
    cannot author dependencies, scripts, commands, entrypoints, build configuration, or paths
    outside `src/`.
@@ -137,10 +140,11 @@ bindings without advancing it.
    identity from the sorted source plus a stable request ID.
 5. The submitted-source provider passes the files through `ReactGenerator` validation and secret
    scanning, then `RuntimeService` performs safe materialization, offline frozen installation,
-   production build, and deterministic implementation review.
+   production build, and deterministic implementation review including TypeScript-AST architecture analysis.
 6. A successful MCP result returns the immutable workspace and production output paths. The caller
    may run the runtime-owned `pnpm run dev` script, which binds Vite to `127.0.0.1`.
 
+Architecture review is part of the trusted runtime rather than a separate caller-invoked lint command. Multi-route plans require identifiable external page modules and route coverage; substantial single pages require meaningful section/feature composition; small pages remain compact. Stable `ARCH_*` findings include structured evidence for App JSX complexity, page and route mappings, shared modules, props typing, duplicated subtrees, inline data, and stylesheet distribution. Blocking errors prevent readiness, while advisory warnings remain in build diagnostics. Passing establishes a minimum repository architecture but does not replace human code review.
 This is not a live-provider adapter: the already-authorized MCP host model is the source author. The
 submitted files remain untrusted at the generation and runtime boundaries. The MCP layer owns only
 transport adaptation and serialization; `generation` and `local-runtime` remain the validation and
@@ -228,12 +232,14 @@ Deferred boundaries:
 - Arbitrary provider-authored dependencies, scripts, configuration, or shell commands.
 - A production live-provider adapter; trusted runtime injection is the implemented boundary.
 - OS/container sandboxing and a complete Windows/macOS/Linux end-to-end matrix.
-- Automated section revision/regeneration, visual variants, and collaborative editing.
+- Autonomous multi-step section regeneration, visual variants, and collaborative editing. Phase 3.2
+  supports one bounded, attributable rendered-QA child revision through a trusted adapter.
 - Runtime-hosted UI assets, WebSockets, and automatic retention beyond safe abandoned-work cleanup.
 
 See [Phase 3 local runtime](PHASE3_RUNTIME.md),
 [ADR 0001](adr/0001-local-runtime-architecture.md),
-[ADR 0002](adr/0002-phase3-runtime-protocol-narrowing.md), and
+[ADR 0002](adr/0002-phase3-runtime-protocol-narrowing.md),
+[ADR 0003](adr/0003-phase3-quality-acceptance-assets.md), and
 [Downstream API](DOWNSTREAM_API.md).
 
 ## Choosing the owning workspace
@@ -266,3 +272,10 @@ If a change spans transport and domain behavior, implement behavior in its domai
 changes to validation and delegation. If a feature requires runtime, filesystem, network, process, or
 credential authority, treat it as runtime architecture work instead of adding those privileges to a
 UI or MCP package.
+
+Rendered QA records route- and viewport-specific screenshot digests and findings, keeping
+machine-verifiable observations separate from human visual judgment. Child revisions are bounded
+and linked to immutable parents. Acceptance and export are explicit runtime operations outside
+generation; export destinations must remain beneath configured roots and retain Design Plan, review,
+revision, acceptance, and timestamp provenance. Assets are local, manifest-driven, media-validated,
+and never grant the model authority over dependencies, downloads, build configuration, or commands.

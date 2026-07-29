@@ -1,0 +1,1 @@
+:root { color-scheme: dark; --ink: #171716; --surface: #232320; --paper: #f4f2ec; --quiet: #aaa79e; --signal: #d15e3b; }
