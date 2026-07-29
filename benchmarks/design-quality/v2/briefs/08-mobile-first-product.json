@@ -1,0 +1,15 @@
+{
+  "id": "dq-v2-mobile-first-product",
+  "version": "1.0.0",
+  "category": "mobile-first-product",
+  "title": "Waymark Neighbourhood Walks",
+  "prompt": "Create a mobile-first product interface for saving and following neighbourhood walks with clear offline status and one-thumb navigation.",
+  "approvedRoutes": ["/", "/walks", "/walk/harbour-loop", "/saved"],
+  "requirements": ["Nearby walk list", "Walk detail and progress", "Saved offline state"],
+  "constraints": [
+    "Primary actions reachable on small screens",
+    "No location or network access",
+    "Desktop layout must not become stretched mobile UI"
+  ],
+  "mobileFirst": true
+}

@@ -1,0 +1,19 @@
+{
+  "id": "dq-v2-data-heavy-dashboard",
+  "version": "1.0.0",
+  "category": "data-heavy-dashboard",
+  "title": "Northline Grid Operations",
+  "prompt": "Create a dense but calm electrical-grid operations dashboard for triage, comparison, and incident handoff.",
+  "approvedRoutes": ["/", "/regions", "/incidents/active"],
+  "requirements": [
+    "System health summary",
+    "Sortable regional comparison",
+    "Active incident timeline"
+  ],
+  "constraints": [
+    "Do not encode state by color alone",
+    "Tables remain usable at narrow widths",
+    "No live network dependency"
+  ],
+  "mobileFirst": false
+}

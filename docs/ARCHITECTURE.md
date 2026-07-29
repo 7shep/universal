@@ -229,12 +229,14 @@ Deferred boundaries:
 - Arbitrary provider-authored dependencies, scripts, configuration, or shell commands.
 - A production live-provider adapter; trusted runtime injection is the implemented boundary.
 - OS/container sandboxing and a complete Windows/macOS/Linux end-to-end matrix.
-- Automated section revision/regeneration, visual variants, and collaborative editing.
+- Autonomous multi-step section regeneration, visual variants, and collaborative editing. Phase 3.2
+  supports one bounded, attributable rendered-QA child revision through a trusted adapter.
 - Runtime-hosted UI assets, WebSockets, and automatic retention beyond safe abandoned-work cleanup.
 
 See [Phase 3 local runtime](PHASE3_RUNTIME.md),
 [ADR 0001](adr/0001-local-runtime-architecture.md),
-[ADR 0002](adr/0002-phase3-runtime-protocol-narrowing.md), and
+[ADR 0002](adr/0002-phase3-runtime-protocol-narrowing.md),
+[ADR 0003](adr/0003-phase3-quality-acceptance-assets.md), and
 [Downstream API](DOWNSTREAM_API.md).
 
 ## Choosing the owning workspace
@@ -267,3 +269,10 @@ If a change spans transport and domain behavior, implement behavior in its domai
 changes to validation and delegation. If a feature requires runtime, filesystem, network, process, or
 credential authority, treat it as runtime architecture work instead of adding those privileges to a
 UI or MCP package.
+
+Rendered QA records route- and viewport-specific screenshot digests and findings, keeping
+machine-verifiable observations separate from human visual judgment. Child revisions are bounded
+and linked to immutable parents. Acceptance and export are explicit runtime operations outside
+generation; export destinations must remain beneath configured roots and retain Design Plan, review,
+revision, acceptance, and timestamp provenance. Assets are local, manifest-driven, media-validated,
+and never grant the model authority over dependencies, downloads, build configuration, or commands.

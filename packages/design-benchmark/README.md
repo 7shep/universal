@@ -7,7 +7,9 @@ brief. Source evidence is deterministic and reproducible. Criteria that require 
 remain `not_evaluable` until rendered evidence is attached; the source collector does not use a
 live preview or network access.
 
-Benchmark definitions live in `../../benchmarks/design-quality/v1`.
+Historical source-only definitions live in `../../benchmarks/design-quality/v1`. The permanent
+eight-archetype Phase 3 corpus and approved evidence live in `../../benchmarks/design-quality/v2`;
+its versioned input digest enables repeatable paired and historical comparisons.
 
 `executeBenchmarkPair` takes trusted workspace, executor, and required-check providers. Injection
 is a provider boundary, not a sandbox. Each provider supplies a versioned isolation attestation,
@@ -47,3 +49,11 @@ pnpm --filter @universal/design-benchmark test
 ```
 
 The Phase 3 test fixture includes one independent negative mutation for every dimension.
+
+## Permanent v2 corpus
+
+`loadPermanentBenchmark()` loads and digests the immutable eight-archetype v2 corpus. Reports retain
+deterministic and subjective evidence as separate criterion records. Paired or historical comparison
+requires the same suite version and exact input digest. See
+`../../benchmarks/design-quality/v2/README.md` for adding briefs, execution, scoring, intentional
+baseline updates, and regression policy.
