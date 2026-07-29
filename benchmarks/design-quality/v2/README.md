@@ -54,3 +54,5 @@ an old input directory in place; create a new suite version when inputs or scori
 Only compare reports with matching suite versions and input digests. The regression report flags a
 score drop beyond the configured threshold per brief and arm. Deterministic failures remain visible
 even when a subjective score is absent.
+
+createPermanentBenchmarkReport() preserves the v2 structured report contract while adding totals by criterion, outcome, and brief. summarizePermanentBenchmarkReport() and summarizePermanentRegressionReport() produce deterministic companion text; regression entries retain the baseline and current evidence paths for every changed result.
