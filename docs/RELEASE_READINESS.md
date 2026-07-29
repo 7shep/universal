@@ -28,7 +28,7 @@ Use the repository-pinned tools and a clean checkout:
 corepack enable
 pnpm --version
 pnpm install --frozen-lockfile
-pnpm --dir packages/local-runtime/template fetch --frozen-lockfile
+pnpm --dir packages/local-runtime/template install --frozen-lockfile --ignore-scripts
 # macOS and Linux
 rm -rf packages/local-runtime/template/node_modules
 # Windows PowerShell
@@ -39,7 +39,7 @@ pnpm typecheck
 pnpm test
 pnpm build
 # Ubuntu
-pnpm --filter @universal/local-runtime playwright:install -- --with-deps
+pnpm --filter @universal/local-runtime exec playwright install --with-deps chromium
 # macOS and Windows
 pnpm --filter @universal/local-runtime playwright:install
 pnpm --filter @universal/local-runtime test
@@ -54,7 +54,7 @@ Before a release candidate is accepted, the pull request must also be green in a
 `local-runtime-cross-platform` jobs. CI performs fresh frozen-lockfile installs; this is the
 CI-only portion when a contributor has tested only their local operating system.
 
-The template fetch deliberately populates the same pnpm store that the runtime later uses for its
+The template install deliberately populates the same pnpm store that the runtime later uses for its
 fixed offline install. It does not relax the runtime's `--offline` or `--frozen-lockfile`
 guarantees. Remove only the generated `packages/local-runtime/template/node_modules` directory
 before the runtime suite; do not change the fixed template or its lockfile.

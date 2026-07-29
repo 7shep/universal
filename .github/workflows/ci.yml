@@ -164,7 +164,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Prepare local-runtime template store
-        run: pnpm --dir packages/local-runtime/template fetch --frozen-lockfile
+        run: pnpm --dir packages/local-runtime/template install --frozen-lockfile --ignore-scripts
 
       - name: Remove template virtual store (Linux and macOS)
         if: runner.os != 'Windows'
@@ -178,7 +178,7 @@ jobs:
 
       - name: Install pinned Chromium with Linux dependencies
         if: runner.os == 'Linux'
-        run: pnpm --filter @universal/local-runtime playwright:install -- --with-deps
+        run: pnpm --filter @universal/local-runtime exec playwright install --with-deps chromium
 
       - name: Install pinned Chromium
         if: runner.os != 'Linux'
