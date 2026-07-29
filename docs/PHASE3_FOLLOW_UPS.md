@@ -1,10 +1,8 @@
-# Phase 3 Follow-up Roadmap
+# Phase 3 Follow-up Closeout
 
-> Implementation status (2026-07-28): all items in this roadmap except required CI and branch
-> protection are implemented and covered by package tests. The permanent benchmark lives at
-> `benchmarks/design-quality/v2`; rendered QA, acceptance/export, and asset-policy contracts live in
-> `packages/local-runtime` and `packages/generation`. CI and branch protection remain deliberately
-> out of scope for this follow-up.
+> Completion status (2026-07-29): every item in this roadmap is implemented and covered by package
+> tests. Repository CI runs the full quality gate plus a dedicated trusted-runtime/security gate,
+> and `main` requires both checks to be strict and up to date before merge.
 
 Phase 3 delivers the core local flow:
 
@@ -16,13 +14,15 @@ arbitrary MCP design request
   -> local Vite
 ```
 
-Phase 3.1 is intended to add proportional React architecture checks so generated projects use
-pages, components, typed props, organized styles, and separated data where appropriate instead of
-placing the complete implementation in `App.tsx`.
+Phase 3.1 added proportional React architecture checks so generated projects use pages, components,
+typed props, organized styles, and separated data where appropriate instead of placing the complete
+implementation in `App.tsx`.
 
-## Recommended order
+## Completion record
 
 ### 1. Finish and review Phase 3.1
+
+Status: complete.
 
 - Confirm monolithic multi-route projects fail.
 - Confirm organized multi-route projects pass.
@@ -33,8 +33,7 @@ placing the complete implementation in `App.tsx`.
 
 ### 2. Add required CI and branch protection
 
-At the time Phase 3 was merged, GitHub reported no Actions checks on the pull request. Add required
-checks for:
+Status: complete. GitHub Actions now covers:
 
 - formatting
 - lint
@@ -44,9 +43,12 @@ checks for:
 - Phase 3 end-to-end golden journey
 - Phase 3.1 architecture fixtures
 
-Require the checks before merging to `main`.
+`main` requires the strict, up-to-date `Quality gate` and `Trusted runtime and security` checks,
+resolved review conversations, and disallows force pushes and branch deletion.
 
 ### 3. Establish a permanent design benchmark
+
+Status: complete. The permanent suite lives at `benchmarks/design-quality/v2`.
 
 Maintain six to ten deliberately different briefs:
 
@@ -75,6 +77,9 @@ stable baseline instead of one showcase website.
 
 ### 4. Stress-test the trust boundary
 
+Status: complete. Runtime and generation fixtures cover the listed failure classes with structured
+diagnostics and recovery behavior.
+
 Exercise intentional failures and confirm every result is structured, understandable, and
 recoverable:
 
@@ -90,6 +95,8 @@ recoverable:
 - retry a failed immutable revision with a new request ID
 
 ### 5. Phase 3.2: rendered QA and revision loop
+
+Status: complete for the bounded Phase 3.2 scope.
 
 The highest-value quality improvement after architecture enforcement is:
 
@@ -119,6 +126,8 @@ Keep machine-verifiable evidence separate from subjective human visual judgment.
 
 ### 6. Promote an accepted revision into a normal repository
 
+Status: complete through the explicit acceptance/export contracts and runtime flow.
+
 Add an explicit acceptance/export workflow:
 
 ```text
@@ -132,6 +141,9 @@ Generation must remain unable to select arbitrary filesystem destinations. Promo
 separate user-authorized operation that preserves provenance and the reviewed revision identity.
 
 ### 7. Add a controlled asset pipeline
+
+Status: complete for provenance-aware generated raster assets, local fonts, SVGs, icons, responsive
+variants, optimization metadata, and policy enforcement.
 
 Consider safe support for:
 
@@ -152,11 +164,15 @@ The immutable build pipeline and isolated Preview are security boundaries. The r
 server is a developer convenience and should not be described as an isolated browser-execution
 boundary unless equivalent CSP and network restrictions are added.
 
-## Resume point
+## Closeout verification
 
-When returning to this work:
+The post-merge audit ran from a clean `main` worktree and passed:
 
-1. Review and merge Phase 3.1 if its architecture policy and tests are sound.
-2. Add required GitHub Actions checks and branch protection.
-3. Create the stable multi-brief benchmark.
-4. Implement rendered screenshot QA and an iterative revision loop as Phase 3.2.
+- `pnpm format:check`
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm build`
+- `pnpm test`, including the deterministic Phase 3 golden journey and trusted-runtime coverage
+
+No Phase 4 capability was started during closeout. Remaining product work is tracked in
+[`IMPROVEMENTS.MD`](../IMPROVEMENTS.MD).
