@@ -30,6 +30,19 @@ export type PermanentEvidenceKind = 'deterministic' | 'subjective';
 export type PermanentCriterionStatus = 'passed' | 'failed' | 'not-evaluated';
 export type PermanentOutcome = PermanentCriterionStatus;
 
+const CRITERION_EVIDENCE_KINDS: Readonly<
+  Record<PermanentBenchmarkCriterion, PermanentEvidenceKind>
+> = {
+  'visual-originality': 'subjective',
+  'design-plan-v2-fidelity': 'deterministic',
+  'responsive-behavior': 'deterministic',
+  'route-content-completeness': 'deterministic',
+  accessibility: 'deterministic',
+  'repository-organization': 'deterministic',
+  'build-success': 'deterministic',
+  'runtime-policy-compliance': 'deterministic'
+};
+
 export interface PermanentBenchmarkBrief {
   id: string;
   version: '1.0.0';
@@ -72,6 +85,10 @@ export interface PermanentCaseResult {
   revisionId: string;
   criteria: readonly PermanentCriterionResult[];
   aggregateScore?: number | null | undefined;
+  /** Deterministic checks only. Subjective scores are intentionally excluded. */
+  deterministicScore?: number | null | undefined;
+  /** Human review evidence only; this is never used to declare a regression. */
+  subjectiveScore?: number | null | undefined;
 }
 export interface PermanentCount {
   passed: number;
@@ -126,6 +143,13 @@ const countStatus = (count: PermanentCount, status: PermanentCriterionStatus): v
 };
 const sortedUnique = (values: readonly string[]): readonly string[] =>
   [...new Set(values)].sort(compareText);
+const nonEmptyText = (value: unknown): value is string =>
+  typeof value === 'string' && value.trim().length > 0;
+const canonicalEvidencePath = (value: unknown): value is string =>
+  nonEmptyText(value) &&
+  !path.isAbsolute(value) &&
+  !value.includes('\\') &&
+  !value.split('/').some((segment) => segment === '' || segment === '.' || segment === '..');
 
 async function safeRead(root: string, relative: string): Promise<string> {
   if (
@@ -151,44 +175,61 @@ function assertSuite(value: unknown): asserts value is PermanentBenchmarkSuite {
     !record(value) ||
     value.id !== 'universal-design-benchmark' ||
     value.version !== PERMANENT_BENCHMARK_VERSION ||
+    typeof value.contentRevision !== 'number' ||
     !Number.isSafeInteger(value.contentRevision) ||
+    value.contentRevision < 1 ||
     !Array.isArray(value.briefPaths) ||
     value.briefPaths.length !== PERMANENT_CATEGORIES.length ||
     new Set(value.briefPaths).size !== value.briefPaths.length ||
+    !value.briefPaths.every(canonicalEvidencePath) ||
     !Array.isArray(value.criteria) ||
     value.criteria.length !== PERMANENT_CRITERIA.length ||
-    typeof value.baselinePath !== 'string'
+    !canonicalEvidencePath(value.baselinePath)
   )
     throw new TypeError('Permanent benchmark suite manifest is invalid.');
   const criteria = value.criteria.filter(record);
+  if (criteria.length !== value.criteria.length)
+    throw new TypeError('Permanent benchmark criteria are invalid.');
+  let totalWeight = 0;
   for (const criterion of PERMANENT_CRITERIA) {
     const item = criteria.find((candidate) => candidate.id === criterion);
     if (
       !item ||
-      !['deterministic', 'subjective'].includes(String(item.evidenceKind)) ||
+      item.evidenceKind !== CRITERION_EVIDENCE_KINDS[criterion] ||
       typeof item.weight !== 'number' ||
+      !Number.isFinite(item.weight) ||
       item.weight <= 0
     )
       throw new TypeError(`Permanent benchmark criterion is invalid: ${criterion}`);
+    totalWeight += item.weight;
   }
+  if (Math.abs(totalWeight - 1) > Number.EPSILON)
+    throw new TypeError('Permanent benchmark criterion weights must total exactly 1.');
 }
 function assertBrief(value: unknown): asserts value is PermanentBenchmarkBrief {
   if (
     !record(value) ||
-    typeof value.id !== 'string' ||
+    !nonEmptyText(value.id) ||
     value.version !== '1.0.0' ||
     !PERMANENT_CATEGORIES.includes(value.category as PermanentBenchmarkCategory) ||
-    typeof value.title !== 'string' ||
-    typeof value.prompt !== 'string' ||
+    !nonEmptyText(value.title) ||
+    !nonEmptyText(value.prompt) ||
     !Array.isArray(value.approvedRoutes) ||
     value.approvedRoutes.length === 0 ||
     !value.approvedRoutes.every(
-      (route) => typeof route === 'string' && route.startsWith('/') && !route.includes('..')
+      (route) =>
+        nonEmptyText(route) &&
+        route.startsWith('/') &&
+        !route.includes('..') &&
+        !route.includes('\\') &&
+        !route.includes('//')
     ) ||
     !Array.isArray(value.requirements) ||
     value.requirements.length < 3 ||
+    !value.requirements.every(nonEmptyText) ||
     !Array.isArray(value.constraints) ||
     value.constraints.length < 2 ||
+    !value.constraints.every(nonEmptyText) ||
     typeof value.mobileFirst !== 'boolean'
   )
     throw new TypeError('Permanent benchmark brief is invalid.');
@@ -210,14 +251,53 @@ export async function loadPermanentBenchmark(
     digestParts.push(`${briefPath}\0${text}`);
   }
   const categories = new Set(briefs.map((brief) => brief.category));
-  if (PERMANENT_CATEGORIES.some((category) => !categories.has(category)))
+  if (
+    new Set(briefs.map((brief) => brief.id)).size !== briefs.length ||
+    PERMANENT_CATEGORIES.some((category) => !categories.has(category))
+  )
     throw new TypeError('Permanent benchmark must contain every required brief category.');
-  await safeRead(root, suiteValue.baselinePath);
+  const baselineText = await safeRead(root, suiteValue.baselinePath);
+  const baseline: unknown = JSON.parse(baselineText);
+  if (
+    !record(baseline) ||
+    baseline.format !== 'universal.design-benchmark.baseline' ||
+    baseline.formatVersion !== '2' ||
+    baseline.suiteVersion !== PERMANENT_BENCHMARK_VERSION ||
+    !Array.isArray(baseline.results)
+  )
+    throw new TypeError('Permanent benchmark baseline manifest is invalid.');
+  if (
+    !nonEmptyText(baseline.status) ||
+    !nonEmptyText(baseline.intent) ||
+    baseline.results.length === 0
+  )
+    throw new TypeError('Permanent benchmark baseline manifest is incomplete.');
+  const baselineBriefIds = new Set<string>();
+  for (const result of baseline.results) {
+    if (
+      !record(result) ||
+      !nonEmptyText(result.briefId) ||
+      !briefs.some((brief) => brief.id === result.briefId) ||
+      baselineBriefIds.has(result.briefId) ||
+      (result.outcome !== 'successful' && result.outcome !== 'failed') ||
+      !Array.isArray(result.evidence) ||
+      result.evidence.length === 0 ||
+      !result.evidence.every(canonicalEvidencePath) ||
+      !nonEmptyText(result.rationale)
+    )
+      throw new TypeError('Permanent benchmark baseline evidence is invalid.');
+    baselineBriefIds.add(result.briefId);
+    for (const evidencePath of result.evidence) await safeRead(root, evidencePath);
+  }
   return { suite: suiteValue, briefs, inputDigest: sha256(digestParts.join('\0')) };
 }
-function score(result: PermanentCaseResult): number | null {
-  if (result.aggregateScore !== undefined) return result.aggregateScore;
-  const evaluated = result.criteria.filter((item) => item.score !== null);
+function score(result: PermanentCaseResult, evidenceKind: PermanentEvidenceKind): number | null {
+  const supplied =
+    evidenceKind === 'deterministic' ? result.deterministicScore : result.subjectiveScore;
+  if (supplied !== undefined) return supplied;
+  const evaluated = result.criteria.filter(
+    (item) => item.evidenceKind === evidenceKind && item.score !== null
+  );
   return evaluated.length === 0
     ? null
     : evaluated.reduce((sum, item) => sum + (item.score ?? 0), 0) / evaluated.length;
@@ -232,8 +312,18 @@ function assertResult(
   keys: Set<string>
 ): void {
   if (!known.has(result.briefId)) throw new Error(`Unknown benchmark brief: ${result.briefId}`);
-  if (!result.arm || !result.revisionId)
+  if (!nonEmptyText(result.arm) || !nonEmptyText(result.revisionId))
     throw new Error(`Benchmark result needs a non-empty arm and revision ID: ${result.briefId}`);
+  for (const suppliedScore of [result.deterministicScore, result.subjectiveScore]) {
+    if (
+      suppliedScore !== undefined &&
+      suppliedScore !== null &&
+      (!Number.isFinite(suppliedScore) || suppliedScore < 1 || suppliedScore > 5)
+    )
+      throw new Error(
+        `Benchmark result has an invalid aggregate score: ${result.briefId}/${result.arm}`
+      );
+  }
   const key = `${result.briefId}\0${result.arm}`;
   if (keys.has(key)) throw new Error(`Duplicate benchmark result: ${result.briefId}/${result.arm}`);
   keys.add(key);
@@ -248,8 +338,7 @@ function assertResult(
         `Benchmark criterion is unknown or duplicated: ${result.briefId}/${result.arm}/${item.criterion}`
       );
     seen.add(item.criterion);
-    const expectedKind: PermanentEvidenceKind =
-      item.criterion === 'visual-originality' ? 'subjective' : 'deterministic';
+    const expectedKind: PermanentEvidenceKind = CRITERION_EVIDENCE_KINDS[item.criterion];
     if (item.evidenceKind !== expectedKind)
       throw new Error(
         `Benchmark criterion evidence kind is invalid: ${result.briefId}/${result.arm}/${item.criterion}`
@@ -271,9 +360,8 @@ function assertResult(
       );
     if (
       !Array.isArray(item.evidence) ||
-      item.evidence.some((path) => typeof path !== 'string' || path.length === 0) ||
-      typeof item.rationale !== 'string' ||
-      item.rationale.length === 0
+      item.evidence.some((evidencePath) => !canonicalEvidencePath(evidencePath)) ||
+      !nonEmptyText(item.rationale)
     )
       throw new Error(
         `Benchmark criterion evidence and rationale are required: ${result.briefId}/${result.arm}/${item.criterion}`
@@ -296,7 +384,9 @@ function reportSummary(
     countStatus(brief, resultOutcome);
     briefs.set(result.briefId, brief);
   }
-  const scores = results.map(score).filter((value): value is number => value !== null);
+  const scores = results
+    .map((result) => score(result, 'deterministic'))
+    .filter((value): value is number => value !== null);
   return {
     caseCount: results.length,
     deterministicFailures: results
@@ -328,7 +418,9 @@ export function createPermanentBenchmarkReport(input: {
   for (const result of input.results) assertResult(result, known, keys);
   const results = input.results
     .map((result) => {
-      const evaluated = result.criteria.filter((criterion) => criterion.score !== null);
+      const evaluated = result.criteria.filter(
+        (criterion) => criterion.evidenceKind === 'deterministic' && criterion.score !== null
+      );
       const evaluatedWeight = evaluated.reduce(
         (sum, criterion) => sum + (weights.get(criterion.criterion) ?? 0),
         0
@@ -350,7 +442,9 @@ export function createPermanentBenchmarkReport(input: {
         criteria: [...result.criteria].sort((left, right) =>
           compareText(left.criterion, right.criterion)
         ),
-        aggregateScore
+        aggregateScore,
+        deterministicScore: aggregateScore,
+        subjectiveScore: score(result, 'subjective')
       };
     })
     .sort((left, right) =>
@@ -494,8 +588,8 @@ export function comparePermanentBenchmarkReports(
       const previous = baselineByKey.get(key);
       const item = currentByKey.get(key);
       const [briefId, arm] = key.split('\0');
-      const baselineScore = previous ? score(previous) : null;
-      const currentScore = item ? score(item) : null;
+      const baselineScore = previous ? score(previous, 'deterministic') : null;
+      const currentScore = item ? score(item, 'deterministic') : null;
       const delta =
         baselineScore === null || currentScore === null
           ? null
@@ -538,7 +632,7 @@ export function summarizePermanentBenchmarkReport(report: PermanentBenchmarkRepo
   const summary = validatedSummary(report);
   const lines = [
     `Permanent benchmark report (${report.suiteVersion})`,
-    `Cases: ${summary.caseCount}; mean score: ${summary.meanScore ?? 'not-evaluated'}`,
+    `Cases: ${summary.caseCount}; mean deterministic score: ${summary.meanScore ?? 'not-evaluated'}`,
     `Outcomes: ${textCount(summary.byOutcome)}`,
     'Criteria:'
   ];
