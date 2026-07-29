@@ -10,6 +10,7 @@ Universal is an AI Art Director for React applications. Its core principle is **
 - [Choose a Contribution](#choose-a-contribution)
 - [Definition of Done](#definition-of-done)
 - [Development Setup](#development-setup)
+- [Generation and Local Runtime](#generation-and-local-runtime)
 - [Repository Guide](#repository-guide)
 - [Development Workflow](#development-workflow)
 - [Project Standards](#project-standards)
@@ -134,6 +135,10 @@ pnpm --filter @universal/design-mcp test
 ```
 
 For client configuration and manual verification, follow [docs/CODEX_MCP_SETUP.md](docs/CODEX_MCP_SETUP.md).
+
+## Generation and Local Runtime
+
+For the supported path from clean checkout through generation, immutable revisions, rendered QA, and evidence, read [docs/RUNTIME_CONTRIBUTOR_WORKFLOW.md](docs/RUNTIME_CONTRIBUTOR_WORKFLOW.md). It documents the pinned Playwright capture, explicit acceptance, and controlled export workflow from PR #75.
 
 ## Repository Guide
 
