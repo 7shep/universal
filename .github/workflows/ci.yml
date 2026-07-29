@@ -176,6 +176,14 @@ jobs:
         shell: pwsh
         run: Remove-Item -LiteralPath 'packages/local-runtime/template/node_modules' -Recurse -Force
 
+      - name: Install pinned Chromium with Linux dependencies
+        if: runner.os == 'Linux'
+        run: pnpm --filter @universal/local-runtime playwright:install -- --with-deps
+
+      - name: Install pinned Chromium
+        if: runner.os != 'Linux'
+        run: pnpm --filter @universal/local-runtime playwright:install
+
       - name: Run local-runtime tests (Linux and macOS)
         if: runner.os != 'Windows'
         shell: bash
@@ -193,3 +201,6 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: local-runtime-failure-${{ matrix.os }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: local-runtime-test.log
+          if-no-files-found: warn
+          retention-days: 7

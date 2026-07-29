@@ -38,6 +38,10 @@ pnpm lint
 pnpm typecheck
 pnpm test
 pnpm build
+# Ubuntu
+pnpm --filter @universal/local-runtime playwright:install -- --with-deps
+# macOS and Windows
+pnpm --filter @universal/local-runtime playwright:install
 pnpm --filter @universal/local-runtime test
 git diff --check
 ```
@@ -54,6 +58,9 @@ The template fetch deliberately populates the same pnpm store that the runtime l
 fixed offline install. It does not relax the runtime's `--offline` or `--frozen-lockfile`
 guarantees. Remove only the generated `packages/local-runtime/template/node_modules` directory
 before the runtime suite; do not change the fixed template or its lockfile.
+
+The browser-capture tests require the workspace-pinned Playwright Chromium revision. Install it with
+--with-deps on Ubuntu; macOS and Windows install the same pinned Chromium without that flag.
 
 ## Local reproduction by operating system
 
