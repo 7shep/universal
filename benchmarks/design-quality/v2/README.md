@@ -12,7 +12,9 @@ Visual originality is a separate subjective judgment. A report must never infer 
 from source names, CSS tokens, or DOM strings.
 
 Every run records the suite input digest, suite version, brief ID, arm, immutable revision ID,
-criterion evidence, and rationale. Paired comparisons use the same brief bytes and budgets.
+criterion evidence, and rationale. The report's aggregate and regression scores are calculated only
+from deterministic criteria; subjective visual-originality evidence remains separately visible and
+can be `not-evaluated`. Paired comparisons use the same brief bytes and budgets.
 Historical comparisons require an identical suite version and input digest.
 
 ## Execute
@@ -41,7 +43,8 @@ workspaces, records all eight criterion results, and writes a structured report 
 
 Each criterion records `passed`, `failed`, or `not-evaluated`, a numeric score only when evidence
 supports it, stable evidence references, and a concise rationale. Human reviewers score visual
-originality from rendered desktop/mobile evidence. Machine checks remain independently reviewable.
+originality from rendered desktop/mobile evidence; this is not machine verification of visual
+quality. Machine checks remain independently reviewable.
 
 ## Update an intentional baseline
 
