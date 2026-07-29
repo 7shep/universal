@@ -1,5 +1,8 @@
 # Architecture and Ownership
 
+Terminology used by the contracts and flows below is defined in the
+[Universal glossary](GLOSSARY.md).
+
 Universal is a local-first pnpm monorepo for turning explicit discovery decisions into an approved
 Design Plan v2, a validated React project, and an isolated production preview. This guide describes
 code that exists on `main`; roadmap milestones are not presented as shipped behavior.
