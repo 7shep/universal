@@ -195,6 +195,29 @@ export class AcceptanceExportService {
     return record;
   }
 
+  async acceptedRevisionIds(): Promise<readonly string[]> {
+    const directory = path.join(this.metadataRoot, 'acceptances');
+    let entries;
+    try {
+      entries = await readdir(directory, { withFileTypes: true });
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return [];
+      throw error;
+    }
+    const revisions = new Set<string>();
+    for (const entry of entries) {
+      if (!entry.isFile() || !entry.name.endsWith('.json')) continue;
+      const value: unknown = JSON.parse(await readFile(path.join(directory, entry.name), 'utf8'));
+      if (
+        typeof value === 'object' &&
+        value !== null &&
+        'revisionId' in value &&
+        typeof value.revisionId === 'string'
+      )
+        revisions.add(value.revisionId);
+    }
+    return [...revisions].sort();
+  }
   async export(input: {
     acceptance: AcceptanceRecord;
     provenance: RevisionProvenance;
