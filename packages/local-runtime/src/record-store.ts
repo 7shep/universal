@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { RuntimeMutationCoordinator } from './mutation-coordinator.ts';
 import {
   RUNTIME_CONTRACT_VERSION,
   validateRuntimeState,
@@ -41,10 +42,13 @@ function parsePersistedState(value: unknown): PersistedState {
 export class RuntimeRecordStore {
   private readonly statePath: string;
   private state: PersistedState = empty();
-  constructor(workspaceRoot: string) {
+  readonly mutations: RuntimeMutationCoordinator;
+  constructor(workspaceRoot: string, mutations = new RuntimeMutationCoordinator()) {
     this.statePath = path.join(workspaceRoot, 'runtime-state.json');
+    this.mutations = mutations;
   }
   async load(now: string): Promise<void> {
+    if (!this.mutations.ownsLock()) return this.mutations.run(() => this.load(now));
     try {
       const parsed: unknown = JSON.parse(await readFile(this.statePath, 'utf8'));
       this.state = parsePersistedState(parsed);
@@ -118,6 +122,7 @@ export class RuntimeRecordStore {
     return this.state.operations.find((item) => item.idempotencyKey === key);
   }
   async putOperation(value: RuntimeOperation): Promise<void> {
+    if (!this.mutations.ownsLock()) return this.mutations.run(() => this.putOperation(value));
     this.state = {
       ...this.state,
       operations: [...this.state.operations.filter((item) => item.id !== value.id), value]
@@ -125,6 +130,7 @@ export class RuntimeRecordStore {
     await this.persist();
   }
   async putBuild(value: BuildRecord): Promise<void> {
+    if (!this.mutations.ownsLock()) return this.mutations.run(() => this.putBuild(value));
     this.state = {
       ...this.state,
       builds: [...this.state.builds.filter((item) => item.id !== value.id), value]
@@ -132,6 +138,7 @@ export class RuntimeRecordStore {
     await this.persist();
   }
   async putProject(value: ProjectRecord): Promise<void> {
+    if (!this.mutations.ownsLock()) return this.mutations.run(() => this.putProject(value));
     this.state = {
       ...this.state,
       projects: [...this.state.projects.filter((item) => item.id !== value.id), value]
@@ -139,6 +146,7 @@ export class RuntimeRecordStore {
     await this.persist();
   }
   async putRevision(value: RevisionRecord): Promise<void> {
+    if (!this.mutations.ownsLock()) return this.mutations.run(() => this.putRevision(value));
     this.state = {
       ...this.state,
       revisions: [...this.state.revisions.filter((item) => item.id !== value.id), value]
@@ -155,6 +163,8 @@ export class RuntimeRecordStore {
       payload?: Readonly<Record<string, unknown>>;
     } = {}
   ): Promise<RuntimeEvent> {
+    if (!this.mutations.ownsLock())
+      return this.mutations.run(() => this.event(type, occurredAt, input));
     const event: RuntimeEvent = {
       contractVersion: RUNTIME_CONTRACT_VERSION,
       id: this.state.nextEventId,
