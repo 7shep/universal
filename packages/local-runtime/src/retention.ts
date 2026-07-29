@@ -61,6 +61,7 @@ const inside = (root: string, target: string) => {
   const r = path.relative(root, target);
   return r !== '' && r !== '..' && !r.startsWith(`..${path.sep}`) && !path.isAbsolute(r);
 };
+const samePath = (left: string, right: string) => path.relative(left, right) === '';
 const segment = (v: string) => {
   const x = normalizeManifestPath(v).replaceAll(':', '_');
   if (x.includes('/')) throw new Error('Revision ids may not contain path separators.');
@@ -161,16 +162,17 @@ async function safeDelete(root: string, e: RevisionRetentionEntry) {
   const rootReal = await realpath(root),
     target = path.resolve(e.workspacePath),
     parent = path.dirname(target),
-    parentReal = await realpath(parent);
-  if (!inside(rootReal, parentReal) || !inside(parentReal, target))
+    parentReal = await realpath(parent),
+    expectedReal = path.join(parentReal, path.basename(target));
+  if (!inside(rootReal, parentReal) || !inside(parentReal, expectedReal))
     throw new Error('Revision target escaped the runtime workspace.');
   const info = await lstat(target);
   if (!info.isDirectory() || info.isSymbolicLink())
     throw new Error('Revision target is not a regular directory.');
   const real = await realpath(target);
-  if (real !== target || !inside(parentReal, real))
+  if (!samePath(real, expectedReal) || !inside(parentReal, real))
     throw new Error('Revision target resolved through a link or outside its revision directory.');
-  await rm(target, { recursive: true, force: false });
+  await rm(real, { recursive: true, force: false });
 }
 /** Applies retention while the authoritative runtime mutation boundary is held. */
 export async function executeRevisionRetention(

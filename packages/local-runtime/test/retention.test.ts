@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, rm, symlink, writeFile } from 'node:fs/promises';
+import { lstat, mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -148,6 +148,46 @@ test('dry run, partial failure, and repeated cleanup are safe', async () => {
   assert.equal(partial.removed.length, 1);
   const again = await planRevisionRetention(f.input);
   assert.equal(again.eligible.length, 1);
+});
+test('default deletion removes an eligible regular revision directory', async () => {
+  const f = await fixture(['revision:1']);
+  const result = await executeRevisionRetention(async (work) => work(f.input));
+  assert.equal(result.failed.length, 0);
+  assert.deepEqual(
+    result.removed.map((entry) => entry.revisionId),
+    ['revision:1']
+  );
+  await assert.rejects(
+    () => lstat(f.revisions[0]!.workspacePath),
+    (error: NodeJS.ErrnoException) => error.code === 'ENOENT'
+  );
+});
+test('default deletion rejects a link-backed revision and preserves outside content', async (t) => {
+  const f = await fixture(['revision:1']);
+  await rm(f.revisions[0]!.workspacePath, { recursive: true });
+  const outside = await mkdtemp(path.join(os.tmpdir(), 'universal-retention-outside-'));
+  const marker = path.join(outside, 'marker');
+  await writeFile(marker, 'outside');
+  try {
+    await symlink(
+      outside,
+      f.revisions[0]!.workspacePath,
+      process.platform === 'win32' ? 'junction' : 'dir'
+    );
+  } catch (error) {
+    if (
+      process.platform === 'win32' &&
+      ['EPERM', 'EACCES'].includes((error as NodeJS.ErrnoException).code ?? '')
+    ) {
+      t.skip('This Windows environment does not permit creating a directory junction.');
+      return;
+    }
+    throw error;
+  }
+  const result = await executeRevisionRetention(async (work) => work(f.input));
+  assert.equal(result.removed.length, 0);
+  assert.equal(result.skipped[0]?.reason, 'unsafe-path');
+  assert.equal(await readFile(marker, 'utf8'), 'outside');
 });
 test('skips malformed paths and link targets without touching outside content', async () => {
   const f = await fixture(['revision:1']);
