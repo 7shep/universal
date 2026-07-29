@@ -1,0 +1,15 @@
+{
+  "id": "dq-v2-playful-consumer-brand",
+  "version": "1.0.0",
+  "category": "playful-consumer-brand",
+  "title": "Pip & Pop Lunch Club",
+  "prompt": "Create a playful family lunch brand with expressive illustration, useful product facts, and warmth without toy-store visual chaos.",
+  "approvedRoutes": ["/", "/flavours", "/club"],
+  "requirements": ["Distinct flavour characters", "Allergen information", "Lunch club explanation"],
+  "constraints": [
+    "Avoid deceptive scarcity",
+    "Maintain text contrast",
+    "Pause nonessential motion"
+  ],
+  "mobileFirst": true
+}

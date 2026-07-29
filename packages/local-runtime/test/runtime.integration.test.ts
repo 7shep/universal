@@ -129,6 +129,19 @@ test(
     assert.equal(failed.error?.code, 'BUILD_FAILURE');
     assert.equal(service.preview('project:keyboard').buildId, descriptor.buildId);
     assert.equal(service.state().projects[0]?.latestSuccessfulBuildId, descriptor.buildId);
+    const retryRequest = createProjectGenerationRequest({
+      projectId: 'project:keyboard',
+      revisionId: 'revision:keyboard:broken-retry',
+      designPlan: plan()
+    });
+    const retry = await service.startGeneration(retryRequest, 'keyboard:broken-retry');
+    const retryFailed = await service.waitForOperation(retry.operation.id);
+    assert.equal(retryFailed.status, 'failed');
+    assert.equal(retryFailed.error?.code, 'BUILD_FAILURE');
+    const failedRevisions = service.state().revisions.filter((item) => item.id.includes('broken'));
+    assert.equal(failedRevisions.length, 2);
+    assert.notEqual(failedRevisions[0]?.workspacePath, failedRevisions[1]?.workspacePath);
+    assert.equal(service.preview('project:keyboard').buildId, descriptor.buildId);
     const replay = await service.startGeneration(firstRequest, 'keyboard:1');
     assert.equal(replay.replayed, true);
     await assert.rejects(

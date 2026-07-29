@@ -13,6 +13,12 @@ import {
   type RuntimeState
 } from '@universal/runtime-contracts';
 import { RuntimeFailure, runtimeError } from './errors.ts';
+import {
+  AcceptanceExportService,
+  type AcceptanceRecord,
+  type ExportRecord,
+  type RevisionProvenance
+} from './acceptance-export.ts';
 import { BuildPipelineFailure, installAndBuild } from './process-supervisor.ts';
 import { startPreviewServer, type PreviewServer } from './preview-server.ts';
 import { RuntimeRecordStore } from './record-store.ts';
@@ -25,6 +31,7 @@ export interface RuntimeServiceOptions {
   generator: ReactGenerator;
   now?: () => string;
   createId?: () => string;
+  exportRoots?: readonly string[] | undefined;
 }
 export class RuntimeService {
   private readonly workspaceRoot: string;
@@ -33,6 +40,7 @@ export class RuntimeService {
   private readonly now: () => string;
   private readonly createId: () => string;
   private readonly store: RuntimeRecordStore;
+  private readonly acceptanceExport: AcceptanceExportService;
   private readonly controllers = new Map<string, AbortController>();
   private readonly tasks = new Map<string, Promise<void>>();
   private readonly previews = new Map<string, PreviewServer>();
@@ -44,6 +52,12 @@ export class RuntimeService {
     this.now = options.now ?? (() => new Date().toISOString());
     this.createId = options.createId ?? randomUUID;
     this.store = new RuntimeRecordStore(options.workspaceRoot);
+    this.acceptanceExport = new AcceptanceExportService({
+      metadataRoot: options.workspaceRoot,
+      allowedRoots: options.exportRoots ?? [],
+      now: this.now,
+      createId: this.createId
+    });
   }
   async initialize(): Promise<void> {
     await this.store.load(this.now());
@@ -188,6 +202,57 @@ export class RuntimeService {
     if (task) await task;
     return this.store.operation(id)!;
   }
+  private revisionProvenance(revisionId: string): RevisionProvenance {
+    const revision = this.store.revisions().find((item) => item.id === revisionId);
+    if (!revision)
+      throw new RuntimeFailure('INVALID_REQUEST', 'Revision does not exist.', {
+        path: 'revisionId'
+      });
+    const build = this.store
+      .snapshot()
+      .builds.find(
+        (item) =>
+          item.revisionId === revisionId &&
+          item.status === 'ready' &&
+          item.review?.status === 'pass'
+      );
+    if (!build?.review)
+      throw new RuntimeFailure(
+        'STALE_ARTIFACT',
+        'Only a successfully built and reviewed immutable revision can be accepted.'
+      );
+    return {
+      projectId: revision.projectId,
+      revisionId: revision.id,
+      designPlanId: revision.designPlanId,
+      designPlanDigest: revision.designPlanDigest,
+      generatedProjectDigest: revision.generatedProjectDigest,
+      reviewEvidence: build.review.checks.map((check) => ({
+        id: check.id,
+        digest: digestValue(check)
+      })),
+      createdAt: revision.createdAt,
+      sourceRoot: revision.workspacePath
+    };
+  }
+  async acceptRevision(revisionId: string, acceptedBy: string): Promise<AcceptanceRecord> {
+    return this.acceptanceExport.accept(this.revisionProvenance(revisionId), {
+      acceptedBy,
+      confirmation: true
+    });
+  }
+  async exportAcceptedRevision(input: {
+    acceptance: AcceptanceRecord;
+    destination: string;
+    requestedBy: string;
+  }): Promise<ExportRecord> {
+    return this.acceptanceExport.export({
+      acceptance: input.acceptance,
+      provenance: this.revisionProvenance(input.acceptance.revisionId),
+      destination: input.destination,
+      authorization: { requestedBy: input.requestedBy, confirmation: true }
+    });
+  }
   private async transition(
     operation: RuntimeOperation,
     status: RuntimeOperation['status'],
@@ -283,12 +348,8 @@ export class RuntimeService {
       await this.store.putBuild(build);
       operation = await this.transition(operation, 'reviewing', { buildId });
       const review = reviewGeneratedImplementation(generated.project, request, this.now());
-      const architectureDiagnostics = review.checks
-        .filter(
-          (check) =>
-            check.id.startsWith('ARCH_') &&
-            (check.status === 'fail' || check.severity === 'warning')
-        )
+      const reviewDiagnostics = review.checks
+        .filter((check) => check.status === 'fail' || check.severity === 'warning')
         .map((check) => ({
           code: check.id,
           stage: 'review' as const,
@@ -299,7 +360,7 @@ export class RuntimeService {
       build = {
         ...build,
         review,
-        diagnostics: [...build.diagnostics, ...architectureDiagnostics],
+        diagnostics: [...build.diagnostics, ...reviewDiagnostics],
         updatedAt: this.now()
       };
       await this.store.putBuild(build);

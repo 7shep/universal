@@ -14,6 +14,7 @@ import {
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { GeneratedProject } from '@universal/generation';
+import { optimizeAssetManifest } from './asset-optimizer.ts';
 import { RuntimeFailure } from './errors.ts';
 
 const MAX_FILES = 96,
@@ -163,9 +164,20 @@ export async function materializeProject(input: {
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
   }
+  const checkedAssets = await optimizeAssetManifest(input.project.assets);
+  if (!checkedAssets.ok) {
+    const first = checkedAssets.findings[0]!;
+    throw new RuntimeFailure(
+      first.code.includes('SIZE') || first.code.includes('COUNT')
+        ? 'QUOTA_EXCEEDED'
+        : 'MATERIALIZATION_FAILURE',
+      first.message,
+      { path: first.path }
+    );
+  }
   const providerPaths = [
       ...input.project.files.map((file) => normalizeManifestPath(file.path)),
-      ...input.project.assets.map((asset) => normalizeManifestPath(asset.path))
+      ...checkedAssets.assets.map((asset) => normalizeManifestPath(asset.path))
     ],
     folded = providerPaths.map((item) => item.toLocaleLowerCase('en-US'));
   if (new Set(folded).size !== folded.length)
@@ -182,7 +194,7 @@ export async function materializeProject(input: {
       throw new RuntimeFailure('QUOTA_EXCEEDED', `File is too large: ${file.path}`);
     total += bytes;
   }
-  for (const asset of input.project.assets) {
+  for (const asset of checkedAssets.assets) {
     const bytes = Buffer.from(asset.content, 'base64').byteLength;
     if (bytes > MAX_FILE_BYTES)
       throw new RuntimeFailure('QUOTA_EXCEEDED', `Asset is too large: ${asset.path}`);
@@ -221,7 +233,7 @@ export async function materializeProject(input: {
         owner: 'provider'
       });
     }
-    for (const asset of input.project.assets) {
+    for (const asset of checkedAssets.assets) {
       const relative = normalizeManifestPath(asset.path),
         content = Buffer.from(asset.content, 'base64');
       await atomicWrite(staging, relative, content);
@@ -232,6 +244,11 @@ export async function materializeProject(input: {
         owner: 'provider'
       });
     }
+    await atomicWrite(
+      staging,
+      '.universal-assets.json',
+      `${JSON.stringify(checkedAssets.manifest, null, 2)}\n`
+    );
     const record = {
         projectId: input.project.projectId,
         revisionId: input.project.revisionId,

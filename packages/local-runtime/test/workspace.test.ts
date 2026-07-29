@@ -85,16 +85,16 @@ test('rejects case-folding collisions independently of the host filesystem', asy
     /case folding/
   );
 });
-test('rejects a symlink or junction escape in the project ancestry', async (context) => {
-  if (process.platform === 'win32')
-    context.skip(
-      'Windows junction creation requires privileges not guaranteed in CI; ancestor logic is platform-independent and path forms are covered above.'
-    );
+test('rejects a symlink or junction escape in the project ancestry', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'universal-workspace-')),
     external = await mkdtemp(path.join(os.tmpdir(), 'universal-external-')),
     repository = await mkdtemp(path.join(os.tmpdir(), 'universal-repo-'));
   await mkdir(path.join(root, 'projects'), { recursive: true });
-  await symlink(external, path.join(root, 'projects', 'project_p'), 'dir');
+  await symlink(
+    external,
+    path.join(root, 'projects', 'project_p'),
+    process.platform === 'win32' ? 'junction' : 'dir'
+  );
   await assert.rejects(
     () =>
       materializeProject({

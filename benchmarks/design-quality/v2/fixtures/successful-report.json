@@ -1,0 +1,19 @@
+{
+  "briefId": "dq-v2-technical-developer-tool",
+  "arm": "universal-guided",
+  "revisionId": "fixture:successful:1",
+  "deterministic": {
+    "designPlanV2Fidelity": true,
+    "responsiveBehavior": true,
+    "routeContentCompleteness": true,
+    "accessibility": true,
+    "repositoryOrganization": true,
+    "buildSuccess": true,
+    "runtimePolicyCompliance": true
+  },
+  "subjective": {
+    "visualOriginality": 4,
+    "reviewer": "approved-fixture",
+    "rationale": "Specific technical composition without generic neon or equal-card defaults."
+  }
+}

@@ -14,12 +14,16 @@
     "start": "node --experimental-strip-types src/cli.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src test",
+    "playwright:install": "playwright install chromium",
     "test": "node --experimental-strip-types --test test/*.test.ts"
   },
   "dependencies": {
+    "@universal/design-engine": "workspace:*",
     "@universal/generation": "workspace:*",
     "@universal/runtime-contracts": "workspace:*",
-    "@universal/design-engine": "workspace:*",
+    "fonteditor-core": "^2.6.3",
+    "playwright": "^1.62.0",
+    "sharp": "^0.35.3",
     "typescript": "^5.8.3"
   }
 }
