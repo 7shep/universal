@@ -190,6 +190,7 @@ pnpm test
 - [Product principles and non-goals](PRODUCT.md)
 - [Roadmap](ROADMAP.md)
 - [Architecture and ownership](docs/ARCHITECTURE.md)
+- [Generation and local-runtime contributor workflow](docs/RUNTIME_CONTRIBUTOR_WORKFLOW.md)
 - [Studio workflow](docs/STUDIO.md)
 - [Connect Universal MCP to Codex](docs/CODEX_MCP_SETUP.md)
 - [MCP tool reference](docs/MCP_REFERENCE.md)
