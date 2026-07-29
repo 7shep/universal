@@ -41,7 +41,8 @@ async function fixture(ids = ['revision:1', 'revision:2', 'revision:3']) {
       revisions,
       projects: [],
       builds: [],
-      operations: []
+      operations: [],
+      activePreviewRevisionIds: [] as string[]
     }
   };
 }
@@ -135,10 +136,9 @@ test('applies count and age boundaries with deterministic ties', async () => {
 });
 test('dry run, partial failure, and repeated cleanup are safe', async () => {
   const f = await fixture(['revision:1', 'revision:2']);
-  const plan = await planRevisionRetention(f.input);
   const dry = await retainRevisions({ ...f.input, dryRun: true });
   assert.equal(dry.removed.length, 0);
-  const partial = await executeRevisionRetention(plan, {
+  const partial = await executeRevisionRetention(f.input, {
     remove: async (entry) => {
       if (entry.revisionId === 'revision:2') throw new Error('locked');
       await rm(entry.workspacePath, { recursive: true });
@@ -164,16 +164,38 @@ test('skips malformed paths and link targets without touching outside content', 
   const traversal = await planRevisionRetention(f.input);
   assert.equal(traversal.skipped[0]?.reason, 'unsafe-path');
 });
-test('does not cross project boundaries', async () => {
+test('does not cross project boundaries or remove unknown lookalike directories', async () => {
   const f = await fixture(['revision:1']);
-  const other = await fixture(['revision:2']);
-  const plan = await planRevisionRetention({
-    ...f.input,
-    revisions: [...f.revisions, ...other.revisions]
-  });
-  assert.equal(plan.eligible.length, 1);
+  const otherPath = path.join(f.root, 'projects', 'other', 'revisions', 'revision_2');
+  await mkdir(otherPath, { recursive: true });
+  const other = {
+    ...f.revisions[0]!,
+    id: 'revision:2',
+    projectId: 'other',
+    workspacePath: otherPath
+  };
+  const lookalike = path.join(f.root, 'projects', 'p', 'revisions', 'revision_unknown');
+  await mkdir(lookalike, { recursive: true });
+  const plan = await planRevisionRetention({ ...f.input, revisions: [...f.revisions, other] });
+  assert.deepEqual(
+    plan.eligible.map((entry) => entry.projectId),
+    ['p', 'other']
+  );
   assert.equal(
-    plan.skipped.some((x) => x.workspacePath === other.revisions[0]!.workspacePath),
-    true
+    plan.eligible.some((entry) => entry.workspacePath === lookalike),
+    false
+  );
+});
+test('re-plans between deletions and skips a revision that becomes active', async () => {
+  const f = await fixture(['revision:1', 'revision:2']);
+  const result = await executeRevisionRetention(f.input, {
+    remove: async (entry) => {
+      if (entry.revisionId === 'revision:2') f.input.activePreviewRevisionIds.push('revision:1');
+      await rm(entry.workspacePath, { recursive: true });
+    }
+  });
+  assert.deepEqual(
+    result.removed.map((entry) => entry.revisionId),
+    ['revision:2']
   );
 });

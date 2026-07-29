@@ -20,7 +20,7 @@ export interface RevisionRetentionInput {
   projects: readonly ProjectRecord[];
   builds: readonly BuildRecord[];
   operations: readonly RuntimeOperation[];
-  activePreviewRevisionIds?: readonly string[];
+  activePreviewRevisionIds: readonly string[];
   pinnedRevisionIds?: readonly string[];
 }
 export type RevisionRetentionReason =
@@ -169,28 +169,37 @@ async function safeDelete(root: string, e: RevisionRetentionEntry) {
     throw new Error('Revision target resolved through a link or outside its revision directory.');
   await rm(target, { recursive: true, force: false });
 }
-/** Applies an inspected plan and rechecks every target immediately before removal. */
+/**
+ * Applies retention from authoritative input, never from a caller-supplied plan.
+ * The policy is re-planned immediately before each deletion so an entry that has
+ * become current, active, preview-bound, latest-successful, or pinned is skipped.
+ */
 export async function executeRevisionRetention(
-  plan: RevisionRetentionPlan,
+  input: RevisionRetentionInput,
   options: { dryRun?: boolean; remove?: (entry: RevisionRetentionEntry) => Promise<void> } = {}
 ): Promise<RevisionRetentionResult> {
+  const plan = await planRevisionRetention(input);
   if (options.dryRun) return { ...plan, dryRun: true, removed: [], failed: [] };
   const removed: RevisionRetentionEntry[] = [],
     failed: (RevisionRetentionEntry & { error: string })[] = [];
-  for (const e of plan.eligible)
+  for (const candidate of plan.eligible) {
+    const fresh = await planRevisionRetention(input),
+      entry = fresh.eligible.find(
+        (item) => item.projectId === candidate.projectId && item.revisionId === candidate.revisionId
+      );
+    if (!entry) continue;
     try {
-      await (options.remove ? options.remove(e) : safeDelete(plan.workspaceRoot, e));
-      removed.push(e);
+      await (options.remove ? options.remove(entry) : safeDelete(fresh.workspaceRoot, entry));
+      removed.push(entry);
     } catch (error) {
-      failed.push({ ...e, error: error instanceof Error ? error.message : String(error) });
+      failed.push({ ...entry, error: error instanceof Error ? error.message : String(error) });
     }
+  }
   return { ...plan, dryRun: false, removed, failed };
 }
 /** Plans then optionally applies retention. Dry-run is the default. */
 export async function retainRevisions(
   input: RevisionRetentionInput & { dryRun?: boolean }
 ): Promise<RevisionRetentionResult> {
-  return executeRevisionRetention(await planRevisionRetention(input), {
-    dryRun: input.dryRun ?? true
-  });
+  return executeRevisionRetention(input, { dryRun: input.dryRun ?? true });
 }
