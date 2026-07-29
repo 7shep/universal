@@ -23,6 +23,7 @@ export interface RevisionRetentionInput {
   activePreviewRevisionIds: readonly string[];
   pinnedRevisionIds?: readonly string[];
 }
+export type RevisionRetentionStateReader = () => Promise<RevisionRetentionInput>;
 export type RevisionRetentionReason =
   | 'newest-successful'
   | 'current-revision'
@@ -175,15 +176,15 @@ async function safeDelete(root: string, e: RevisionRetentionEntry) {
  * become current, active, preview-bound, latest-successful, or pinned is skipped.
  */
 export async function executeRevisionRetention(
-  input: RevisionRetentionInput,
+  readState: RevisionRetentionStateReader,
   options: { dryRun?: boolean; remove?: (entry: RevisionRetentionEntry) => Promise<void> } = {}
 ): Promise<RevisionRetentionResult> {
-  const plan = await planRevisionRetention(input);
+  const plan = await planRevisionRetention(await readState());
   if (options.dryRun) return { ...plan, dryRun: true, removed: [], failed: [] };
   const removed: RevisionRetentionEntry[] = [],
     failed: (RevisionRetentionEntry & { error: string })[] = [];
   for (const candidate of plan.eligible) {
-    const fresh = await planRevisionRetention(input),
+    const fresh = await planRevisionRetention(await readState()),
       entry = fresh.eligible.find(
         (item) => item.projectId === candidate.projectId && item.revisionId === candidate.revisionId
       );
@@ -199,7 +200,8 @@ export async function executeRevisionRetention(
 }
 /** Plans then optionally applies retention. Dry-run is the default. */
 export async function retainRevisions(
-  input: RevisionRetentionInput & { dryRun?: boolean }
+  readState: RevisionRetentionStateReader,
+  options: { dryRun?: boolean } = {}
 ): Promise<RevisionRetentionResult> {
-  return executeRevisionRetention(input, { dryRun: input.dryRun ?? true });
+  return executeRevisionRetention(readState, { dryRun: options.dryRun ?? true });
 }
