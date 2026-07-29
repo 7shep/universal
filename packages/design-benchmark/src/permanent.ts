@@ -42,6 +42,16 @@ const CRITERION_EVIDENCE_KINDS: Readonly<
   'build-success': 'deterministic',
   'runtime-policy-compliance': 'deterministic'
 };
+const PERMANENT_CRITERION_WEIGHTS: Readonly<Record<PermanentBenchmarkCriterion, number>> = {
+  'visual-originality': 0.15,
+  'design-plan-v2-fidelity': 0.15,
+  'responsive-behavior': 0.12,
+  'route-content-completeness': 0.14,
+  accessibility: 0.12,
+  'repository-organization': 0.1,
+  'build-success': 0.1,
+  'runtime-policy-compliance': 0.12
+};
 
 export interface PermanentBenchmarkBrief {
   id: string;
@@ -198,7 +208,7 @@ function assertSuite(value: unknown): asserts value is PermanentBenchmarkSuite {
       item.evidenceKind !== CRITERION_EVIDENCE_KINDS[criterion] ||
       typeof item.weight !== 'number' ||
       !Number.isFinite(item.weight) ||
-      item.weight <= 0
+      item.weight !== PERMANENT_CRITERION_WEIGHTS[criterion]
     )
       throw new TypeError(`Permanent benchmark criterion is invalid: ${criterion}`);
     totalWeight += item.weight;
@@ -292,15 +302,24 @@ export async function loadPermanentBenchmark(
   return { suite: suiteValue, briefs, inputDigest: sha256(digestParts.join('\0')) };
 }
 function score(result: PermanentCaseResult, evidenceKind: PermanentEvidenceKind): number | null {
-  const supplied =
-    evidenceKind === 'deterministic' ? result.deterministicScore : result.subjectiveScore;
-  if (supplied !== undefined) return supplied;
   const evaluated = result.criteria.filter(
     (item) => item.evidenceKind === evidenceKind && item.score !== null
   );
-  return evaluated.length === 0
-    ? null
-    : evaluated.reduce((sum, item) => sum + (item.score ?? 0), 0) / evaluated.length;
+  if (evaluated.length === 0) return null;
+  const totalWeight = evaluated.reduce(
+    (sum, item) => sum + PERMANENT_CRITERION_WEIGHTS[item.criterion],
+    0
+  );
+  return (
+    Math.round(
+      (evaluated.reduce(
+        (sum, item) => sum + (item.score ?? 0) * PERMANENT_CRITERION_WEIGHTS[item.criterion],
+        0
+      ) /
+        totalWeight) *
+        100
+    ) / 100
+  );
 }
 function outcome(criteria: readonly PermanentCriterionResult[]): PermanentOutcome {
   if (criteria.some((item) => item.status === 'failed')) return 'failed';
@@ -314,16 +333,6 @@ function assertResult(
   if (!known.has(result.briefId)) throw new Error(`Unknown benchmark brief: ${result.briefId}`);
   if (!nonEmptyText(result.arm) || !nonEmptyText(result.revisionId))
     throw new Error(`Benchmark result needs a non-empty arm and revision ID: ${result.briefId}`);
-  for (const suppliedScore of [result.deterministicScore, result.subjectiveScore]) {
-    if (
-      suppliedScore !== undefined &&
-      suppliedScore !== null &&
-      (!Number.isFinite(suppliedScore) || suppliedScore < 1 || suppliedScore > 5)
-    )
-      throw new Error(
-        `Benchmark result has an invalid aggregate score: ${result.briefId}/${result.arm}`
-      );
-  }
   const key = `${result.briefId}\0${result.arm}`;
   if (keys.has(key)) throw new Error(`Duplicate benchmark result: ${result.briefId}/${result.arm}`);
   keys.add(key);
@@ -411,32 +420,11 @@ export function createPermanentBenchmarkReport(input: {
   createdAt: string;
 }): PermanentBenchmarkReport {
   const known = new Set(input.definition.briefs.map((brief) => brief.id));
-  const weights = new Map(
-    input.definition.suite.criteria.map((criterion) => [criterion.id, criterion.weight] as const)
-  );
   const keys = new Set<string>();
   for (const result of input.results) assertResult(result, known, keys);
   const results = input.results
     .map((result) => {
-      const evaluated = result.criteria.filter(
-        (criterion) => criterion.evidenceKind === 'deterministic' && criterion.score !== null
-      );
-      const evaluatedWeight = evaluated.reduce(
-        (sum, criterion) => sum + (weights.get(criterion.criterion) ?? 0),
-        0
-      );
-      const aggregateScore =
-        evaluatedWeight === 0
-          ? null
-          : Math.round(
-              (evaluated.reduce(
-                (sum, criterion) =>
-                  sum + (criterion.score ?? 0) * (weights.get(criterion.criterion) ?? 0),
-                0
-              ) /
-                evaluatedWeight) *
-                100
-            ) / 100;
+      const aggregateScore = score(result, 'deterministic');
       return {
         ...result,
         criteria: [...result.criteria].sort((left, right) =>

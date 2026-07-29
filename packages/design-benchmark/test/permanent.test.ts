@@ -264,6 +264,33 @@ test('separates deterministic failures and subjective evidence from regression d
   ]);
 });
 
+test('derives report and comparison scores from criteria instead of caller-supplied aggregates', async () => {
+  const definition = await loadPermanentBenchmark(root);
+  const caseResult = {
+    ...results([definition.briefs[0]!.id], 4)[0]!,
+    aggregateScore: 1,
+    deterministicScore: 1,
+    subjectiveScore: 1
+  };
+  const canonical = await report([caseResult]);
+  assert.equal(canonical.results[0]?.aggregateScore, 4);
+  assert.equal(canonical.results[0]?.deterministicScore, 4);
+  assert.equal(canonical.results[0]?.subjectiveScore, 4);
+
+  const tampered = {
+    ...canonical,
+    results: canonical.results.map((result) => ({
+      ...result,
+      aggregateScore: 1,
+      deterministicScore: 1,
+      subjectiveScore: 1
+    }))
+  };
+  const comparison = comparePermanentBenchmarkReports(canonical, tampered, 0.25);
+  assert.equal(comparison.entries[0]?.status, 'unchanged');
+  assert.equal(comparison.entries[0]?.delta, 0);
+});
+
 test('lists regression evidence and rejects incompatible or incomplete comparisons', async () => {
   const definition = await loadPermanentBenchmark(root);
   const baseline = await report(results([definition.briefs[0]!.id], 4));
