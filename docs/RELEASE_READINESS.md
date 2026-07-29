@@ -29,6 +29,10 @@ corepack enable
 pnpm --version
 pnpm install --frozen-lockfile
 pnpm --dir packages/local-runtime/template fetch --frozen-lockfile
+# macOS and Linux
+rm -rf packages/local-runtime/template/node_modules
+# Windows PowerShell
+Remove-Item -LiteralPath 'packages/local-runtime/template/node_modules' -Recurse -Force
 pnpm format:check
 pnpm lint
 pnpm typecheck
@@ -36,15 +40,6 @@ pnpm test
 pnpm build
 pnpm --filter @universal/local-runtime test
 git diff --check
-
-`pnpm fetch` creates a temporary template-local virtual store. Remove
-`packages/local-runtime/template/node_modules` before running the runtime tests (`rm -rf` on
-macOS/Linux; `Remove-Item -LiteralPath 'packages/local-runtime/template/node_modules' -Recurse -Force`
-in Windows PowerShell).
-
-`pnpm fetch` creates a temporary template-local virtual store. Remove
-`packages/local-runtime/template/node_modules` before running the runtime tests (`rm -rf` on
-macOS/Linux; `Remove-Item -LiteralPath 'packages/local-runtime/template/node_modules' -Recurse -Force`
 ```
 
 The expected pnpm version is `11.7.0`; Node must be 22 or newer. On Windows, use `pnpm.cmd` in
@@ -57,7 +52,8 @@ CI-only portion when a contributor has tested only their local operating system.
 
 The template fetch deliberately populates the same pnpm store that the runtime later uses for its
 fixed offline install. It does not relax the runtime's `--offline` or `--frozen-lockfile`
-guarantees.
+guarantees. Remove only the generated `packages/local-runtime/template/node_modules` directory
+before the runtime suite; do not change the fixed template or its lockfile.
 
 ## Local reproduction by operating system
 
