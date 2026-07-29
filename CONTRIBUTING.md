@@ -86,6 +86,9 @@ gate for changes that affect shared contracts or multiple workspaces.
 
 The repository declares its expected package manager in `package.json`. Using the matching pnpm major version helps keep the lockfile stable.
 
+For version checks, Corepack activation, Windows PowerShell notes, POSIX-shell notes, and
+port-conflict troubleshooting, see the [cross-platform local setup guide](docs/SETUP.md).
+
 ### Fork and clone
 
 1. Fork [`7shep/universal`](https://github.com/7shep/universal) on GitHub.
@@ -320,6 +323,9 @@ Avoid large speculative implementations before maintainers confirm the direction
 Documentation changes should be accurate for the current repository rather than anticipated behavior. Use relative links for repository files, copy-pasteable commands, descriptive headings, and fenced code blocks with language identifiers.
 
 When a code change affects installation, configuration, scripts, MCP tool behavior, or public package contracts, update the relevant documentation in the same pull request.
+
+Use the [Universal glossary](docs/GLOSSARY.md) for established design, provenance, and review terms
+instead of introducing overlapping definitions.
 
 ## Community Expectations
 
