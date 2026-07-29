@@ -56,4 +56,6 @@ The Phase 3 test fixture includes one independent negative mutation for every di
 deterministic and subjective evidence as separate criterion records. Paired or historical comparison
 requires the same suite version and exact input digest. See
 `../../benchmarks/design-quality/v2/README.md` for adding briefs, execution, scoring, intentional
-baseline updates, and regression policy.
+baseline updates, and regression policy. Reports expose additive totals by criterion, outcome, and brief; use
+summarizePermanentBenchmarkReport() and summarizePermanentRegressionReport() for stable text
+companions, including regression evidence paths.
