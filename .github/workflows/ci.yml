@@ -154,7 +154,7 @@ jobs:
           run_install: false
 
       - name: Configure shared pnpm store
-        run: pnpm config set store-dir '${{ runner.temp }}/pnpm-store' --global
+        run: pnpm config set --location=global storeDir '${{ runner.temp }}/pnpm-store'
 
       - name: Set up Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
