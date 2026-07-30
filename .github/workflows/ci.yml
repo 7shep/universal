@@ -153,12 +153,17 @@ jobs:
           version: ${{ env.PNPM_VERSION }}
           run_install: false
 
+      - name: Configure shared pnpm store
+        run: pnpm config set store-dir '${{ runner.temp }}/pnpm-store' --global
+
       - name: Set up Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            packages/local-runtime/template/pnpm-lock.yaml
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

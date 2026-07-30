@@ -55,9 +55,14 @@ Before a release candidate is accepted, the pull request must also be green in a
 CI-only portion when a contributor has tested only their local operating system.
 
 The template install deliberately populates the same pnpm store that the runtime later uses for its
-fixed offline install. It does not relax the runtime's `--offline` or `--frozen-lockfile`
-guarantees. Remove only the generated `packages/local-runtime/template/node_modules` directory
-before the runtime suite; do not change the fixed template or its lockfile.
+fixed offline install. In the cross-platform CI matrix, the workflow configures one runner-local
+global store under `${{ runner.temp }}/pnpm-store` before `actions/setup-node` restores the pnpm
+cache. Both the root and template lockfiles contribute to that cache key, and the root install,
+template preparation, and spawned runtime pnpm process therefore resolve packages from the same
+store on every operating system. This CI-only store override does not relax the runtime's
+`--offline` or `--frozen-lockfile` guarantees. Remove only the generated
+`packages/local-runtime/template/node_modules` directory before the runtime suite; do not change
+the fixed template or its lockfile.
 
 The browser-capture tests require the workspace-pinned Playwright Chromium revision. Install it with
 --with-deps on Ubuntu; macOS and Windows install the same pinned Chromium without that flag.
@@ -70,6 +75,12 @@ root. The focused runtime command is the closest local match for the three-way m
 ```text
 pnpm --filter @universal/local-runtime test
 ```
+
+A normal local reproduction may use pnpm's default store as long as the root install, template
+preparation, and runtime test use the same pnpm configuration. To reproduce CI's isolated-store
+behavior exactly, configure a disposable store directory globally for that test environment before
+running either install, then confirm `pnpm store path` reports that same directory throughout the
+sequence. Do not reuse a partially populated store when validating offline-install determinism.
 
 The runner matrix is intentionally limited to the current hosted images and Node 22. It does not
 claim coverage of every Node 22 patch release, CPU architecture, filesystem, shell, endpoint
