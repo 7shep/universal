@@ -193,6 +193,7 @@ pnpm test
 - [Product principles and non-goals](PRODUCT.md)
 - [Roadmap](ROADMAP.md)
 - [Cross-platform local setup](docs/SETUP.md)
+- [Cross-platform release readiness](docs/RELEASE_READINESS.md)
 - [Design and provenance glossary](docs/GLOSSARY.md)
 - [Architecture and ownership](docs/ARCHITECTURE.md)
 - [Generation and local-runtime contributor workflow](docs/RUNTIME_CONTRIBUTOR_WORKFLOW.md)

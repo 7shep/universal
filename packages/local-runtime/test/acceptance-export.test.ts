@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, readdir, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -60,6 +60,42 @@ test('requires explicit acceptance and exports provenance to a controlled new de
   assert.match(
     await readFile(path.join(destination, '.universal', 'provenance.json'), 'utf8'),
     /"revisionId": "revision:1"/
+  );
+});
+
+test('exports through an explicitly configured allowed-root alias', async (context) => {
+  const value = await fixture();
+  const alias = path.join(value.root, 'exports-alias');
+  await mkdir(value.allowed, { recursive: true });
+  try {
+    await symlink(value.allowed, alias, process.platform === 'win32' ? 'junction' : 'dir');
+  } catch (error) {
+    if (process.platform === 'win32') {
+      context.skip(`Windows could not create the test junction: ${String(error)}`);
+      return;
+    }
+    throw error;
+  }
+  const service = new AcceptanceExportService({
+    metadataRoot: value.metadata,
+    allowedRoots: [alias]
+  });
+  const acceptance = await service.accept(value.provenance, {
+    acceptedBy: 'alex',
+    confirmation: true
+  });
+  const destination = path.join(alias, 'project');
+  const exported = await service.export({
+    acceptance,
+    provenance: value.provenance,
+    destination,
+    authorization: { requestedBy: 'alex', confirmation: true }
+  });
+
+  assert.equal(exported.destination, destination);
+  assert.match(
+    await readFile(path.join(value.allowed, 'project', '.universal', 'provenance.json'), 'utf8'),
+    /revisionId.*revision:1/
   );
 });
 
