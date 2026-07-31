@@ -2,6 +2,7 @@ import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { redactSecrets } from '@universal/generation';
 import { RUNTIME_CONTRACT_VERSION, type RuntimeError } from '@universal/runtime-contracts';
+import { ART_DIRECTOR_OPERATIONS, type ArtDirectorBridge } from './art-director-bridge.ts';
 import { RuntimeFailure, runtimeError } from './errors.ts';
 import type { RuntimeService } from './runtime-service.ts';
 
@@ -51,12 +52,15 @@ export interface RuntimeHttpServerOptions {
   allowedOrigins: readonly string[];
   secrets?: readonly string[];
   bootstrapToken?: string;
+  /** Optional; without it the art director routes report themselves unavailable. */
+  artDirector?: ArtDirectorBridge;
 }
 export class RuntimeHttpServer {
   private readonly service: RuntimeService;
   private readonly allowedOrigins: ReadonlySet<string>;
   private readonly secrets: readonly string[];
   private readonly bootstrapToken: string;
+  private readonly artDirector: ArtDirectorBridge | undefined;
   private readonly sessionToken = randomBytes(32).toString('base64url');
   private server: Server | undefined;
   private expectedHost = '';
@@ -66,6 +70,7 @@ export class RuntimeHttpServer {
     this.allowedOrigins = new Set(options.allowedOrigins);
     this.secrets = options.secrets ?? [];
     this.bootstrapToken = options.bootstrapToken ?? randomBytes(32).toString('base64url');
+    this.artDirector = options.artDirector;
   }
   get bootstrapSecret(): string {
     return this.bootstrapToken;
@@ -192,6 +197,25 @@ export class RuntimeHttpServer {
       const previewMatch = /^\/api\/v1\/projects\/([^/]+)\/preview$/.exec(url.pathname);
       if (method === 'GET' && previewMatch) {
         json(response, 200, this.service.preview(decodeURIComponent(previewMatch[1]!)));
+        return;
+      }
+      const artDirectorMatch = /^\/api\/v1\/art-director\/([a-z0-9-]+)$/.exec(url.pathname);
+      if (method === 'POST' && artDirectorMatch) {
+        if (!this.artDirector)
+          throw new RuntimeFailure(
+            'INVALID_REQUEST',
+            'This host was started without an art director bridge.'
+          );
+        // The path segment is matched against the bridge allowlist, never used
+        // to name an MCP tool directly.
+        json(response, 200, await this.artDirector.run(artDirectorMatch[1]!, await body(request)));
+        return;
+      }
+      if (method === 'GET' && url.pathname === '/api/v1/art-director/operations') {
+        json(response, 200, {
+          available: this.artDirector !== undefined,
+          operations: ART_DIRECTOR_OPERATIONS
+        });
         return;
       }
       if (method === 'GET' && url.pathname === '/api/v1/events') {
