@@ -90,6 +90,10 @@ returned `StudioProject.session` string current after every operation.
 Studio. The transport must implement the eight Phase 2 operations Studio needs; it may call a desktop
 host, local HTTP bridge, or another trusted process that owns the MCP connection.
 
+The maintained bridge is `HostArtDirectorTransport` in `apps/studio/src/host-transport.ts`, backed by
+the trusted local runtime. Read [the host bridge guide](STUDIO_HOST_BRIDGE.md) for its trust boundary
+and exact setup before writing a transport of your own.
+
 ```tsx
 import { StudioApp } from './studio-app';
 import { createMcpArtDirectorClient, type ArtDirectorMcpTransport } from './studio-client';
