@@ -4,7 +4,7 @@ Universal exposes three public Phase 3 boundaries: creative planning in
 `@universal/design-engine`, provider-neutral project generation in `@universal/generation`, and
 runtime/browser exchange records in `@universal/runtime-contracts`. Trusted host code may import
 `@universal/local-runtime`. Consumers should import the narrowest owner and must not import
-`@universal/design-mcp` internals.
+`@7shep/universal-mcp` internals.
 
 ## Phase 1 compatibility: develop a plan
 

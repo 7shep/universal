@@ -1,19 +1,65 @@
 {
-  "name": "@universal/design-mcp",
-  "version": "0.1.0",
-  "private": true,
+  "name": "@7shep/universal-mcp",
+  "version": "0.1.0-alpha.0",
+  "description": "Universal: an AI art director for React interfaces, exposed as a local Model Context Protocol server.",
+  "license": "MIT",
+  "author": "7shep",
+  "homepage": "https://github.com/7shep/universal#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/7shep/universal.git",
+    "directory": "packages/design-mcp"
+  },
+  "bugs": {
+    "url": "https://github.com/7shep/universal/issues"
+  },
+  "keywords": [
+    "mcp",
+    "modelcontextprotocol",
+    "mcp-server",
+    "design",
+    "art-direction",
+    "react",
+    "design-system",
+    "ai"
+  ],
   "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "bin": {
     "universal-mcp": "./dist/index.js"
   },
+  "files": [
+    "dist/index.js",
+    "dist/*.txt",
+    "template",
+    "server.json",
+    "README.md",
+    "LICENSE.MD"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "bundle": "node scripts/bundle.mjs",
     "start": "node dist/index.js",
-    "test": "pnpm run build \u0026\u0026 node --test dist/index.test.js dist/art-director.test.js dist/art-director-golden.test.js dist/art-director-phase3-golden.test.js dist/runtime-build-mcp.test.js",
+    "test": "pnpm run build && node --test dist/index.test.js dist/art-director.test.js dist/art-director-golden.test.js dist/art-director-phase3-golden.test.js dist/runtime-build-mcp.test.js && pnpm run test:package",
+    "test:package": "pnpm run bundle && node --test test/package.test.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "lint": "eslint src"
+    "lint": "eslint src",
+    "prepack": "pnpm run bundle"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "fonteditor-core": "^2.6.3",
+    "playwright": "^1.62.0",
+    "sharp": "^0.35.3",
+    "typescript": "^5.8.3",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
     "@universal/composition-library": "workspace:*",
     "@universal/design-linter": "workspace:*",
     "@universal/design-engine": "workspace:*",
@@ -22,7 +68,6 @@
     "@universal/local-runtime": "workspace:*",
     "@universal/prompts": "workspace:*",
     "@universal/shared": "workspace:*",
-    "@modelcontextprotocol/sdk": "^1.12.0",
-    "zod": "^3.24.0"
+    "esbuild": "^0.25.0"
   }
 }

@@ -131,11 +131,13 @@ Compatibility and policy tools are also available:
 Build and test the MCP server independently:
 
 ```bash
-pnpm --filter @universal/design-mcp build
-pnpm --filter @universal/design-mcp test
+pnpm --filter @7shep/universal-mcp build
+pnpm --filter @7shep/universal-mcp test
 ```
 
-See the [MCP tool reference](docs/MCP_REFERENCE.md) for all tool inputs and outputs.
+See the [MCP tool reference](docs/MCP_REFERENCE.md) for all tool inputs and outputs, and
+[publishing the MCP server](docs/MCP_RELEASE.md) to install the released `@7shep/universal-mcp`
+package instead of working from a clone.
 
 ## Repository map
 

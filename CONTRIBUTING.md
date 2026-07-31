@@ -130,8 +130,8 @@ pnpm --filter @universal/preview dev
 Build and test the local MCP server with:
 
 ```bash
-pnpm --filter @universal/design-mcp build
-pnpm --filter @universal/design-mcp test
+pnpm --filter @7shep/universal-mcp build
+pnpm --filter @7shep/universal-mcp test
 ```
 
 For client configuration and manual verification, follow [docs/CODEX_MCP_SETUP.md](docs/CODEX_MCP_SETUP.md).

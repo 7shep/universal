@@ -38,8 +38,8 @@ specific port inspection.
 Build the server from the repository root:
 
 ```bash
-pnpm --filter @universal/design-mcp build
-pnpm --filter @universal/design-mcp start
+pnpm --filter @7shep/universal-mcp build
+pnpm --filter @7shep/universal-mcp start
 ```
 
 The second command starts an MCP stdio process and waits for a client; it does not open a browser

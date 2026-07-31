@@ -50,7 +50,7 @@ Use focused checks while working:
 
 ```sh
 pnpm --filter @universal/local-runtime test
-pnpm --filter @universal/design-mcp test
+pnpm --filter @7shep/universal-mcp test
 pnpm --filter @universal/design-benchmark test
 ```
 
