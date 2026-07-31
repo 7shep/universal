@@ -23,7 +23,7 @@
     "brief_version": { "const": "1.0.0" },
     "title": { "type": "string", "minLength": 1 },
     "surface": {
-      "enum": ["landing_page", "portfolio", "product_page", "dashboard", "application"]
+      "enum": ["landing_page", "portfolio", "product_page", "dashboard", "application", "editorial"]
     },
     "audience": { "type": "string", "minLength": 1 },
     "scenario": { "type": "string", "minLength": 1 },
