@@ -6,7 +6,7 @@ access or a live preview.
 
 ## Contents
 
-- `suite.json` identifies the twelve briefs, the two experiment arms, evidence
+- `suite.json` identifies the thirteen briefs, the two experiment arms, evidence
   policy, execution and termination budgets, required isolation capabilities,
   and blind comparison protocol.
 - `rubric.json` defines the versioned scoring dimensions and aggregation rules.
