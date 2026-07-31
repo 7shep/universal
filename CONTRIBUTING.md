@@ -188,7 +188,7 @@ Common prefixes include `feat/`, `fix/`, `docs/`, `test/`, and `refactor/`.
 
 ### 4. Validate locally
 
-Run the checks listed in [Testing and Validation](#testing-and-validation). Fix new warnings and errors introduced by your change.
+Run the checks listed in [Testing and Validation](#testing-and-validation). Fix new warnings and errors introduced by your change. The same checks run automatically on your pull request; see [Continuous integration](#continuous-integration).
 
 ### 5. Commit clearly
 
@@ -255,6 +255,32 @@ pnpm --filter @universal/studio lint
 pnpm --filter @universal/studio typecheck
 pnpm --filter @universal/studio build
 ```
+
+### Continuous integration
+
+Every pull request and every push to `main` runs the same gate automatically through
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml). Running the commands above locally is the
+fastest way to know a change will pass; CI is the authority on whether it did.
+
+The workflow uses the Node and pnpm versions declared in the root `package.json`, installs with
+`pnpm install --frozen-lockfile`, requests only `contents: read`, needs no secrets or model
+credentials, and cancels superseded runs for the same branch or pull request. It has three jobs:
+
+| Job                            | What it runs                                                                  | Where                 |
+| ------------------------------ | ----------------------------------------------------------------------------- | --------------------- |
+| `Quality gate`                 | `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` | Linux                 |
+| `Trusted runtime and security` | `pnpm test:trusted-runtime-security`                                          | Linux                 |
+| `Local runtime`                | `pnpm --filter @universal/local-runtime test` against pinned Chromium         | Linux, macOS, Windows |
+
+`Quality gate` and `Trusted runtime and security` are required and must be up to date before `main`
+will accept a merge.
+
+When a job fails, open the run from the pull request's checks and download the
+`*-failure-*` artifact: it contains the per-step logs, the Turbo run summary, and any pnpm debug log,
+which is usually faster than re-reading the console output.
+
+If you change what a root script covers — the formatting globs, for example — update the workflow in
+the same pull request so the local and CI gates stay identical.
 
 Before requesting review:
 
