@@ -22,13 +22,29 @@ const corpusRoot = resolve(
   '../../../benchmarks/design-quality/v1'
 );
 
-test('loads and validates all twelve versioned briefs offline', async () => {
+test('loads and validates all thirteen versioned briefs offline', async () => {
   const definition = await loadBenchmarkDefinition(corpusRoot);
   assert.equal(definition.suite.suite_version, '1.0.0');
   assert.equal(definition.rubric.rubric_version, definition.suite.rubric_version);
-  assert.equal(definition.briefs.length, 12);
-  assert.equal(new Set(definition.briefs.map((brief) => brief.brief_id)).size, 12);
+  assert.equal(definition.briefs.length, 13);
+  assert.equal(new Set(definition.briefs.map((brief) => brief.brief_id)).size, 13);
   assert.ok(definition.briefs.every((brief) => brief.brief_version === '1.0.0'));
+});
+
+test('loads the editorial publication brief deterministically', async () => {
+  const first = await loadBenchmarkDefinition(corpusRoot);
+  const second = await loadBenchmarkDefinition(corpusRoot);
+  const find = (definition: typeof first) =>
+    definition.briefs.find((brief) => brief.brief_id === 'dq-v1-13-editorial-publication');
+  const editorial = find(first);
+  assert.ok(editorial, 'editorial brief is registered in the suite');
+  assert.deepEqual(editorial, find(second));
+  assert.equal(editorial.surface, 'editorial');
+  assert.equal(
+    first.suite.briefs.at(-1),
+    'briefs/13-editorial-publication.json',
+    'suite registers the editorial brief last so brief order stays stable'
+  );
 });
 
 test('defines both arms, blind scoring, and an offline source-only evidence policy', async () => {
@@ -125,8 +141,8 @@ test('blind scoring and paired/regression reports are deterministic without rend
 
   const unblinded = unblindScores(scores, allocations);
   const paired = createPairedComparisonReport(unblinded);
-  assert.equal(paired.summary.pairCount, 12);
-  assert.equal(paired.summary.comparablePairCount, 12);
+  assert.equal(paired.summary.pairCount, 13);
+  assert.equal(paired.summary.comparablePairCount, 13);
   assert.equal(
     serializeDeterministically(paired),
     serializeDeterministically(createPairedComparisonReport([...unblinded].reverse()))
@@ -137,8 +153,8 @@ test('blind scoring and paired/regression reports are deterministic without rend
     normalizedScore: score.normalizedScore === null ? null : score.normalizedScore - 5
   }));
   const regression = createRegressionReport(baseline, unblinded, { regressionThreshold: 1 });
-  assert.equal(regression.summary.comparedCount, 24);
-  assert.equal(regression.summary.improvedCount, 24);
+  assert.equal(regression.summary.comparedCount, 26);
+  assert.equal(regression.summary.improvedCount, 26);
   assert.equal(
     serializeDeterministically(regression),
     serializeDeterministically(

@@ -245,6 +245,10 @@ pnpm format:check
 pnpm test
 ```
 
+The formatting commands operate on Git-tracked files, then apply the existing
+Prettier configuration and `.prettierignore`. This keeps repository-owned
+formatting coverage without traversing ignored directories created by local tools.
+
 `pnpm test` is the complete automated test gate. It runs the maintained MCP,
 design-linter, and design-taste policy suites.
 
