@@ -12,8 +12,8 @@
     "build": "turbo run build",
     "dev": "turbo run dev --parallel",
     "lint": "eslint .",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
+    "format": "node tools/format-tracked-files.mjs",
+    "format:check": "node tools/format-tracked-files.mjs --check",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "test:trusted-runtime-security": "pnpm --filter @universal/local-runtime exec node --experimental-strip-types --test test/security.test.ts test/http-server.test.ts test/workspace.test.ts test/runtime.integration.test.ts"
