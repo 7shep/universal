@@ -94,12 +94,20 @@ function Start({
   );
   const [busy, setBusy] = useState(false);
   const [touched, setTouched] = useState(false);
+  const [failure, setFailure] = useState('');
   const guidance = getBriefGuidance(prompt);
   async function run() {
     setTouched(true);
     if (guidance.invalid) return;
     setBusy(true);
-    onStart(await client.startProject(prompt));
+    setFailure('');
+    try {
+      onStart(await client.startProject(prompt));
+    } catch (error) {
+      // Keep the prompt and re-enable the control so the same request can be retried.
+      setFailure(error instanceof Error ? error.message : String(error));
+      setBusy(false);
+    }
   }
   return (
     <section className="start">
@@ -134,6 +142,12 @@ function Start({
           </p>
           <small id="prompt-count">{prompt.length} characters</small>
         </div>
+        {failure && (
+          <p className="prompt-error" role="alert">
+            <strong>Discovery could not start.</strong> {failure} Your prompt is unchanged; try
+            again.
+          </p>
+        )}
         <div className="actions">
           <small>{prompt.trim().split(/\s+/).length} words</small>
           <button
