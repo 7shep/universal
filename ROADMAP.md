@@ -1,11 +1,34 @@
 # Universal
 > An AI Art Director for React applications.
 
-## Implementation status (2026-07-28)
+## Implementation status (2026-07-29)
 
-Phases 1-3 are implemented: discovery and approval, differentiated concepts, Design Plan v2, deterministic provider-neutral React generation, immutable runtime workspaces, locked offline builds, isolated loopback previews, connected Studio/Preview lifecycle states, rendered-evidence benchmarking, and last-known-good recovery. See [Phase 3 local runtime](docs/PHASE3_RUNTIME.md).
+### Complete
 
-Future milestones below describe direction, not shipped hosted, deployment, arbitrary-package, or production-provider capabilities.
+Phases 1-3 are implemented: monorepo and Studio foundations; discovery and explicit brief approval;
+differentiated concepts and Design Plan v2; composition and taste policy; deterministic,
+provider-neutral React generation; immutable runtime workspaces; locked offline builds; isolated
+loopback previews; connected Studio/Preview lifecycle states; deterministic rendered-evidence
+benchmarking; and last-known-good recovery. See [Phase 3 local runtime](docs/PHASE3_RUNTIME.md).
+
+### Next: Phase 4 - release hardening
+
+Phase 4 strengthens the local-first runtime without broadening the product into hosted deployment,
+arbitrary packages, or a general-purpose execution sandbox.
+
+- **In progress:** permanent v2 benchmark corpus, report schema, baseline comparison, and regression
+  reporting.
+- **In progress:** process-supervision hardening for spawn failures, cancellation/timeout races, and
+  complete process-tree cleanup.
+- **To do:** safe retention of stale immutable revisions while protecting every project's latest
+  successful build and active operations.
+- **To do:** a Windows, macOS, and Linux validation matrix for runtime lifecycle, workspace safety,
+  and locked builds.
+- **To do:** release-readiness documentation, reproducible verification guidance, and a scoped
+  packaging/distribution decision.
+
+The remaining milestones and Future section describe direction. They do not claim shipped hosted,
+deployment, arbitrary-package, production-provider, or OS/container-sandbox capabilities.
 
 ---
 
