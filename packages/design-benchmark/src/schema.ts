@@ -166,11 +166,11 @@ export function assertBenchmarkSuiteManifest(
     throw new TypeError('suite.content_revision must be a positive integer.');
   if (
     !isTextArray(value.briefs) ||
-    value.briefs.length !== 12 ||
-    new Set(value.briefs).size !== 12 ||
+    value.briefs.length !== 13 ||
+    new Set(value.briefs).size !== 13 ||
     value.briefs.some((brief) => !/^briefs\/.+\.json$/.test(brief))
   )
-    throw new TypeError('suite.briefs must contain twelve unique canonical JSON paths.');
+    throw new TypeError('suite.briefs must contain thirteen unique canonical JSON paths.');
   if (!Array.isArray(value.arms)) throw new TypeError('suite.arms must be an array.');
   const armIds = value.arms.map((arm) => (isRecord(arm) ? arm.id : undefined));
   if (BENCHMARK_ARMS.some((arm) => !armIds.includes(arm)) || armIds.length !== 2)
@@ -369,9 +369,14 @@ export function assertBenchmarkBriefDefinition(
     throw new TypeError(`${path}.brief_version must equal 1.0.0.`);
   if (
     typeof value.surface !== 'string' ||
-    !['landing_page', 'portfolio', 'product_page', 'dashboard', 'application'].includes(
-      value.surface
-    )
+    ![
+      'landing_page',
+      'portfolio',
+      'product_page',
+      'dashboard',
+      'application',
+      'editorial'
+    ].includes(value.surface)
   )
     throw new TypeError(`${path}.surface is not supported.`);
   if (
