@@ -203,6 +203,22 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.12.0
         version: 1.30.0(zod@3.25.76)
+      fonteditor-core:
+        specifier: ^2.6.3
+        version: 2.6.3
+      playwright:
+        specifier: ^1.62.0
+        version: 1.62.0
+      sharp:
+        specifier: ^0.35.3
+        version: 0.35.3(@types/node@24.13.3)
+      typescript:
+        specifier: ^5.8.3
+        version: 5.9.3
+      zod:
+        specifier: ^3.24.0
+        version: 3.25.76
+    devDependencies:
       '@universal/composition-library':
         specifier: workspace:*
         version: link:../composition-library
@@ -227,9 +243,9 @@ importers:
       '@universal/shared':
         specifier: workspace:*
         version: link:../shared
-      zod:
-        specifier: ^3.24.0
-        version: 3.25.76
+      esbuild:
+        specifier: ^0.25.0
+        version: 0.25.12
 
   packages/design-taste: {}
 

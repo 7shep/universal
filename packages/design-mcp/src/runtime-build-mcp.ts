@@ -211,7 +211,8 @@ export function createRuntimeBuildMcpAdapter(
     workspaceRoot =
       options.workspaceRoot ??
       (configuredWorkspaceRoot || path.join(os.homedir(), '.universal', 'workspaces')),
-    repositoryRoot = options.repositoryRoot ?? defaultRepositoryRoot;
+    configuredRepositoryRoot = process.env.UNIVERSAL_REPOSITORY_ROOT?.trim(),
+    repositoryRoot = options.repositoryRoot ?? configuredRepositoryRoot ?? defaultRepositoryRoot;
   let queue: Promise<void> = Promise.resolve();
 
   const exclusive = async <T>(operation: () => Promise<T>): Promise<T> => {
