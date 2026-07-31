@@ -3,6 +3,7 @@
 <h4 align="center">An open-source AI art director for React interfaces built with coding agents.</h4>
 
 <p align="center">
+  <a href="https://github.com/7shep/universal/actions/workflows/ci.yml"><img src="https://github.com/7shep/universal/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI"></a>
   <img src="https://img.shields.io/badge/node-22%2B-339933?style=flat-square&logo=node.js&logoColor=white" alt="Node 22+">
   <img src="https://img.shields.io/badge/pnpm-11%2B-F69220?style=flat-square&logo=pnpm&logoColor=white" alt="pnpm 11+">
   <img src="https://img.shields.io/badge/typescript-5.x-3178C6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript">

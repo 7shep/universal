@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import test from 'node:test';
+import { resolve } from 'node:path';
+import { test } from 'vitest';
 import { RUNTIME_CONTRACT_VERSION, type RuntimeState } from '@universal/runtime-contracts';
 import { RuntimePreviewClient } from './preview-client.ts';
 const project = {
@@ -89,7 +90,7 @@ test('Preview rejects an arbitrary injected preview URL', async () => {
   );
 });
 test('Preview iframe keeps generated code in a scripts-only sandbox', async () => {
-  const source = await readFile(new URL('./preview-app.tsx', import.meta.url), 'utf8');
+  const source = await readFile(resolve(import.meta.dirname, 'preview-app.tsx'), 'utf8');
   assert.match(source, /sandbox="allow-scripts"/);
   assert.doesNotMatch(source, /allow-same-origin/);
 });

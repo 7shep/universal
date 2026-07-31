@@ -3,9 +3,9 @@
   "suite_id": "design-quality",
   "suite_version": "1.0.0",
   "rubric_version": "1.0.0",
-  "content_revision": 3,
+  "content_revision": 4,
   "title": "Universal Design Quality Benchmark",
-  "description": "Paired, blind comparison of unguided and Universal-guided React interface generation across twelve representative briefs.",
+  "description": "Paired, blind comparison of unguided and Universal-guided React interface generation across thirteen representative briefs.",
   "execution_mode": "offline_source_only",
   "execution_policy": {
     "budget": {
@@ -37,7 +37,8 @@
     "briefs/09-clinic-scheduling.json",
     "briefs/10-team-onboarding.json",
     "briefs/11-billing-settings.json",
-    "briefs/12-conference-program.json"
+    "briefs/12-conference-program.json",
+    "briefs/13-editorial-publication.json"
   ],
   "arms": [
     {
