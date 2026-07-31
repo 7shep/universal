@@ -1,0 +1,39 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
+  "name": "io.github.7shep/universal",
+  "description": "An AI art director for React interfaces: discovery, creative brief, art direction, Design Plan v2, and implementation review.",
+  "status": "active",
+  "repository": {
+    "url": "https://github.com/7shep/universal",
+    "source": "github",
+    "subfolder": "packages/design-mcp"
+  },
+  "version": "0.1.0-alpha.0",
+  "websiteUrl": "https://github.com/7shep/universal#readme",
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "@7shep/universal-mcp",
+      "version": "0.1.0-alpha.0",
+      "runtimeHint": "npx",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "UNIVERSAL_WORKSPACE_ROOT",
+          "description": "Directory the runtime owns for generated project workspaces. Defaults to ~/.universal/workspaces. Must be outside any repository checkout.",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "UNIVERSAL_REPOSITORY_ROOT",
+          "description": "Checkout the runtime must refuse to materialize into. Defaults to the installed package directory.",
+          "isRequired": false,
+          "isSecret": false
+        }
+      ]
+    }
+  ]
+}

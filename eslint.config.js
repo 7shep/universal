@@ -34,6 +34,11 @@ export default tseslint.config(
     }
   },
   {
+    // Node-only build and packaging scripts that run outside the TypeScript build.
+    files: ['**/*.mjs'],
+    languageOptions: { globals: globals.node }
+  },
+  {
     files: ['tools/**/*.cjs'],
     languageOptions: {
       globals: globals.node,

@@ -121,7 +121,7 @@ pnpm --filter @universal/preview test
 Run the deterministic full journey:
 
 ```bash
-pnpm --filter @universal/design-mcp test
+pnpm --filter @7shep/universal-mcp test
 ```
 
 Run the rendered benchmark, including a negative mutation for every Phase 3 dimension:
