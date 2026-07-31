@@ -29,6 +29,7 @@ a {
   color: inherit;
 }
 a:focus-visible,
+button:focus-visible,
 iframe:focus-visible {
   outline: 3px solid var(--paper);
   outline-offset: 4px;
@@ -126,9 +127,35 @@ iframe:focus-visible {
   text-transform: uppercase;
 }
 .preview-meta a {
-  margin-left: auto;
   text-decoration: none;
   border-bottom: 1px solid var(--line);
+}
+.viewport-controls {
+  display: flex;
+  gap: 0.35rem;
+  margin-left: auto;
+}
+.preview-meta button {
+  padding: 0.25rem 0.7rem;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+.preview-meta button[aria-pressed='true'] {
+  border-color: var(--paper);
+  color: var(--paper);
+}
+.preview-frame {
+  min-height: 0;
+  display: grid;
+  justify-items: center;
+}
+.preview-frame[data-viewport='mobile'] iframe {
+  max-width: 100%;
 }
 iframe {
   width: 100%;
@@ -136,6 +163,21 @@ iframe {
   min-height: 0;
   border: 1px solid var(--line);
   background: #fff;
+}
+.preview-recovery {
+  grid-column: 6/10;
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+.preview-recovery button {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
 }
 .preview-empty {
   align-self: center;
@@ -182,10 +224,8 @@ iframe {
     monospace;
   white-space: pre-wrap;
 }
-.preview-empty > a {
-  grid-column: 8/10;
-  justify-self: end;
-  margin-top: 1rem;
+.preview-recovery a,
+.preview-recovery button {
   padding-bottom: 0.4rem;
   border-bottom: 1px solid var(--signal);
   font-size: 0.72rem;
@@ -273,8 +313,8 @@ iframe {
   .preview-empty pre {
     margin-top: 2rem;
   }
-  .preview-empty > a {
-    display: inline-block;
+  .preview-recovery {
+    flex-wrap: wrap;
     margin-top: 2rem;
   }
   .preview-footer {

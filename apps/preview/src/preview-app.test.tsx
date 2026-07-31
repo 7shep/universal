@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, test } from 'vitest';
 import { RUNTIME_CONTRACT_VERSION } from '@universal/runtime-contracts';
 import { PreviewApp } from './preview-app';
@@ -217,5 +217,94 @@ describe('state semantics', () => {
     expect(document.activeElement).toBe(isolated);
     expect(isolated.getAttribute('tabindex')).toBeNull();
     expect(isolated.getAttribute('rel')).toBe('noreferrer');
+  });
+});
+
+describe('viewport, reload, and diagnostic retention', () => {
+  test('offers desktop and mobile widths as keyboard-operable pressed-state controls', async () => {
+    render(<PreviewApp client={fakeClient(ready)} projectId="project:p" />);
+    await screen.findByTitle('Generated preview for project:p');
+
+    const group = screen.getByRole('group', { name: 'Preview width' });
+    const desktop = within(group).getByRole('button', { name: /Desktop/ });
+    const mobile = within(group).getByRole('button', { name: /Mobile/ });
+    expect(desktop.getAttribute('aria-pressed')).toBe('true');
+    expect(mobile.getAttribute('aria-pressed')).toBe('false');
+
+    mobile.focus();
+    expect(document.activeElement).toBe(mobile);
+    fireEvent.click(mobile);
+
+    expect(mobile.getAttribute('aria-pressed')).toBe('true');
+    expect(desktop.getAttribute('aria-pressed')).toBe('false');
+    const frame = screen.getByTitle('Generated preview for project:p') as HTMLIFrameElement;
+    expect(frame.parentElement?.getAttribute('data-viewport')).toBe('mobile');
+    expect(frame.style.width).toBe('390px');
+
+    fireEvent.click(desktop);
+    expect(
+      (screen.getByTitle('Generated preview for project:p') as HTMLIFrameElement).style.width
+    ).toBe('');
+  });
+
+  test('manual reload remounts the frame and re-reads runtime state', async () => {
+    let loads = 0;
+    render(<PreviewApp client={fakeClient(ready, () => (loads += 1))} projectId="project:p" />);
+    const before = await screen.findByTitle('Generated preview for project:p');
+    const loadsBefore = loads;
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reload preview' }));
+
+    await waitFor(() => expect(loads).toBeGreaterThan(loadsBefore));
+    expect(screen.getByTitle('Generated preview for project:p')).not.toBe(before);
+  });
+
+  test('a diagnostic survives a later refresh that reports no diagnostic of its own', async () => {
+    let call = 0;
+    const client: PreviewClient = {
+      async load(projectId) {
+        if (!projectId) return noSelection;
+        call += 1;
+        return call === 1 ? failed : unavailable;
+      }
+    };
+    render(<PreviewApp client={client} projectId="project:p" />);
+
+    await screen.findByText(failed.diagnostic!);
+    // The component re-polls on an interval, so allow more than one tick.
+    await screen.findByRole('heading', { name: unavailable.heading }, { timeout: 3000 });
+    // The state moved on, but the last explanation is still on screen.
+    expect(screen.getByText(failed.diagnostic!)).toBeDefined();
+  });
+
+  test('a successful build clears a stale diagnostic instead of carrying it forward', async () => {
+    let call = 0;
+    const client: PreviewClient = {
+      async load(projectId) {
+        if (!projectId) return noSelection;
+        call += 1;
+        return call === 1 ? failed : ready;
+      }
+    };
+    render(<PreviewApp client={client} projectId="project:p" />);
+
+    await screen.findByText(failed.diagnostic!);
+    await screen.findByTitle('Generated preview for project:p', {}, { timeout: 3000 });
+    expect(screen.queryByText(failed.diagnostic!)).toBeNull();
+  });
+
+  test('a broken state offers an in-place retry as well as the route back to Studio', async () => {
+    let loads = 0;
+    render(<PreviewApp client={fakeClient(failed, () => (loads += 1))} projectId="project:p" />);
+    await screen.findByRole('heading', { name: failed.heading });
+
+    const retry = screen.getByRole('button', { name: 'Retry now' });
+    retry.focus();
+    expect(document.activeElement).toBe(retry);
+    const loadsBefore = loads;
+    fireEvent.click(retry);
+
+    await waitFor(() => expect(loads).toBeGreaterThan(loadsBefore));
+    expect(screen.getByRole('link', { name: 'Return to Studio' })).toBeDefined();
   });
 });

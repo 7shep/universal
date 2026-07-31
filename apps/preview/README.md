@@ -3,6 +3,24 @@
 Preview embeds a runtime-issued immutable production build in a scripts-only sandboxed iframe and
 renders the lifecycle state of the selected project when no build is available.
 
+## How Preview learns about a build
+
+Preview does **not** talk to the generated site. It reads versioned runtime records from the trusted
+local runtime over its HTTP API and validates every response against `@universal/runtime-contracts`
+before any state change: a descriptor whose project, build, or revision does not match the runtime's
+own record is rejected as stale, and a non-loopback preview origin is rejected outright. Only then is
+the build embedded.
+
+There is deliberately **no `postMessage` channel** between the host page and the framed build. ADR
+0001 §9 lists a privileged `postMessage` bridge as an iframe-escape threat and excludes it, so the
+frame stays `sandbox="allow-scripts"` with no same-origin, navigation, popup, download, or form
+capability, and it receives no messages it could act on. Build state, readiness, failure, and reload
+therefore travel over the runtime contract rather than through the untrusted frame. Changing that
+boundary needs an ADR amendment, not a component change.
+
+Viewport width and manual reload are host-side controls: they resize and remount the frame from the
+outside, without asking the generated code to cooperate.
+
 ## Commands
 
 ```bash
@@ -22,7 +40,8 @@ pnpm --filter @universal/preview build
 - `preview-app.test.tsx` — component coverage for the lifecycle states Preview renders, driven by an
   injected fake `PreviewClient`. No runtime, network, or generated build is required.
 
-The component tests assert the semantics that are easy to regress silently: which panel carries
+The component tests assert the semantics that are easy to regress silently, including the viewport
+controls, manual reload, and diagnostic retention described above: which panel carries
 `role="status"` versus `role="alert"`, the matching `aria-live` politeness, whether a structured
 diagnostic is visible, that every state is distinguishable by its status text rather than colour
 alone, that the iframe sandbox stays `allow-scripts` only, and that the escape routes out of a
