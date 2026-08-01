@@ -70,15 +70,24 @@ test('deterministic generator emits complete semantic React source', async () =>
   );
   assert.equal(result.ok, true);
   if (!result.ok) return;
-  assert.deepEqual(
-    result.project.files.map((file) => file.path),
-    ['src/App.tsx', 'src/styles.css']
-  );
-  const app = result.project.files[0]!.content;
-  const css = result.project.files[1]!.content;
-  assert.match(app, /<nav aria-label="Primary">/);
-  assert.match(app, /\/keyboards\/monolith-75/);
-  assert.match(css, /prefers-reduced-motion/);
+  const files = new Map(result.project.files.map((file) => [file.path, file.content]));
+  for (const path of [
+    'src/App.tsx',
+    'src/components/SiteHeader.tsx',
+    'src/components/SiteFooter.tsx',
+    'src/pages/HomePage.tsx',
+    'src/pages/ProductPage.tsx',
+    'src/pages/CraftPage.tsx',
+    'src/data/content.ts',
+    'src/styles.css',
+    'src/styles/tokens.css',
+    'src/styles/components.css',
+    'src/styles/pages.css'
+  ])
+    assert.ok(files.has(path), `missing organized fixture module: ${path}`);
+  assert.match(files.get('src/components/SiteHeader.tsx')!, /<nav aria-label="Primary">/);
+  assert.match(files.get('src/App.tsx')!, /\/keyboards\/monolith-75/);
+  assert.match(files.get('src/styles.css')!, /prefers-reduced-motion/);
 });
 
 test('provider failures redact credential-shaped values from messages', async () => {

@@ -134,7 +134,13 @@ export interface BuildRecord {
 export interface ImplementationReviewRecord {
   status: 'pass' | 'revision_recommended';
   checkedAt: string;
-  checks: readonly { id: string; status: 'pass' | 'fail' | 'human-review'; message: string }[];
+  checks: readonly {
+    id: string;
+    status: 'pass' | 'fail' | 'human-review';
+    message: string;
+    severity?: 'info' | 'warning' | 'error' | undefined;
+    evidence?: Readonly<Record<string, unknown>> | undefined;
+  }[];
 }
 export interface PreviewDescriptor {
   contractVersion: typeof RUNTIME_CONTRACT_VERSION;

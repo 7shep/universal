@@ -1,0 +1,19 @@
+{
+  "id": "dq-v2-editorial-publication",
+  "version": "1.0.0",
+  "category": "editorial-publication",
+  "title": "Margin Independent Review",
+  "prompt": "Create an image-led independent publication with issue navigation, long-form reading, bylines, captions, and a distinct typographic editorial voice.",
+  "approvedRoutes": ["/", "/issue/07", "/story/tidal-memory"],
+  "requirements": [
+    "Issue table of contents",
+    "Long-form article route",
+    "Bylines captions and publication metadata"
+  ],
+  "constraints": [
+    "Readable long-form measure",
+    "No card-grid homepage",
+    "Preserve semantic heading order"
+  ],
+  "mobileFirst": false
+}

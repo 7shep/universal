@@ -1,0 +1,4 @@
+.masthead { min-height: 6.5rem; border-bottom: 1px solid #4a4943; display: flex; justify-content: space-between; align-items: center; padding: 1.25rem clamp(1rem, 3vw, 3rem); }
+.masthead nav { display: flex; gap: clamp(.8rem, 2.5vw, 2.6rem); }
+.wordmark { font-weight: 800; letter-spacing: .16em; text-decoration: none; }
+footer { padding: 3rem clamp(1rem, 3vw, 3rem); border-top: 1px solid #4a4943; display: grid; grid-template-columns: 1fr 1fr auto; }

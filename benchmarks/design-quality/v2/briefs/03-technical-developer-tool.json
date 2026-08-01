@@ -1,0 +1,19 @@
+{
+  "id": "dq-v2-technical-developer-tool",
+  "version": "1.0.0",
+  "category": "technical-developer-tool",
+  "title": "Tracefold Local Debugger",
+  "prompt": "Create a precise developer-tool site for a local distributed-trace debugger with honest code examples, protocol documentation, and status-oriented interface language.",
+  "approvedRoutes": ["/", "/docs", "/protocol"],
+  "requirements": [
+    "Copyable install command",
+    "Protocol lifecycle diagram",
+    "Structured code and diagnostic examples"
+  ],
+  "constraints": [
+    "No external runtime calls",
+    "No invented cloud features",
+    "Keyboard-operable navigation"
+  ],
+  "mobileFirst": false
+}

@@ -11,3 +11,4 @@ export * from './backends.ts';
 export * from './art-direction.ts';
 
 export * from './phase3.ts';
+export * from './permanent.ts';
