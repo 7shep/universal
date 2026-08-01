@@ -125,6 +125,20 @@ const requestIdSchema = z
   .min(1)
   .optional()
   .describe('Stable retry id. Reusing it with a different payload is rejected.');
+/**
+ * `z.unknown()` compiles to an empty JSON Schema, and MCP hosts serialize
+ * untyped parameters as strings. The engine's `validatePageMap` then rejects
+ * the value because it is not a record. Declaring the object shape keeps the
+ * payload structured over the wire; the engine still owns full validation.
+ */
+const pageMapSchema = z
+  .object({
+    kind: z.enum(['single-page', 'multi-page']),
+    pages: z.array(z.record(z.string(), z.unknown())).min(1)
+  })
+  .passthrough()
+  .optional()
+  .describe('PageMap object. Validated in full by the design engine.');
 
 function toolResult(value: unknown) {
   return { content: [{ type: 'text' as const, text: JSON.stringify(value, null, 2) }] };
@@ -162,7 +176,7 @@ export function registerArtDirectorTools(
       sessionId: z.string().min(1).optional(),
       requestId: requestIdSchema,
       interpretations: z.array(z.unknown()).optional(),
-      pageMap: z.unknown().optional()
+      pageMap: pageMapSchema
     },
     async (input) =>
       safeToolResult(() =>
@@ -189,7 +203,7 @@ export function registerArtDirectorTools(
       requestId: requestIdSchema,
       answers: z.array(z.unknown()).optional(),
       interpretations: z.array(z.unknown()).optional(),
-      pageMap: z.unknown().optional()
+      pageMap: pageMapSchema
     },
     async ({ session, ...input }) =>
       safeToolResult(() =>
@@ -219,7 +233,7 @@ export function registerArtDirectorTools(
       requestId: requestIdSchema,
       decisions: z.array(z.unknown()).optional(),
       interpretations: z.array(z.unknown()).optional(),
-      pageMap: z.unknown().optional()
+      pageMap: pageMapSchema
     },
     async ({ session, ...input }) =>
       safeToolResult(() =>
