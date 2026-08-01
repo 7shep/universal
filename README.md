@@ -60,18 +60,23 @@ a deterministic, credential-free way to inspect the current art-direction flow.
 Universal is in active early development. Phase 3 provides an offline deterministic path from an
 approved Design Plan v2 through deterministic or MCP-host-authored React generation, immutable workspace materialization, a
 locked production build, and an isolated loopback preview. Studio and Preview can use versioned
-runtime records; hosted deployment, arbitrary packages, and a production live-provider adapter
-remain out of scope.
+runtime records. Phase 4 hardened that runtime — process supervision, revision retention, and a
+Windows/macOS/Linux validation matrix, see [Release readiness](docs/RELEASE_READINESS.md) — and
+closed the packaging/distribution decision (npm for the MCP server, source checkout for Studio; see
+[ADR-0004](docs/adr/0004-packaging-and-distribution.md)). Hosted deployment, arbitrary packages, and
+a production live-provider adapter remain out of scope.
 
-| Available                                             | Still in progress                       |
-| ----------------------------------------------------- | --------------------------------------- |
-| Discovery, brief approval, and direction selection    | Production live-provider implementation |
-| Design Plan v2 compiler and digest-bound provenance   | OS or container sandboxing              |
-| Provider-neutral deterministic React generation       | Full macOS and Linux runtime validation |
-| Trusted local runtime and immutable workspaces        | Hosted deployment and public previews   |
-| Locked production builds and isolated static previews | Packaging and one-command distribution  |
-| Runtime-connected Studio and Preview applications     | Stable public release guarantees        |
-| Deterministic rendered benchmark and recovery tests   | Subjective visual quality automation    |
+| Available                                             | Still in progress                                                                                                         |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Discovery, brief approval, and direction selection    | Production live-provider implementation                                                                                   |
+| Design Plan v2 compiler and digest-bound provenance   | OS or container sandboxing                                                                                                |
+| Provider-neutral deterministic React generation       | Hosted deployment and public previews                                                                                     |
+| Trusted local runtime and immutable workspaces        | One-command Studio desktop packaging (deliberately deferred, see [ADR-0004](docs/adr/0004-packaging-and-distribution.md)) |
+| Locked production builds and isolated static previews | Stable public release guarantees                                                                                          |
+| Runtime-connected Studio and Preview applications     | Subjective visual quality automation                                                                                      |
+| Deterministic rendered benchmark and recovery tests   |                                                                                                                           |
+| Windows, macOS, and Linux runtime validation matrix   |                                                                                                                           |
+| MCP server published to npm (`@7shep/universal-mcp`)  |                                                                                                                           |
 
 The [roadmap](ROADMAP.md) tracks planned milestones. The
 [architecture guide](docs/ARCHITECTURE.md) distinguishes implemented behavior from planned

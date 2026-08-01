@@ -1,7 +1,7 @@
 # Universal
 > An AI Art Director for React applications.
 
-## Implementation status (2026-07-30)
+## Implementation status (2026-07-31)
 
 Phases 1-3 and the Phase 3 follow-ups are implemented: discovery and approval,
 differentiated concepts, Design Plan v2, deterministic provider-neutral React generation,
@@ -16,8 +16,7 @@ strict, up-to-date `Quality gate` and `Trusted runtime and security` checks. See
 ### Phase 4 - release hardening
 
 Phase 4 strengthened the local-first runtime without broadening the product into hosted deployment,
-arbitrary packages, or a general-purpose execution sandbox. Four of its five workstreams are
-shipped:
+arbitrary packages, or a general-purpose execution sandbox. All five workstreams are shipped:
 
 - Permanent v2 benchmark corpus, report schema, baseline comparison, and weighted regression
   reporting.
@@ -31,8 +30,10 @@ shipped:
   [Release readiness](docs/RELEASE_READINESS.md) for the matrix, the per-operating-system
   reproduction sequence, and the limits of what a green run proves.
 
-A scoped packaging/distribution decision remains outstanding. A desktop shell is deliberately
-deferred; see [ADR-0001](docs/adr/0001-local-runtime-architecture.md).
+- A scoped packaging/distribution decision: the MCP server publishes to npm (see
+  [MCP release](docs/MCP_RELEASE.md)); Studio, Preview, and the local runtime ship as a source
+  checkout run via `pnpm dev`, with desktop packaging deliberately deferred. See
+  [ADR-0004](docs/adr/0004-packaging-and-distribution.md).
 
 Future milestones below describe direction, not shipped hosted, deployment, arbitrary-package, or production-provider capabilities.
 
