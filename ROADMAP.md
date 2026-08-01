@@ -1,7 +1,7 @@
 # Universal
 > An AI Art Director for React applications.
 
-## Implementation status (2026-07-31)
+## Implementation status (2026-08-01)
 
 Phases 1-3 and the Phase 3 follow-ups are implemented: discovery and approval,
 differentiated concepts, Design Plan v2, deterministic provider-neutral React generation,
@@ -34,6 +34,16 @@ arbitrary packages, or a general-purpose execution sandbox. All five workstreams
   [MCP release](docs/MCP_RELEASE.md)); Studio, Preview, and the local runtime ship as a source
   checkout run via `pnpm dev`, with desktop packaging deliberately deferred. See
   [ADR-0004](docs/adr/0004-packaging-and-distribution.md).
+
+### Phase 5 - component inspector (in progress)
+
+Phase 5 begins Universal's post-MVP product tracks. The first track is click-to-component
+inspection: clicking an element in the Preview iframe resolves it to its generated
+component/file and stable section identity, surfaces that metadata in Studio, and lets the user
+start a scoped revision from it. It depends on the stable section identity already produced by
+generation, the generator manifest's section-to-file mapping, the Preview protocol, and the
+existing revision loop — no new runtime privilege or generation contract is required. Screenshot
+critique, style packs, and multi-agent design review remain future tracks, not yet scheduled.
 
 Future milestones below describe direction, not shipped hosted, deployment, arbitrary-package, or production-provider capabilities.
 
@@ -336,6 +346,10 @@ Click element.
 Find React component.
 
 Regenerate only that component.
+
+Status
+
+In progress. This is the first Phase 5 track; see [Phase 5 - component inspector](#phase-5---component-inspector-in-progress) above.
 
 ---
 
