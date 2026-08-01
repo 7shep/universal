@@ -421,7 +421,7 @@ function createPlan(p: StudioProject): DesignPlanV2 {
     ]
   };
 }
-interface ArtDirectorSurfaceResponse {
+export interface ArtDirectorSurfaceResponse {
   session: string;
   state: unknown;
   data?: unknown;

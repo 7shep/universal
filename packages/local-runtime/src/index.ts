@@ -1,5 +1,6 @@
 export * from './errors.ts';
 export * from './architecture.ts';
+export * from './art-director-bridge.ts';
 export * from './asset-optimizer.ts';
 export * from './acceptance-export.ts';
 export * from './http-server.ts';

@@ -1,7 +1,7 @@
 # Universal
 > An AI Art Director for React applications.
 
-## Implementation status (2026-07-29)
+## Implementation status (2026-07-30)
 
 Phases 1-3 and the Phase 3 follow-ups are implemented: discovery and approval,
 differentiated concepts, Design Plan v2, deterministic provider-neutral React generation,
@@ -12,6 +12,27 @@ permanent benchmark reporting, and last-known-good recovery. CI is active, and `
 strict, up-to-date `Quality gate` and `Trusted runtime and security` checks. See
 [Phase 3 local runtime](docs/PHASE3_RUNTIME.md) and
 [Phase 3 follow-up closeout](docs/PHASE3_FOLLOW_UPS.md).
+
+### Phase 4 - release hardening
+
+Phase 4 strengthened the local-first runtime without broadening the product into hosted deployment,
+arbitrary packages, or a general-purpose execution sandbox. Four of its five workstreams are
+shipped:
+
+- Permanent v2 benchmark corpus, report schema, baseline comparison, and weighted regression
+  reporting.
+- Process-supervision hardening for spawn failures, cancellation/timeout races, and complete
+  process-tree cleanup, including group termination after the leader has already exited.
+- Safe retention of stale immutable revisions, protecting each project's latest successful build and
+  any active operation.
+- A Windows, macOS, and Linux validation matrix covering runtime lifecycle, workspace safety, and
+  locked builds, with canonicalized export destinations so containment checks hold when the
+  workspace root is reached through a symlink. See
+  [Release readiness](docs/RELEASE_READINESS.md) for the matrix, the per-operating-system
+  reproduction sequence, and the limits of what a green run proves.
+
+A scoped packaging/distribution decision remains outstanding. A desktop shell is deliberately
+deferred; see [ADR-0001](docs/adr/0001-local-runtime-architecture.md).
 
 Future milestones below describe direction, not shipped hosted, deployment, arbitrary-package, or production-provider capabilities.
 
