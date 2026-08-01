@@ -56,6 +56,7 @@ pnpm dev
 | Studio            | `http://localhost:5173` |
 | Preview           | `http://localhost:5174` |
 | Axis 65 demo site | `http://localhost:5175` |
+| Marketing site    | `http://localhost:5176` |
 
 Start only one workspace when needed:
 
@@ -63,6 +64,7 @@ Start only one workspace when needed:
 pnpm --filter @universal/studio dev
 pnpm --filter @universal/preview dev
 pnpm --filter @universal/demo-site dev
+pnpm --filter universal-marketing-site dev
 ```
 
 ## Windows PowerShell
@@ -116,10 +118,15 @@ Stop the process already using the port, or deliberately override the port for t
 pnpm --filter @universal/studio dev -- --port 6173
 pnpm --filter @universal/preview dev -- --port 6174
 pnpm --filter @universal/demo-site dev -- --port 6175
+pnpm --filter universal-marketing-site dev -- --port 6176
 ```
 
 Use the URL printed by Vite after an override. Any integration expecting the default Studio,
-Preview, or demo URL must be updated for that run.
+Preview, demo, or marketing-site URL must be updated for that run.
+
+All four dev servers bind `127.0.0.1` explicitly and use `strictPort`, so a collision fails loudly
+with `Port <n> is already in use` instead of one server silently serving on the port you expected
+another to use.
 
 On Windows, inspect a port without terminating anything:
 
