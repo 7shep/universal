@@ -2,6 +2,18 @@
 
 This document contains copy-paste prompts for parallel coding agents. The prompts are ordered by merge dependency, not just by roadmap milestone.
 
+## Current status (2026-07-29)
+
+- Phases 0-3 and the Phase 3 follow-ups are merged.
+- CI and `main` branch protection are active.
+- Architecture review, permanent benchmark reporting, real desktop/mobile capture, a bounded
+  rendered-finding revision, explicit acceptance/export, controlled assets, and runtime recovery
+  are implemented.
+- Phase 4 has not started.
+
+The Phase 2 and Phase 3 prompts below are retained as an implementation record. Do not rerun them.
+New work should begin from the Phase 4 prompts and the latest `main`.
+
 ## How to run the plan
 
 1. Give each agent exactly one prompt and its own Git worktree.
@@ -47,7 +59,7 @@ Open a draft PR with a concise summary, implementation notes, validation evidenc
 
 ---
 
-# Phase 2 — Parallel product tracks
+# Phase 2 — Parallel product tracks (complete; historical)
 
 Start all four prompts only after Prompt 1D is merged. Each track should stay within its ownership boundary so the work can merge with minimal conflicts.
 
@@ -191,7 +203,7 @@ Open a draft PR with desktop/mobile screenshots and a state inventory.
 
 ---
 
-# Phase 3 — End-to-end vertical slice
+# Phase 3 — End-to-end vertical slice (complete; historical)
 
 This phase is sequential. Start only after all four Phase 2 pull requests are merged.
 
@@ -233,9 +245,13 @@ Open a draft PR with a short screen recording or screenshots, the exact demo ste
 
 ---
 
-# Phase 4 — Product capabilities
+# Phase 4 — Product capabilities (not started)
 
 Start only after Phase 3 is merged. All four prompts may run in parallel, but agents must avoid broad edits to the same Studio files. Prefer feature modules with narrow integration points.
+
+Phase 3 follow-ups established reusable rendered-QA, acceptance/export, asset, and runtime-recovery
+contracts. Phase 4 work must integrate or extend those contracts rather than creating competing
+APIs.
 
 ## Prompt 4A — Targeted section revision loop
 
@@ -293,33 +309,38 @@ Acceptance criteria:
 Open a draft PR with the three fixture signatures and comparison screenshots.
 ```
 
-## Prompt 4C — Automated visual QA and evidence capture
+## Prompt 4C - Rendered-QA product integration and evidence UX
 
-**Branch:** `codex/automated-visual-qa`
+**Branch:** `codex/rendered-qa-product`
 
 ```text
-Automate the visual evidence required by Universal's design linter.
+Integrate the existing rendered-QA and bounded-revision capabilities into a complete Studio and
+Preview product experience. Do not build a second screenshot runner or duplicate the
+`VisualEvidence`, capture, finding, or acceptance contracts.
 
-Read the Preview protocol, runtime lifecycle, design-linter VisualEvidence contract, taste policy, and Phase 3 review flow.
+Read the existing `PlaywrightRenderedQaCapture`, rendered finding contracts, acceptance/export
+flow, Preview protocol, runtime lifecycle, and Phase 3.2 fixtures.
 
 Implement:
-1. Deterministic desktop and mobile screenshot capture after Preview reaches ready state.
-2. Readiness, timeout, font/image loading, and animation-settling rules.
-3. Automated checks for blank or unexpectedly empty regions, missing media/marks, overflow, and runtime error overlays.
-4. Basic accessibility checks appropriate to the local toolchain.
-5. Reduced-motion capture behavior.
-6. Conversion of capture observations into the existing VisualEvidence contract.
-7. Artifact paths and retention/cleanup rules that do not pollute Git.
-8. Tests using stable fixture pages, including a deliberately broken page.
+1. A user-visible Studio action for running rendered review on a ready immutable revision.
+2. Queued, capturing, reviewing, revising, comparing, completed, failed, and cancelled states.
+3. Desktop and mobile evidence viewing with viewport and artifact metadata.
+4. Clear separation of machine-observed evidence from subjective human judgment.
+5. Before/after evidence and finding resolution for the existing single bounded child revision.
+6. Explicit accept, reject, and export handoff using the existing reviewed revision identity.
+7. Useful retention, missing-artifact, timeout, and capture-failure states.
+8. Component and integration tests backed by the existing deterministic and deliberately broken
+   fixture pages.
 
 Acceptance criteria:
-- A review can receive desktop and mobile evidence without manual user claims.
-- Missing assets and blank fixture regions are reported.
-- Capture failure is explicit and cannot silently become a passing review.
-- Artifacts are isolated and cleaned according to policy.
-- Full relevant checks pass.
+- A user can run the existing rendered QA from Studio and inspect desktop/mobile evidence.
+- Capture failures remain explicit and cannot silently become a passing review.
+- Before/after findings and the accepted immutable revision remain correctly linked.
+- No duplicate capture or evidence contracts are introduced.
+- The UI is accessible, reviewed under `AGENTS.md`, and full relevant checks pass.
 
-Open a draft PR with representative artifacts and the resulting linter reports.
+Open a draft PR with the complete state inventory, desktop/mobile screenshots, and representative
+existing capture artifacts.
 ```
 
 ## Prompt 4D — Local history, persistence, and recovery
@@ -330,6 +351,10 @@ Open a draft PR with representative artifacts and the resulting linter reports.
 Implement local persistence and recovery for Universal sessions.
 
 Read the runtime ADR, canonical identifiers, Phase 3 lifecycle, variant and revision contracts, and product privacy constraints.
+
+The runtime already persists authoritative immutable revision records, acceptance/export state, and
+last-known-good recovery metadata. Extend those records into session-level product history; do not
+replace them with a parallel source of truth.
 
 Implement:
 1. A versioned local schema for briefs, plans, selected directions, generated projects, builds, reviews, variants, and revisions.

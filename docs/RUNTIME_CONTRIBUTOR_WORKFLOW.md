@@ -50,7 +50,7 @@ Use focused checks while working:
 
 ```sh
 pnpm --filter @universal/local-runtime test
-pnpm --filter @universal/design-mcp test
+pnpm --filter @7shep/universal-mcp test
 pnpm --filter @universal/design-benchmark test
 ```
 
@@ -98,6 +98,6 @@ Acceptance and export are separate privileged actions. `RuntimeService.acceptRev
 | Port 5173 or 5174 is occupied                | Windows: `Get-NetTCPConnection -LocalPort 5173,5174 -ErrorAction SilentlyContinue \| Select-Object LocalPort,OwningProcess`, then `Stop-Process -Id <pid>`. macOS/Linux: `lsof -nP -iTCP:5173 -sTCP:LISTEN`(repeat for`5174`), then `kill <pid>`.                                                                                                            |
 | Installer lock is stale                      | Wait for active builds. The lock is `universal-pnpm-install.lock` in the OS temp directory and the runtime removes locks older than ten minutes. After confirming no runtime is active, remove only that file: Windows `Remove-Item (Join-Path $env:TEMP 'universal-pnpm-install.lock')`; macOS/Linux `rm -f "${TMPDIR:-/tmp}/universal-pnpm-install.lock"`. |
 | Build fails                                  | Read structured install/build diagnostics in the MCP result or runtime state. Fix the allowed source and submit a new revision; never modify an immutable revision.                                                                                                                                                                                          |
-| Windows leaves a child process               | The runtime uses `taskkill /T /F`. If one remains after it exits, first identify it with `Get-Process -Id <pid>`, then run `Stop-Process -Id <pid> -Force`; do not kill unrelated Node processes by name.                                                                                                                                                    |
+| Windows leaves a child process               | The runtime uses `taskkill /T /F` while the root PID is alive; descendants orphaned before that point cannot be targeted safely. If one remains after it exits, first identify it with `Get-Process -Id <pid>`, then run `Stop-Process -Id <pid> -Force`; do not kill unrelated Node processes by name.                                                      |
 
 See [Phase 3 runtime](PHASE3_RUNTIME.md), [MCP reference](MCP_REFERENCE.md), and [architecture](ARCHITECTURE.md) for the normative details.

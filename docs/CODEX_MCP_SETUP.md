@@ -6,7 +6,7 @@ From the repository root:
 
 ```bash
 pnpm install
-pnpm --filter @universal/design-mcp build
+pnpm --filter @7shep/universal-mcp build
 ```
 
 ## Run manually
@@ -14,7 +14,7 @@ pnpm --filter @universal/design-mcp build
 The MCP protocol runs over standard input/output, so it will wait for a client rather than printing a user interface:
 
 ```bash
-pnpm --filter @universal/design-mcp start
+pnpm --filter @7shep/universal-mcp start
 ```
 
 The compiled executable is `packages/design-mcp/dist/index.js`.
@@ -118,7 +118,7 @@ pnpm --filter @universal/demo-site dev
 
 ## Troubleshooting
 
-- **No tools appear:** rebuild `@universal/design-mcp`, check the absolute config path, then reconnect Codex.
+- **No tools appear:** rebuild `@7shep/universal-mcp`, check the absolute config path, then reconnect Codex.
 - **Server exits immediately:** run the manual command and inspect stderr; no non-protocol output may reach stdout.
-- **Command not found:** run from the monorepo root and use `pnpm --filter @universal/design-mcp ...`.
+- **Command not found:** run from the monorepo root and use `pnpm --filter @7shep/universal-mcp ...`.
 - **Demo port is busy:** Vite uses port `5175` with `strictPort`; stop the process using it or change `examples/demo-site/vite.config.ts`.

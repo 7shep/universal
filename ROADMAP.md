@@ -1,34 +1,41 @@
 # Universal
 > An AI Art Director for React applications.
 
-## Implementation status (2026-07-29)
+## Implementation status (2026-07-31)
 
-### Complete
+Phases 1-3 and the Phase 3 follow-ups are implemented: discovery and approval,
+differentiated concepts, Design Plan v2, deterministic provider-neutral React generation,
+proportional architecture review, immutable runtime workspaces, locked offline builds, isolated
+loopback previews, connected Studio/Preview lifecycle states, desktop and mobile rendered QA, one
+bounded child-revision loop, explicit acceptance/export, provenance-aware asset processing,
+permanent benchmark reporting, and last-known-good recovery. CI is active, and `main` requires
+strict, up-to-date `Quality gate` and `Trusted runtime and security` checks. See
+[Phase 3 local runtime](docs/PHASE3_RUNTIME.md) and
+[Phase 3 follow-up closeout](docs/PHASE3_FOLLOW_UPS.md).
 
-Phases 1-3 are implemented: monorepo and Studio foundations; discovery and explicit brief approval;
-differentiated concepts and Design Plan v2; composition and taste policy; deterministic,
-provider-neutral React generation; immutable runtime workspaces; locked offline builds; isolated
-loopback previews; connected Studio/Preview lifecycle states; deterministic rendered-evidence
-benchmarking; and last-known-good recovery. See [Phase 3 local runtime](docs/PHASE3_RUNTIME.md).
+### Phase 4 - release hardening
 
-### Next: Phase 4 - release hardening
+Phase 4 strengthened the local-first runtime without broadening the product into hosted deployment,
+arbitrary packages, or a general-purpose execution sandbox. All five workstreams are shipped:
 
-Phase 4 strengthens the local-first runtime without broadening the product into hosted deployment,
-arbitrary packages, or a general-purpose execution sandbox.
-
-- **In progress:** permanent v2 benchmark corpus, report schema, baseline comparison, and regression
+- Permanent v2 benchmark corpus, report schema, baseline comparison, and weighted regression
   reporting.
-- **In progress:** process-supervision hardening for spawn failures, cancellation/timeout races, and
-  complete process-tree cleanup.
-- **To do:** safe retention of stale immutable revisions while protecting every project's latest
-  successful build and active operations.
-- **To do:** a Windows, macOS, and Linux validation matrix for runtime lifecycle, workspace safety,
-  and locked builds.
-- **To do:** release-readiness documentation, reproducible verification guidance, and a scoped
-  packaging/distribution decision.
+- Process-supervision hardening for spawn failures, cancellation/timeout races, and complete
+  process-tree cleanup, including group termination after the leader has already exited.
+- Safe retention of stale immutable revisions, protecting each project's latest successful build and
+  any active operation.
+- A Windows, macOS, and Linux validation matrix covering runtime lifecycle, workspace safety, and
+  locked builds, with canonicalized export destinations so containment checks hold when the
+  workspace root is reached through a symlink. See
+  [Release readiness](docs/RELEASE_READINESS.md) for the matrix, the per-operating-system
+  reproduction sequence, and the limits of what a green run proves.
 
-The remaining milestones and Future section describe direction. They do not claim shipped hosted,
-deployment, arbitrary-package, production-provider, or OS/container-sandbox capabilities.
+- A scoped packaging/distribution decision: the MCP server publishes to npm (see
+  [MCP release](docs/MCP_RELEASE.md)); Studio, Preview, and the local runtime ship as a source
+  checkout run via `pnpm dev`, with desktop packaging deliberately deferred. See
+  [ADR-0004](docs/adr/0004-packaging-and-distribution.md).
+
+Future milestones below describe direction, not shipped hosted, deployment, arbitrary-package, or production-provider capabilities.
 
 ---
 
@@ -258,6 +265,12 @@ Output
 
 Human-readable report.
 
+Phase 3 status
+
+Implemented with deterministic plan, source, architecture, runtime-policy, and rendered-evidence
+checks. Subjective visual judgment remains explicitly human rather than being represented as a
+machine guarantee.
+
 ---
 
 # Milestone 7
@@ -278,6 +291,12 @@ Select Hero
 
 Regenerate Hero only.
 
+Phase 3.2 status
+
+Implemented as one bounded child revision driven by rendered findings, followed by rebuild,
+recapture, comparison, and explicit accept or reject. Interactive section selection, multi-step
+revision history, and user-directed rollback remain Phase 4 product work.
+
 ---
 
 # Milestone 8
@@ -293,6 +312,10 @@ Version B
 Version C
 
 Compare visually.
+
+Status
+
+Not started. Three-way variant generation and comparison remain Phase 4 product work.
 
 ---
 

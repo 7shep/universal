@@ -195,6 +195,29 @@ export class AcceptanceExportService {
     return record;
   }
 
+  async acceptedRevisionIds(): Promise<readonly string[]> {
+    const directory = path.join(this.metadataRoot, 'acceptances');
+    let entries;
+    try {
+      entries = await readdir(directory, { withFileTypes: true });
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return [];
+      throw error;
+    }
+    const revisions = new Set<string>();
+    for (const entry of entries) {
+      if (!entry.isFile() || !entry.name.endsWith('.json')) continue;
+      const value: unknown = JSON.parse(await readFile(path.join(directory, entry.name), 'utf8'));
+      if (
+        typeof value === 'object' &&
+        value !== null &&
+        'revisionId' in value &&
+        typeof value.revisionId === 'string'
+      )
+        revisions.add(value.revisionId);
+    }
+    return [...revisions].sort();
+  }
   async export(input: {
     acceptance: AcceptanceRecord;
     provenance: RevisionProvenance;
@@ -230,21 +253,23 @@ export class AcceptanceExportService {
         'UNAUTHORIZED_REQUEST',
         'Export destination is outside every configured or explicitly approved root.'
       );
+    const relativeDestination = path.relative(allowedRoot, destination);
     await mkdir(allowedRoot, { recursive: true });
     const rootReal = await realpath(allowedRoot);
-    if (!contained(rootReal, destination))
+    const canonicalDestination = path.join(rootReal, relativeDestination);
+    if (!contained(rootReal, canonicalDestination))
       throw new RuntimeFailure('MATERIALIZATION_FAILURE', 'Export destination escaped its root.');
-    await rejectSymlinkAncestors(rootReal, destination);
+    await rejectSymlinkAncestors(rootReal, canonicalDestination);
     let destinationExists = false;
     try {
-      const destinationStat = await lstat(destination);
+      const destinationStat = await lstat(canonicalDestination);
       if (destinationStat.isSymbolicLink() || !destinationStat.isDirectory())
         throw new RuntimeFailure(
           'MATERIALIZATION_FAILURE',
           'Existing export destination must be a real directory.'
         );
       destinationExists = true;
-      if ((await readdir(destination)).length > 0)
+      if ((await readdir(canonicalDestination)).length > 0)
         throw new RuntimeFailure(
           'MATERIALIZATION_FAILURE',
           'Existing non-empty export destinations are never overwritten.'
@@ -260,7 +285,7 @@ export class AcceptanceExportService {
         'MATERIALIZATION_FAILURE',
         'Accepted revision contains case-folding filename collisions.'
       );
-    const parent = path.dirname(destination);
+    const parent = path.dirname(canonicalDestination);
     await mkdir(parent, { recursive: true });
     const staging = path.join(parent, `.universal-export-${randomUUID()}`);
     const backup = path.join(parent, `.universal-empty-backup-${randomUUID()}`);
@@ -294,10 +319,10 @@ export class AcceptanceExportService {
       );
       await this.beforeCommit?.(staging);
       if (destinationExists) {
-        await rename(destination, backup);
+        await rename(canonicalDestination, backup);
         movedExisting = true;
       }
-      await rename(staging, destination);
+      await rename(staging, canonicalDestination);
       committed = true;
       const record: ExportRecord = {
         version: EXPORT_WORKFLOW_VERSION,
@@ -319,10 +344,10 @@ export class AcceptanceExportService {
       return record;
     } catch (error) {
       await rm(staging, { recursive: true, force: true });
-      if (committed) await rm(destination, { recursive: true, force: true });
+      if (committed) await rm(canonicalDestination, { recursive: true, force: true });
       if (movedExisting) {
         try {
-          await rename(backup, destination);
+          await rename(backup, canonicalDestination);
         } catch {
           throw new AggregateError(
             [error],

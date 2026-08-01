@@ -84,7 +84,7 @@ The CLI workspace defaults to `~/.universal/workspaces`; tests use temporary dir
 <workspace>/projects/<opaque-project-id>/revisions/<opaque-revision-id>/
 ```
 
-Revision directories are immutable. Materialization rejects absolute, drive-qualified, UNC, traversal, ambiguous, colliding, and link-escaping paths. Writes use a staging directory, exclusive temporary files, file synchronization, and atomic rename. Abandoned staging directories can be removed with `cleanAbandonedStaging`; ready revisions are retained because they may be the last known good preview. Automated age-based retention is deferred to Phase 4.
+Revision directories are immutable. Materialization rejects absolute, drive-qualified, UNC, traversal, ambiguous, colliding, and link-escaping paths. Writes use a staging directory, exclusive temporary files, file synchronization, and atomic rename. Abandoned staging directories can be removed with `cleanAbandonedStaging`; ready revisions are retained because they may be the last known good preview. Phase 4 adds an explicit, dry-run-by-default revision-retention planner with optional per-project count and age thresholds. It only considers persisted revision records at their exact runtime-owned paths; execution snapshots and validates authoritative records, accepted revisions, and live Preview bindings while holding the runtime mutation coordinator through filesystem deletion. Record, acceptance, and Preview-protection mutations use the same non-reentrant boundary. Current revisions, the project latest-successful build revision, active operations/builds, live Preview bindings, and caller pins are never eligible. Plans are deterministic (`createdAt`, revision number, ID); unrecorded, malformed, missing, or link-backed directories are skipped. Execution re-resolves and containment-checks each regular directory immediately before removal, reports partial failures without changing records, and does not claim OS or container sandboxing.
 
 Providers may write only allowlisted React, TypeScript, CSS, text, and approved image assets. They cannot replace `package.json`, lockfiles, Vite/TypeScript config, `index.html`, runtime entrypoints, scripts, or preview policy. File-count, per-file, asset-count, and total-byte quotas are enforced twice: at provider validation and materialization.
 
@@ -92,7 +92,7 @@ The fixed template pins React, Vite, TypeScript, and the React plugin. Installat
 
 ## Process supervision and recovery
 
-Install/build processes receive a minimal environment without provider credentials. Output is bounded and redacted. Cancellation, timeout, and shutdown abort the operation, terminate the process tree, and wait for settlement. On restart, active operations/builds are marked `interrupted`; persisted data is validated before use. Ready build outputs are reattached when present.
+Install/build processes receive a minimal environment without provider credentials. Output is bounded and redacted. Cancellation, timeout, and shutdown abort the operation, terminate the POSIX process group, and wait for settlement. Windows uses taskkill while the root PID remains available; commands must not orphan descendants before termination begins. On restart, active operations/builds are marked `interrupted`; persisted data is validated before use. Ready build outputs are reattached when present.
 
 A failed or cancelled newer revision never replaces `latestSuccessfulBuildId`. Studio shows the newer diagnostic while Preview keeps serving the prior immutable artifact.
 
@@ -121,7 +121,7 @@ pnpm --filter @universal/preview test
 Run the deterministic full journey:
 
 ```bash
-pnpm --filter @universal/design-mcp test
+pnpm --filter @7shep/universal-mcp test
 ```
 
 Run the rendered benchmark, including a negative mutation for every Phase 3 dimension:

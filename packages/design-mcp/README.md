@@ -1,4 +1,20 @@
-# Universal design MCP
+# @7shep/universal-mcp
+
+An AI art director for React interfaces, exposed as a local Model Context Protocol server.
+
+```bash
+npx -y @7shep/universal-mcp
+```
+
+Requires Node 22 or newer. The server speaks MCP over stdio and reads no model credentials of its
+own — generation is host-authored, meaning your MCP client's model writes the source and this server
+validates, materializes, and builds it.
+
+See [docs/MCP_RELEASE.md](../../docs/MCP_RELEASE.md) for client configuration, environment
+variables, what the tarball contains, and the release and rollback process, and
+[docs/MCP_REFERENCE.md](../../docs/MCP_REFERENCE.md) for every tool input and output.
+
+This is a pre-1.0 alpha: tool names, inputs, outputs, and session shapes may change in any release.
 
 ## Art Director workflow
 

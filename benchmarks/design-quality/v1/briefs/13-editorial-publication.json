@@ -1,0 +1,46 @@
+{
+  "$schema": "../brief.schema.json",
+  "brief_id": "dq-v1-13-editorial-publication",
+  "brief_version": "1.0.0",
+  "title": "The Longshore Review quarterly home",
+  "surface": "editorial",
+  "audience": "Readers and subscribers browsing a long-form quarterly about working coastlines, deciding what to read next",
+  "scenario": "The Longshore Review is an independent quarterly of reporting and essays about ports, fisheries, shipbuilding towns, and the people whose work depends on the water. Issue 14, Slack Water, has just been published.",
+  "task": "Build the publication home page for Issue 14 so a reader can understand the issue, distinguish the lead story from the rest of the table of contents, and move into a department or the archive.",
+  "content": {
+    "brand": "The Longshore Review",
+    "primary_heading": "Issue 14: Slack Water",
+    "sections": [
+      "Masthead with The Longshore Review, Issue 14, Winter 2026, and links to Reporting, Essays, Dispatches, Archive, and Subscribe",
+      "Issue introduction: 'Slack water is the pause between tides. This issue reports from twelve places living inside that pause.' with editor Marguerite Okonkwo and a 240-word issue note",
+      "Lead story: 'The Last Dry Dock in Bathurst Inlet' by Ines Karlsson, reporting, 6,800 words, 27 minutes, published 2026-01-14, with a two-sentence standfirst and a captioned photograph credited to Tomas Rehn",
+      "Table of contents with eight further pieces, each with title, author, department, word count, reading time, publication date, and a one-sentence summary",
+      "Departments index: Reporting, Essays, Dispatches, Photography, and Letters, each with a one-line description and the number of pieces in this issue",
+      "Dispatches column: four short 150-word field notes from Lofoten, Valparaiso, Nagasaki, and Grimsby with dateline and author",
+      "Photo essay teaser: 'Night Shift, Container Terminal 4' by Adaeze Nwosu, twelve plates, with two captioned images",
+      "Archive strip listing Issues 9 through 13 with title, season, and year",
+      "Colophon and subscribe note: print quarterly, $19 USD per issue or $64 USD per year; subscription checkout is not implemented"
+    ]
+  },
+  "requirements": [
+    "Establish a clear reading hierarchy in which the lead story is unmistakably primary and the eight further pieces remain scannable as a list",
+    "Attach author, department, publication date, word count, and reading time to every piece as visible, machine-readable metadata using time and address or equivalent semantics",
+    "Give images real captions and credits that stay associated with their figures rather than floating as body copy",
+    "Support dense continuous reading with a measured text column, deliberate typographic scale, and rhythm that does not collapse into equal-weight cards",
+    "Make departments and the archive reachable as navigation, not only as decorative labels",
+    "Keep the table of contents linear, ordered, and readable at narrow widths without hiding metadata"
+  ],
+  "constraints": [
+    "Do not implement search, filtering, pagination, comments, paywalls, or subscription checkout",
+    "Do not invent additional issues, authors, sponsors, or awards beyond the supplied content",
+    "Do not use remote images, fonts, analytics, or scripts",
+    "Do not render the table of contents as a uniform three-column card grid or repeat one card component for every piece",
+    "Do not place the issue introduction or lead standfirst behind hover, carousel, or accordion interaction"
+  ],
+  "evaluation_focus": [
+    "Editorial hierarchy across a lead story, a dense table of contents, and secondary departments",
+    "Typographic craft and density in continuous long-form text",
+    "Article metadata, figure caption, and credit semantics",
+    "Navigation between issue, department, and archive without generic marketing patterns"
+  ]
+}

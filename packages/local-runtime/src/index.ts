@@ -1,8 +1,10 @@
 export * from './errors.ts';
 export * from './architecture.ts';
+export * from './art-director-bridge.ts';
 export * from './asset-optimizer.ts';
 export * from './acceptance-export.ts';
 export * from './http-server.ts';
+export * from './mutation-coordinator.ts';
 export * from './preview-server.ts';
 export * from './playwright-capture.ts';
 export * from './process-supervisor.ts';
@@ -10,5 +12,6 @@ export * from './provider-config.ts';
 export * from './record-store.ts';
 export * from './review.ts';
 export * from './rendered-qa.ts';
+export * from './retention.ts';
 export * from './runtime-service.ts';
 export * from './workspace.ts';
