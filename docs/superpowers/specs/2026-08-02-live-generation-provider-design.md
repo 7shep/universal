@@ -180,7 +180,12 @@ failure cheap, not to become a second authority on correctness.
 | Request timeout | `timeout` |
 | `AbortSignal` fired (`generate(request, signal)`) | `cancelled` |
 | Malformed JSON or schema mismatch | `malformed-output` |
-| Anything else | `provider-error` |
+| HTTP 5xx, overload, connection failure | `unavailable` |
+| Anything else | `internal` |
+
+The union is exactly `authentication | rate-limit | timeout | cancelled | malformed-output |
+unavailable | internal` (`packages/generation/src/contracts.ts:112-119`) — there is no generic
+provider-error member, so every SDK exception must map onto one of these seven.
 
 `ReactGenerator` is constructed as `new ReactGenerator(provider, [apiKey])`
 (`provider-config.ts:42`), so the key is redacted from every diagnostic reaching Studio.
