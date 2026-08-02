@@ -28,9 +28,10 @@ export async function initializeStudio(
       props.client = createMcpArtDirectorClient(
         new HostArtDirectorTransport({ origin: runtime.origin })
       );
-  } catch {
-    // An unreachable runtime must still render Studio in fixture mode rather than
-    // leaving a blank page.
+  } catch (error) {
+    // Studio must still render in fixture mode, but a swallowed failure here is
+    // invisible in devtools — the exact problem this ordering fix exists to solve.
+    console.error('Studio runtime initialization failed; falling back to fixture mode:', error);
   }
   render();
 }

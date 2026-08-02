@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { test } from 'vitest';
+import { test, vi } from 'vitest';
 import { initializeStudio } from './initialize-studio.ts';
 import { resetRuntimeSessionForTests } from './runtime-client.ts';
 import type { StudioAppProps } from './studio-app.tsx';
@@ -67,6 +67,7 @@ test('a failed bootstrap still renders rather than leaving a blank page', async 
   globalThis.fetch = (async () => {
     throw new Error('runtime unreachable');
   }) as typeof fetch;
+  const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
   try {
     const props: StudioAppProps = {};
     let rendered = 0;
@@ -75,8 +76,10 @@ test('a failed bootstrap still renders rather than leaving a blank page', async 
     });
     assert.equal(rendered, 1);
     assert.equal(props.client, undefined);
+    assert.ok(consoleErrorSpy.mock.calls.length >= 1, 'a swallowed failure must still be logged');
   } finally {
     globalThis.fetch = original;
+    consoleErrorSpy.mockRestore();
     resetRuntimeSessionForTests();
   }
 });
