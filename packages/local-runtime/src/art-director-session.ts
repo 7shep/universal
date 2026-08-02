@@ -96,8 +96,7 @@ export function createStdioArtDirectorSessionFactory(
         ...getDefaultEnvironment(),
         UNIVERSAL_WORKSPACE_ROOT: options.workspaceRoot,
         UNIVERSAL_REPOSITORY_ROOT: options.repositoryRoot
-      },
-      stderr: 'pipe'
+      }
     });
     const client = new Client({ name: 'universal-local-runtime', version: '0.1.0' });
     await client.connect(transport);
