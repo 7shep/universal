@@ -1,6 +1,11 @@
 #!/usr/bin/env node
 import os from 'node:os';
 import path from 'node:path';
+import { ArtDirectorBridge } from './art-director-bridge.ts';
+import {
+  createStdioArtDirectorSessionFactory,
+  resolveArtDirectorEntry
+} from './art-director-session.ts';
 import { RuntimeHttpServer } from './http-server.ts';
 import { RuntimeService } from './runtime-service.ts';
 import { createConfiguredGenerator } from './provider-config.ts';
@@ -16,12 +21,27 @@ const service = new RuntimeService({
   generator: configured.generator
 });
 await service.initialize();
-const server = new RuntimeHttpServer({ service, allowedOrigins: [studioOrigin, previewOrigin] });
+const artDirectorEntry = resolveArtDirectorEntry();
+const artDirector = artDirectorEntry
+  ? new ArtDirectorBridge({
+      createSession: createStdioArtDirectorSessionFactory({
+        entry: artDirectorEntry,
+        workspaceRoot,
+        repositoryRoot: process.cwd()
+      })
+    })
+  : undefined;
+const server = new RuntimeHttpServer({
+  service,
+  allowedOrigins: [studioOrigin, previewOrigin],
+  ...(artDirector ? { artDirector } : {})
+});
 await server.start();
 process.stdout.write(
-  `${JSON.stringify({ runtimeOrigin: server.origin, bootstrapToken: server.bootstrapSecret, workspaceRoot, provider: configured.providerId })}\n`
+  `${JSON.stringify({ runtimeOrigin: server.origin, bootstrapToken: server.bootstrapSecret, workspaceRoot, provider: configured.providerId, artDirector: artDirector !== undefined })}\n`
 );
 const shutdown = async () => {
+  if (artDirector) await artDirector.close();
   await server.close();
   await service.shutdown();
   process.exit(0);
