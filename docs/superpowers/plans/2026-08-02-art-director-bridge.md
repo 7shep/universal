@@ -68,10 +68,12 @@ import path from 'node:path';
 import test from 'node:test';
 import { resolveArtDirectorEntry } from '../src/art-director-session.ts';
 
-test('resolveArtDirectorEntry finds the built design-mcp entry', () => {
+test('resolveArtDirectorEntry finds the built design-mcp entry', (t) => {
   const entry = resolveArtDirectorEntry();
   if (entry === undefined) {
-    // design-mcp is not built in this checkout; the negative case below still runs.
+    // Skip loudly rather than returning early: a silent pass would hide the fact
+    // that this assertion never ran.
+    t.skip('design-mcp is not built; run `pnpm --filter @7shep/universal-mcp build`');
     return;
   }
   assert.equal(path.basename(entry), 'index.js');
@@ -622,32 +624,31 @@ git commit -m "fix(studio): redeem the single-use bootstrap token exactly once"
 ### Task 5: Probe the bridge after the session exists
 
 **Files:**
+- Create: `apps/studio/src/initialize-studio.ts`
 - Modify: `apps/studio/src/main.tsx:36-48`
-- Test: `apps/studio/src/main-ordering.test.ts` (create)
+- Test: `apps/studio/src/initialize-studio.test.ts` (create)
 
 **Interfaces:**
-- Consumes: `ensureRuntimeSession` from Task 4; `hostBridgeAvailable` from `./host-transport.ts`.
-- Produces: no new exports. Behavioral guarantee: `POST /api/v1/bootstrap` precedes `GET /api/v1/art-director/operations`.
+- Consumes: `ensureRuntimeSession` from Task 4; `hostBridgeAvailable` and `HostArtDirectorTransport` from `./host-transport.ts`; `createMcpArtDirectorClient` from `./studio-client.ts`.
+- Produces: `initializeStudio(runtime: RuntimeGlobal, props: StudioAppProps, render: () => void): Promise<void>`, where `RuntimeGlobal` is `{ origin: string; bootstrapToken?: string; previewShellUrl?: string }`.
+
+**Why the extraction:** `main.tsx` mounts React into a real DOM node at module load, so it cannot be imported by a test. Testing the ordering by calling the two helpers by hand would assert nothing about `main.tsx` and would keep passing if the fix were reverted. Moving the sequence into `initializeStudio` makes the ordering genuinely testable.
 
 **Why:** `main.tsx:39` currently probes at module load, before any bootstrap. `/api/v1/art-director/operations` runs `authenticate()` (`http-server.ts:172`), so it 401s, `hostBridgeAvailable` returns false, and Studio latches to the fixture art director permanently. Without this task, Tasks 1-3 are unreachable from the UI.
 
 - [ ] **Step 1: Write the failing test**
 
-Create `apps/studio/src/main-ordering.test.ts`:
+Create `apps/studio/src/initialize-studio.test.ts`:
 
 ```ts
 import assert from 'node:assert/strict';
 import { test } from 'vitest';
-import { ensureRuntimeSession, resetRuntimeSessionForTests } from './runtime-client.ts';
-import { hostBridgeAvailable } from './host-transport.ts';
+import { initializeStudio } from './initialize-studio.ts';
+import { resetRuntimeSessionForTests } from './runtime-client.ts';
+import type { StudioAppProps } from './studio-app.tsx';
 
-// main.tsx cannot be imported directly: it mounts React into a real DOM node at module
-// load. This test asserts the ordering contract main.tsx must honour.
-test('the bridge probe runs only after the runtime session is established', async () => {
-  resetRuntimeSessionForTests();
-  const order: string[] = [];
-  const original = globalThis.fetch;
-  globalThis.fetch = (async (input: RequestInfo | URL) => {
+function stubFetch(order: string[]) {
+  return (async (input: RequestInfo | URL) => {
     const url = String(input);
     if (url.endsWith('/api/v1/bootstrap')) {
       order.push('bootstrap');
@@ -656,12 +657,67 @@ test('the bridge probe runs only after the runtime session is established', asyn
     order.push('probe');
     return new Response('{"available":true,"operations":[]}', { status: 200 });
   }) as typeof fetch;
+}
+
+test('the bridge probe runs only after the runtime session is established', async () => {
+  resetRuntimeSessionForTests();
+  const order: string[] = [];
+  const original = globalThis.fetch;
+  globalThis.fetch = stubFetch(order);
   try {
-    const runtime = { origin: 'http://127.0.0.1:4300', bootstrapToken: 't' };
-    await ensureRuntimeSession(runtime);
-    const available = await hostBridgeAvailable(runtime.origin);
-    assert.equal(available, true);
+    const props: StudioAppProps = {};
+    let rendered = 0;
+    await initializeStudio(
+      { origin: 'http://127.0.0.1:4300', bootstrapToken: 't' },
+      props,
+      () => {
+        rendered += 1;
+      }
+    );
     assert.deepEqual(order, ['bootstrap', 'probe']);
+    assert.equal(rendered, 1);
+    assert.ok(props.client, 'an available bridge must install the MCP art director client');
+  } finally {
+    globalThis.fetch = original;
+    resetRuntimeSessionForTests();
+  }
+});
+
+test('an unavailable bridge still renders Studio in fixture mode', async () => {
+  resetRuntimeSessionForTests();
+  const original = globalThis.fetch;
+  globalThis.fetch = (async (input: RequestInfo | URL) =>
+    String(input).endsWith('/api/v1/bootstrap')
+      ? new Response('{"status":"bootstrapped"}', { status: 200 })
+      : new Response('{"available":false,"operations":[]}', { status: 200 })) as typeof fetch;
+  try {
+    const props: StudioAppProps = {};
+    let rendered = 0;
+    await initializeStudio({ origin: 'http://127.0.0.1:4300' }, props, () => {
+      rendered += 1;
+    });
+    assert.equal(rendered, 1);
+    assert.equal(props.client, undefined);
+  } finally {
+    globalThis.fetch = original;
+    resetRuntimeSessionForTests();
+  }
+});
+
+test('a failed bootstrap still renders rather than leaving a blank page', async () => {
+  resetRuntimeSessionForTests();
+  const original = globalThis.fetch;
+  globalThis.fetch = (async () => {
+    throw new Error('runtime unreachable');
+  }) as typeof fetch;
+  try {
+    const props: StudioAppProps = {};
+    let rendered = 0;
+    await initializeStudio({ origin: 'http://127.0.0.1:4300', bootstrapToken: 't' }, props, () => {
+      rendered += 1;
+    });
+    assert.equal(rendered, 1);
+    assert.equal(props.client, undefined);
   } finally {
     globalThis.fetch = original;
     resetRuntimeSessionForTests();
@@ -669,49 +725,81 @@ test('the bridge probe runs only after the runtime session is established', asyn
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it passes for the right reason**
+- [ ] **Step 2: Run the test to verify it fails**
 
 ```bash
-pnpm --filter @universal/studio test -- main-ordering
+pnpm --filter @universal/studio test -- initialize-studio
 ```
 
-Expected: PASS. This test pins the contract; Step 3 makes `main.tsx` honour it. Confirm it fails if you swap the two awaits — that is what proves the test has teeth.
+Expected: FAIL — cannot resolve `./initialize-studio.ts`.
 
-- [ ] **Step 3: Fix the ordering in main.tsx**
+- [ ] **Step 3: Create the initializer**
 
-In `apps/studio/src/main.tsx`, change the import to include the new helper:
+Create `apps/studio/src/initialize-studio.ts`:
 
 ```ts
-import { createRuntimeGenerationLifecycleClient, ensureRuntimeSession } from './runtime-client';
-```
+import { HostArtDirectorTransport, hostBridgeAvailable } from './host-transport';
+import { ensureRuntimeSession } from './runtime-client';
+import { createMcpArtDirectorClient } from './studio-client';
+import type { StudioAppProps } from './studio-app';
 
-Replace the `if (runtime) { ... }` block at the bottom:
+export interface RuntimeGlobal {
+  origin: string;
+  bootstrapToken?: string;
+  previewShellUrl?: string;
+}
 
-```tsx
-if (runtime) {
-  // The capability probe is authenticated, so the session must exist first. Probing
-  // before bootstrap 401s and latches Studio to the fixture art director for good.
-  void ensureRuntimeSession({
-    origin: runtime.origin,
-    ...(runtime.bootstrapToken ? { bootstrapToken: runtime.bootstrapToken } : {})
-  })
-    .catch(() => undefined)
-    .then(() => hostBridgeAvailable(runtime.origin))
-    .then((available) => {
-      if (available)
-        props.client = createMcpArtDirectorClient(
-          new HostArtDirectorTransport({ origin: runtime.origin })
-        );
-      render();
+/**
+ * Establishes the runtime session, then probes for the art director bridge, then
+ * renders. The order matters: the probe endpoint is authenticated, so probing first
+ * returns 401 and latches Studio to the fixture art director for the whole page load.
+ */
+export async function initializeStudio(
+  runtime: RuntimeGlobal,
+  props: StudioAppProps,
+  render: () => void
+): Promise<void> {
+  try {
+    await ensureRuntimeSession({
+      origin: runtime.origin,
+      ...(runtime.bootstrapToken ? { bootstrapToken: runtime.bootstrapToken } : {})
     });
-} else {
+    if (await hostBridgeAvailable(runtime.origin))
+      props.client = createMcpArtDirectorClient(
+        new HostArtDirectorTransport({ origin: runtime.origin })
+      );
+  } catch {
+    // An unreachable runtime must still render Studio in fixture mode rather than
+    // leaving a blank page.
+  }
   render();
 }
 ```
 
-The `.catch(() => undefined)` is deliberate: a failed bootstrap must still render Studio in fixture mode rather than leaving a blank page.
+- [ ] **Step 4: Run the test to verify it passes**
 
-- [ ] **Step 4: Run the full Studio suite, typecheck, and lint**
+```bash
+pnpm --filter @universal/studio test -- initialize-studio
+```
+
+Expected: PASS, 3 tests.
+
+- [ ] **Step 5: Call it from main.tsx**
+
+In `apps/studio/src/main.tsx`, remove the now-unused `hostBridgeAvailable`, `HostArtDirectorTransport`, and `createMcpArtDirectorClient` imports, and add:
+
+```ts
+import { initializeStudio } from './initialize-studio';
+```
+
+Replace the `if (runtime) { ... } else { render(); }` block at the bottom:
+
+```tsx
+if (runtime) void initializeStudio(runtime, props, render);
+else render();
+```
+
+- [ ] **Step 6: Run the full Studio suite, typecheck, and lint**
 
 ```bash
 pnpm --filter @universal/studio test
@@ -721,10 +809,10 @@ pnpm --filter @universal/studio lint
 
 Expected: all PASS.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
-git add apps/studio/src/main.tsx apps/studio/src/main-ordering.test.ts
+git add apps/studio/src/main.tsx apps/studio/src/initialize-studio.ts apps/studio/src/initialize-studio.test.ts
 git commit -m "fix(studio): bootstrap the runtime session before probing the host bridge"
 ```
 
