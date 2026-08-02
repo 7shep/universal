@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import { test } from 'vitest';
 import {
   LocalGenerationLifecycleClient,
-  RuntimeGenerationLifecycleClient
+  RuntimeGenerationLifecycleClient,
+  ensureRuntimeSession,
+  resetRuntimeSessionForTests
 } from './runtime-client.ts';
 import type { StudioProject } from './studio-client.ts';
 const project = {
@@ -48,4 +50,43 @@ test('runtime lifecycle client rejects malformed serialized state', async () => 
     () => new RuntimeGenerationLifecycleClient({ origin: 'http://127.0.0.1:4300' }).load(project),
     /projects/
   );
+});
+test('ensureRuntimeSession redeems the single-use token exactly once', async () => {
+  resetRuntimeSessionForTests();
+  const calls: string[] = [];
+  const original = globalThis.fetch;
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    calls.push(String(input));
+    return new Response('{"status":"bootstrapped"}', { status: 200 });
+  }) as typeof fetch;
+  try {
+    const config = { origin: 'http://127.0.0.1:4300', bootstrapToken: 't' };
+    await Promise.all([
+      ensureRuntimeSession(config),
+      ensureRuntimeSession(config),
+      ensureRuntimeSession(config)
+    ]);
+    await ensureRuntimeSession(config);
+    assert.equal(calls.length, 1);
+    assert.match(calls[0]!, /\/api\/v1\/bootstrap$/);
+  } finally {
+    globalThis.fetch = original;
+    resetRuntimeSessionForTests();
+  }
+});
+test('ensureRuntimeSession is a no-op without a token', async () => {
+  resetRuntimeSessionForTests();
+  const original = globalThis.fetch;
+  let called = false;
+  globalThis.fetch = (async () => {
+    called = true;
+    return new Response('{}', { status: 200 });
+  }) as typeof fetch;
+  try {
+    await ensureRuntimeSession({ origin: 'http://127.0.0.1:4300' });
+    assert.equal(called, false);
+  } finally {
+    globalThis.fetch = original;
+    resetRuntimeSessionForTests();
+  }
 });
