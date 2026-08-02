@@ -94,7 +94,11 @@ async function bootstrapOnce(config: RuntimeConfig): Promise<void> {
   if (!response.ok && response.status !== 401) throw new Error('Local runtime bootstrap failed.');
 }
 export function ensureRuntimeSession(config: RuntimeConfig): Promise<void> {
-  runtimeSession ??= bootstrapOnce(config);
+  runtimeSession ??= bootstrapOnce(config).catch((error: unknown) => {
+    // A transient failure must not lock the page out of ever bootstrapping.
+    runtimeSession = undefined;
+    throw error;
+  });
   return runtimeSession;
 }
 export function resetRuntimeSessionForTests(): void {

@@ -90,3 +90,22 @@ test('ensureRuntimeSession is a no-op without a token', async () => {
     resetRuntimeSessionForTests();
   }
 });
+test('ensureRuntimeSession retries after a rejected attempt instead of poisoning the memo', async () => {
+  resetRuntimeSessionForTests();
+  const original = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = (async () => {
+    calls += 1;
+    if (calls === 1) throw new Error('network unreachable');
+    return new Response('{"status":"bootstrapped"}', { status: 200 });
+  }) as typeof fetch;
+  try {
+    const config = { origin: 'http://127.0.0.1:4300', bootstrapToken: 't' };
+    await assert.rejects(() => ensureRuntimeSession(config));
+    await ensureRuntimeSession(config);
+    assert.equal(calls, 2);
+  } finally {
+    globalThis.fetch = original;
+    resetRuntimeSessionForTests();
+  }
+});
