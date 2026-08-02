@@ -41,8 +41,8 @@ process.stdout.write(
   `${JSON.stringify({ runtimeOrigin: server.origin, bootstrapToken: server.bootstrapSecret, workspaceRoot, provider: configured.providerId, artDirector: artDirector !== undefined })}\n`
 );
 const shutdown = async () => {
-  if (artDirector) await artDirector.close();
   await server.close();
+  if (artDirector) await artDirector.close();
   await service.shutdown();
   process.exit(0);
 };
