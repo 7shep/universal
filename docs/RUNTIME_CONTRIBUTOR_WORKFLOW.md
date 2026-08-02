@@ -46,6 +46,14 @@ pnpm --filter @universal/preview dev
 pnpm --filter @universal/local-runtime start
 ```
 
+Running all three still leaves Studio on its deterministic fixture client: `window.__UNIVERSAL_RUNTIME__`
+is read once, synchronously, before Studio's app code runs, and nothing sets it by default. Setting it
+from the browser devtools console after the page has loaded is too late -- the app has already decided
+there is no runtime. To connect a real runtime for manual testing, edit
+`apps/studio/public/dev-runtime.local.js` (loaded before the app on every page load) with the
+`runtimeOrigin`/`bootstrapToken` the CLI printed, then reload Studio. Restore that file's commented-out
+default before committing unrelated changes.
+
 Use focused checks while working:
 
 ```sh
