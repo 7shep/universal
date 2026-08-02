@@ -156,9 +156,27 @@ use is preferable to a lying `available: true`.
 ## Constraints
 
 `ArtDirectorBridge` holds a single `current` session per runtime
-(`packages/local-runtime/src/art-director-bridge.ts:158`). Starting art direction on a second project
-overwrites the first, and the earlier session cannot be resumed. This is acceptable for a
-single-user local tool and is recorded here so it is not rediscovered as a defect.
+(`packages/local-runtime/src/art-director-bridge.ts:158`). Only one art-direction flow can be in
+flight at a time, where "in flight" means between `start-art-direction` and the resulting Design
+Plan v2.
+
+This is narrower than it first sounds:
+
+- Prompting is unlimited. `start-art-direction` requires no session
+  (`art-director-bridge.ts:45`), so each new prompt creates a fresh session that replaces the
+  previous one.
+- Projects are unlimited. Once the wizard produces a plan, Studio holds it in `project.enginePlan`
+  and generation proceeds over `/api/v1/projects/generate` without the MCP session. Generating,
+  rebuilding, and previewing any existing project is unaffected.
+- The only lost case is an unfinished wizard. Starting a second art direction before the first
+  produces a plan discards the first; resuming it returns `STALE_ARTIFACT`
+  (`art-director-bridge.ts:218`).
+
+Studio cannot currently reach this case: `studio-app.tsx:840` holds a single
+`useState<StudioProject | null>` with no project list and no way to return to an unfinished project.
+The constraint becomes reachable if project switching is added, or in the chat-driven iteration
+follow-on. It is acceptable for a single-user local tool and is recorded here so it is not
+rediscovered as a defect.
 
 ## Testing
 
