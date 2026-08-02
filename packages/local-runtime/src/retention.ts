@@ -6,7 +6,7 @@ import type {
   RevisionRecord,
   RuntimeOperation
 } from '@universal/runtime-contracts';
-import { normalizeManifestPath } from './workspace.ts';
+import { workspaceSegment } from './workspace.ts';
 
 export interface RevisionRetentionPolicy {
   retainCount?: number;
@@ -62,11 +62,10 @@ const inside = (root: string, target: string) => {
   return r !== '' && r !== '..' && !r.startsWith(`..${path.sep}`) && !path.isAbsolute(r);
 };
 const samePath = (left: string, right: string) => path.relative(left, right) === '';
-const segment = (v: string) => {
-  const x = normalizeManifestPath(v).replaceAll(':', '_');
-  if (x.includes('/')) throw new Error('Revision ids may not contain path separators.');
-  return x;
-};
+// Must stay identical to materialization's mapping: line 125 below compares the
+// recomputed target against the stored workspacePath, and any divergence would make
+// retention silently skip every revision as `unsafe-path` instead of reclaiming it.
+const segment = workspaceSegment;
 const time = (v: string) => {
   const t = Date.parse(v);
   return Number.isFinite(t) ? t : undefined;

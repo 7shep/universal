@@ -4,7 +4,12 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import type { GeneratedProject } from '@universal/generation';
-import { materializeProject, normalizeManifestPath, RuntimeFailure } from '../src/index.ts';
+import {
+  materializeProject,
+  normalizeManifestPath,
+  RuntimeFailure,
+  workspaceSegment
+} from '../src/index.ts';
 
 const project = (files: GeneratedProject['files']): GeneratedProject => ({
   contractVersion: '1.0.0',
@@ -126,4 +131,40 @@ test('enforces workspace manifest file-count, per-file, and total-size quotas be
     file(`src/Chunk${index}.tsx`, 'x'.repeat(500 * 1024))
   );
   await assert.rejects(() => attempt(total), /total byte quota/);
+});
+
+// A prompt-derived id is long and appears in both the project and revision segment.
+// Unbounded, the pair pushed the revision directory past the point where the generated
+// project's own pnpm tree exceeded Windows MAX_PATH, and the production build failed
+// with an ESM resolver error that named vite rather than the path.
+test('workspace segments stay bounded for prompt-derived ids', () => {
+  const projectId =
+      'project:art-direction:studio:start:a-membership-site-for-field-notes-society-a-smal',
+    revisionId =
+      'revision:art-direction:studio:start:a-membership-site-for-field-notes-society-a-smal:4';
+
+  const projectSegment = workspaceSegment(projectId),
+    revisionSegment = workspaceSegment(revisionId);
+  assert.ok(projectSegment.length <= 40, `project segment too long: ${projectSegment.length}`);
+  assert.ok(revisionSegment.length <= 40, `revision segment too long: ${revisionSegment.length}`);
+
+  // Deterministic: retention recomputes this path and compares it to the stored one.
+  assert.equal(workspaceSegment(projectId), projectSegment);
+
+  // Ids sharing a long prefix must not collide once truncated.
+  assert.notEqual(workspaceSegment(`${projectId}:1`), workspaceSegment(`${projectId}:2`));
+
+  // Ids already short keep their existing directory names, so revisions materialized
+  // before this bound remain reachable.
+  assert.equal(workspaceSegment('project:p'), 'project_p');
+  assert.equal(workspaceSegment('revision:p:1'), 'revision_p_1');
+  assert.equal(
+    workspaceSegment('mcp-project:design-plan-v2-81d172aa'),
+    'mcp-project_design-plan-v2-81d172aa'
+  );
+});
+
+test('workspace segments still reject path separators and traversal', () => {
+  assert.throws(() => workspaceSegment('project:a/b'), RuntimeFailure);
+  assert.throws(() => workspaceSegment('../escape'), RuntimeFailure);
 });
