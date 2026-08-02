@@ -21,7 +21,7 @@ pnpm --filter @universal/preview dev
 pnpm --filter @universal/local-runtime start
 ```
 
-The runtime binds an ephemeral port on `127.0.0.1` only. The CLI prints a one-time bootstrap token and runtime origin. Configure the Studio/Preview runtime bootstrap object through the host page as documented by their `window.__UNIVERSAL_RUNTIME__` declarations. There is no public preview URL and no hosted backend.
+The runtime binds an ephemeral port on `127.0.0.1` only. The CLI prints a one-time bootstrap token and runtime origin. Studio and Preview read the connection details from `window.__UNIVERSAL_RUNTIME__`, set before app code runs by `apps/studio/public/dev-runtime.local.js` (see [Runtime contributor workflow](RUNTIME_CONTRIBUTOR_WORKFLOW.md#run-and-validate) for the exact manual steps). There is no public preview URL and no hosted backend.
 
 The standalone runtime defaults to the credential-free deterministic provider. The MCP server also supports a credential-free host-model submission adapter: Codex authors allowlisted source after `prepare_react_generation`, and `build_react_project` passes that source through the same generator validation and runtime pipeline. A live adapter is optional and must be injected by trusted runtime code. Setting `UNIVERSAL_GENERATION_PROVIDER=live` without an installed adapter fails closed. Provider API keys and model names are read only by the runtime process; Studio, Preview, generated source, lifecycle records, child processes, and preview responses never receive them. Output and errors are secret-scanned and redacted.
 
