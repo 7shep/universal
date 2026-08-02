@@ -24,13 +24,9 @@ test('the bridge probe runs only after the runtime session is established', asyn
   try {
     const props: StudioAppProps = {};
     let rendered = 0;
-    await initializeStudio(
-      { origin: 'http://127.0.0.1:4300', bootstrapToken: 't' },
-      props,
-      () => {
-        rendered += 1;
-      }
-    );
+    await initializeStudio({ origin: 'http://127.0.0.1:4300', bootstrapToken: 't' }, props, () => {
+      rendered += 1;
+    });
     assert.deepEqual(order, ['bootstrap', 'probe']);
     assert.equal(rendered, 1);
     assert.ok(props.client, 'an available bridge must install the MCP art director client');
@@ -47,6 +43,7 @@ test('an unavailable bridge still renders Studio in fixture mode', async () => {
     String(input).endsWith('/api/v1/bootstrap')
       ? new Response('{"status":"bootstrapped"}', { status: 200 })
       : new Response('{"available":false,"operations":[]}', { status: 200 })) as typeof fetch;
+  const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
   try {
     const props: StudioAppProps = {};
     let rendered = 0;
@@ -55,8 +52,13 @@ test('an unavailable bridge still renders Studio in fixture mode', async () => {
     });
     assert.equal(rendered, 1);
     assert.equal(props.client, undefined);
+    assert.ok(
+      consoleWarnSpy.mock.calls.length >= 1,
+      'an unavailable bridge must be visible in devtools'
+    );
   } finally {
     globalThis.fetch = original;
+    consoleWarnSpy.mockRestore();
     resetRuntimeSessionForTests();
   }
 });

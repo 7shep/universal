@@ -275,9 +275,6 @@ importers:
 
   packages/local-runtime:
     dependencies:
-      '@7shep/universal-mcp':
-        specifier: workspace:*
-        version: link:../design-mcp
       '@modelcontextprotocol/sdk':
         specifier: ^1.12.0
         version: 1.30.0(zod@3.25.76)

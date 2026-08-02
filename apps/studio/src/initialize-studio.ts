@@ -28,6 +28,13 @@ export async function initializeStudio(
       props.client = createMcpArtDirectorClient(
         new HostArtDirectorTransport({ origin: runtime.origin })
       );
+    // hostBridgeAvailable swallows every error and returns false, so without this the
+    // headline failure — the probe reporting unavailable — produces no devtools output
+    // at all and Studio silently latches to fixtures.
+    else
+      console.warn(
+        'Studio art director bridge is unavailable; running with the fixture art director client.'
+      );
   } catch (error) {
     // Studio must still render in fixture mode, but a swallowed failure here is
     // invisible in devtools — the exact problem this ordering fix exists to solve.
