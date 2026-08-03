@@ -15,6 +15,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint src test",
     "playwright:install": "playwright install chromium",
+    "smoke:live": "node --experimental-strip-types test/live-provider-smoke.ts",
     "test": "node --experimental-strip-types --test test/*.test.ts"
   },
   "dependencies": {

@@ -1,6 +1,7 @@
 import type {
   GenerationResult,
   ProjectGenerationRequest,
+  ProviderFailureCode,
   ReactGenerationProvider
 } from './contracts.ts';
 import { validateProjectGenerationRequest, validateProviderProject } from './validation.ts';
@@ -15,6 +16,26 @@ export function redactSecrets(value: string, secrets: readonly string[] = []): s
   for (const pattern of SECRET_PATTERNS) result = result.replace(pattern, '[REDACTED]');
   for (const secret of secrets) if (secret) result = result.replaceAll(secret, '[REDACTED]');
   return result;
+}
+const RETRYABLE_FAILURES: ReadonlySet<ProviderFailureCode> = new Set([
+  'rate-limit',
+  'timeout',
+  'unavailable',
+  'internal'
+]);
+/**
+ * Lets a provider name the failure it hit. Without this every provider throw
+ * collapses to `internal`, so the runtime cannot tell "not logged in" or
+ * "subscription usage limit reached" from a crash, and always advertises the
+ * failure as retryable.
+ */
+export class ProviderError extends Error {
+  readonly code: ProviderFailureCode;
+  constructor(code: ProviderFailureCode, message: string, options?: { cause?: unknown }) {
+    super(message, options);
+    this.name = 'ProviderError';
+    this.code = code;
+  }
 }
 export class ReactGenerator {
   private readonly provider: ReactGenerationProvider;
@@ -92,17 +113,25 @@ export class ReactGenerator {
         };
       return { ok: true, project: project.value };
     } catch (error) {
-      const cancelled = signal?.aborted ?? false;
+      // An aborted signal outranks whatever the provider reported: a CLI killed
+      // mid-generation exits non-zero, and that exit is the cancellation, not a
+      // separate failure.
+      const code: ProviderFailureCode = (signal?.aborted ?? false)
+        ? 'cancelled'
+        : error instanceof ProviderError
+          ? error.code
+          : 'internal';
+      const cancelled = code === 'cancelled';
       return {
         ok: false,
         failure: {
-          code: cancelled ? 'cancelled' : 'internal',
+          code,
           providerId: this.provider.capabilities.providerId,
           message: redactSecrets(
             error instanceof Error ? error.message : String(error),
             this.secrets
           ),
-          retryable: !cancelled,
+          retryable: RETRYABLE_FAILURES.has(code),
           diagnostics: [
             {
               code: cancelled ? 'GENERATION_CANCELLED' : 'GENERATION_FAILED',

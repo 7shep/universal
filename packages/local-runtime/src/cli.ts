@@ -6,6 +6,7 @@ import {
   createStdioArtDirectorSessionFactory,
   resolveArtDirectorEntry
 } from './art-director-session.ts';
+import { cliProviderFactory, isCliProviderId, probeCliProvider } from './cli-generation/index.ts';
 import { RuntimeHttpServer } from './http-server.ts';
 import { RuntimeService } from './runtime-service.ts';
 import { createConfiguredGenerator } from './provider-config.ts';
@@ -14,7 +15,18 @@ const workspaceRoot =
   process.env.UNIVERSAL_WORKSPACE_ROOT ?? path.join(os.homedir(), '.universal', 'workspaces');
 const studioOrigin = process.env.UNIVERSAL_STUDIO_ORIGIN ?? 'http://127.0.0.1:5173';
 const previewOrigin = process.env.UNIVERSAL_PREVIEW_ORIGIN ?? 'http://127.0.0.1:5174';
-const configured = createConfiguredGenerator(process.env);
+// A missing CLI must stop the runtime here, with a message naming the tool, rather
+// than surfacing ten minutes into a generation as an opaque spawn failure.
+const selectedProvider = process.env.UNIVERSAL_GENERATION_PROVIDER?.trim();
+if (selectedProvider && isCliProviderId(selectedProvider)) {
+  const probe = probeCliProvider(selectedProvider);
+  if (!probe.available) {
+    console.error(`Cannot start with UNIVERSAL_GENERATION_PROVIDER=${selectedProvider}.`);
+    console.error(probe.reason);
+    process.exit(1);
+  }
+}
+const configured = createConfiguredGenerator(process.env, cliProviderFactory);
 const service = new RuntimeService({
   workspaceRoot,
   repositoryRoot: process.cwd(),

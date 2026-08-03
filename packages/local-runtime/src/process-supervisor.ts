@@ -113,9 +113,21 @@ export async function runSupervisedCommand(input: {
   timeoutMs: number;
   signal?: AbortSignal;
   environment?: Readonly<Record<string, string>>;
+  /**
+   * Written to the child's stdin, which is then closed. Omit to leave stdin closed
+   * from the start. Agent CLIs read their prompt this way because a whole design
+   * plan does not fit in Windows' 32767-character command line.
+   */
+  stdin?: string;
+  /**
+   * Caps captured stdout and stderr together. Defaults to MAX_OUTPUT, which suits
+   * install and build logs; a generated project's JSON payload needs far more.
+   */
+  maxOutputBytes?: number;
 }): Promise<CommandResult> {
   if (input.signal?.aborted)
     throw new RuntimeFailure('CANCELLED_OPERATION', 'Operation was cancelled.');
+  const outputLimit = input.maxOutputBytes ?? MAX_OUTPUT;
   return await new Promise<CommandResult>((resolve, reject) => {
     let stdout = '',
       stderr = '',
@@ -150,7 +162,7 @@ export async function runSupervisedCommand(input: {
         shell: false,
         windowsHide: true,
         detached: process.platform !== 'win32',
-        stdio: ['ignore', 'pipe', 'pipe']
+        stdio: [input.stdin === undefined ? 'ignore' : 'pipe', 'pipe', 'pipe']
       });
     } catch {
       reject(
@@ -199,12 +211,12 @@ export async function runSupervisedCommand(input: {
       }
     };
     const onStdout = (chunk: Buffer) => {
-      const next = appendBounded(stdout, chunk);
+      const next = appendBounded(stdout, chunk, outputLimit);
       stdout = next.value;
       truncated ||= next.truncated;
     };
     const onStderr = (chunk: Buffer) => {
-      const next = appendBounded(stderr, chunk);
+      const next = appendBounded(stderr, chunk, outputLimit);
       stderr = next.value;
       truncated ||= next.truncated;
     };
@@ -228,6 +240,13 @@ export async function runSupervisedCommand(input: {
     child.once('error', onChildError);
     child.once('exit', onChildExit);
     child.once('close', onChildClose);
+    if (input.stdin !== undefined && child.stdin) {
+      // A child that exits before reading the prompt makes this pipe emit EPIPE.
+      // That is not the interesting failure -- the exit code and stderr are -- so
+      // swallow it and let the close handler report what actually happened.
+      child.stdin.on('error', () => {});
+      child.stdin.end(input.stdin, 'utf8');
+    }
     const timer = setTimeout(() => {
       void finishError(
         new RuntimeFailure('TIMEOUT', `Command exceeded ${input.timeoutMs} ms.`, {
