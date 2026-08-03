@@ -68,6 +68,33 @@ export function normalizeManifestPath(input: string): string {
     );
   return segments.join('/');
 }
+
+/**
+ * Windows refuses paths over MAX_PATH (260) in several native code paths, including
+ * the ESM resolver's package.json reader. A revision directory carries a deep pnpm
+ * layout beneath it -- `node_modules/.pnpm/<pkg>@<version>_<peers>/node_modules/<pkg>/...`
+ * routinely adds 200+ characters -- so an unbounded id here fails the generated
+ * project's production build with an error that names vite rather than the path.
+ *
+ * Ids derived from a user prompt are long and duplicated across the project and
+ * revision segments, so both are bounded. Truncation alone would collide, so a digest
+ * of the full id is appended: the mapping stays deterministic, and callers that
+ * recompute a revision path (see retention.ts) land on the same directory.
+ */
+const MAX_PATH_SEGMENT = 40;
+const SEGMENT_DIGEST = 8;
+export function workspaceSegment(id: string): string {
+  const normalized = normalizeManifestPath(id).replaceAll(':', '_');
+  if (normalized.includes('/'))
+    throw new RuntimeFailure(
+      'MATERIALIZATION_FAILURE',
+      'Project and revision ids may not contain path separators.'
+    );
+  if (normalized.length <= MAX_PATH_SEGMENT) return normalized;
+  const digest = createHash('sha256').update(id).digest('hex').slice(0, SEGMENT_DIGEST);
+  return `${normalized.slice(0, MAX_PATH_SEGMENT - SEGMENT_DIGEST - 1)}-${digest}`;
+}
+
 function contained(root: string, target: string): boolean {
   const relative = path.relative(root, target);
   return (
@@ -145,16 +172,23 @@ export async function materializeProject(input: {
     );
   await mkdir(workspace, { recursive: true });
   const workspaceReal = await realpath(workspace);
-  const projectSegment = normalizeManifestPath(input.project.projectId).replaceAll(':', '_'),
-    revisionSegment = normalizeManifestPath(input.project.revisionId).replaceAll(':', '_');
-  if (projectSegment.includes('/') || revisionSegment.includes('/'))
-    throw new RuntimeFailure(
-      'MATERIALIZATION_FAILURE',
-      'Project and revision ids may not contain path separators.'
-    );
+  const projectSegment = workspaceSegment(input.project.projectId),
+    revisionSegment = workspaceSegment(input.project.revisionId);
   const parent = path.join(workspaceReal, 'projects', projectSegment, 'revisions'),
     destination = path.join(parent, revisionSegment),
-    staging = path.join(parent, `.staging-${revisionSegment}-${randomUUID()}`);
+    // The staging suffix sits above the same deep pnpm tree, so it is kept short for
+    // the same reason the segments are bounded; collision only has to be avoided
+    // among concurrent materializations of one revision.
+    staging = path.join(parent, `.staging-${revisionSegment}-${randomUUID().slice(0, 8)}`);
+  // Surfaces the real cause when a generated project later fails to build on Windows:
+  // the build error names a package, not the path that actually broke resolution.
+  if (destination.length > 160)
+    console.warn(
+      `[workspace] revision path is ${destination.length} characters (${destination}). ` +
+        'Windows resolves paths over 260 characters inconsistently, and the generated ' +
+        'project adds roughly 200 more beneath this directory. Consider a shorter ' +
+        'UNIVERSAL_WORKSPACE_ROOT.'
+    );
   try {
     await stat(destination);
     throw new RuntimeFailure(

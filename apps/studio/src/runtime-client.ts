@@ -79,22 +79,36 @@ interface RuntimeConfig {
 }
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
+// The bootstrap token is single-use, and StrictMode mounts the app twice. One shared
+// promise per page load means exactly one redemption.
+let runtimeSession: Promise<void> | undefined;
+async function bootstrapOnce(config: RuntimeConfig): Promise<void> {
+  if (!config.bootstrapToken) return;
+  const response = await fetch(`${config.origin}/api/v1/bootstrap`, {
+    method: 'POST',
+    headers: { Authorization: `Bootstrap ${config.bootstrapToken}` },
+    credentials: 'include'
+  });
+  // A 401 means the token was already consumed by this runtime; the session cookie it
+  // issued earlier is still valid, so this is not a failure.
+  if (!response.ok && response.status !== 401) throw new Error('Local runtime bootstrap failed.');
+}
+export function ensureRuntimeSession(config: RuntimeConfig): Promise<void> {
+  runtimeSession ??= bootstrapOnce(config).catch((error: unknown) => {
+    // A transient failure must not lock the page out of ever bootstrapping.
+    runtimeSession = undefined;
+    throw error;
+  });
+  return runtimeSession;
+}
+export function resetRuntimeSessionForTests(): void {
+  runtimeSession = undefined;
+}
 export class RuntimeGenerationLifecycleClient implements GenerationLifecycleClient {
   private readonly config: RuntimeConfig;
-  private bootstrapped = false;
   private inflight: Promise<GenerationSnapshot> | undefined;
   constructor(config: RuntimeConfig) {
     this.config = config;
-  }
-  private async bootstrap(): Promise<void> {
-    if (this.bootstrapped || !this.config.bootstrapToken) return;
-    const response = await fetch(`${this.config.origin}/api/v1/bootstrap`, {
-      method: 'POST',
-      headers: { Authorization: `Bootstrap ${this.config.bootstrapToken}` },
-      credentials: 'include'
-    });
-    if (!response.ok && response.status !== 401) throw new Error('Local runtime bootstrap failed.');
-    this.bootstrapped = true;
   }
   private async request(path: string, init: RequestInit = {}): Promise<unknown> {
     let response = await fetch(`${this.config.origin}${path}`, {
@@ -103,7 +117,7 @@ export class RuntimeGenerationLifecycleClient implements GenerationLifecycleClie
       headers: { 'Content-Type': 'application/json', ...(init.headers ?? {}) }
     });
     if (response.status === 401 && this.config.bootstrapToken) {
-      await this.bootstrap();
+      await ensureRuntimeSession(this.config);
       response = await fetch(`${this.config.origin}${path}`, {
         ...init,
         credentials: 'include',

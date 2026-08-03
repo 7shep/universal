@@ -15,9 +15,11 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint src test",
     "playwright:install": "playwright install chromium",
+    "smoke:live": "node --experimental-strip-types test/live-provider-smoke.ts",
     "test": "node --experimental-strip-types --test test/*.test.ts"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
     "@universal/design-engine": "workspace:*",
     "@universal/generation": "workspace:*",
     "@universal/runtime-contracts": "workspace:*",

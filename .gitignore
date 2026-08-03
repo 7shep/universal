@@ -12,3 +12,4 @@ generated
 !.env.example
 .worktrees/
 .gstack/
+sandbox/

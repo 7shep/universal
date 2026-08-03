@@ -1,7 +1,12 @@
 export * from './errors.ts';
 export * from './architecture.ts';
 export * from './art-director-bridge.ts';
+export {
+  createStdioArtDirectorSessionFactory,
+  resolveArtDirectorEntry
+} from './art-director-session.ts';
 export * from './asset-optimizer.ts';
+export * from './cli-generation/index.ts';
 export * from './acceptance-export.ts';
 export * from './http-server.ts';
 export * from './mutation-coordinator.ts';
