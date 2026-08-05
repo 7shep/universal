@@ -1,7 +1,7 @@
 ---
 name: polish
 description: Bounded visual refinement of an existing website or React interface — hierarchy, typography, spacing, responsiveness, accessibility, and implementation finish, without redesigning or changing behavior.
-argument-hint: "[page/route/component] [viewport] [polish goal]"
+argument-hint: '[page/route/component] [viewport] [polish goal]'
 disable-model-invocation: true
 ---
 
@@ -22,6 +22,7 @@ Preserve exactly: business logic, state, routes, APIs, data flow, user-visible f
 accessibility semantics, and any unrelated in-progress changes already in the working tree.
 
 Do not:
+
 - turn a polish task into a wholesale redesign or swap the established design direction;
 - add feature functionality that wasn't requested;
 - rewrite whole components when a targeted change fixes the issue;
@@ -67,8 +68,8 @@ trivial, obviously-scoped single-property fix.
    state that explicitly and proceed on source inspection plus the priorities below.
 
 6. **Produce a proposed repair set before editing.** For each issue, write one line each for:
-   *target* (file/component/selector), *issue*, *intended change*, *behavior that must remain
-   unchanged*. Keep this list bounded to what's in scope — cut anything speculative or outside the
+   _target_ (file/component/selector), _issue_, _intended change_, _behavior that must remain
+   unchanged_. Keep this list bounded to what's in scope — cut anything speculative or outside the
    resolved scope from step 1.
 
 7. **Implement only the approved/requested scope.** Make the smallest change that fixes each item
