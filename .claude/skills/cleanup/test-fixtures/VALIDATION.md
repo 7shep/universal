@@ -7,8 +7,9 @@ about.
 
 - `case1-duplicated-tokens/` — duplicated `border-radius`/`padding` literals plus an existing token
   whose value doesn't match what's actually in use. Exercises "safe mechanical" vs. "design-judgment"
-  classification: deduplicating the literals is mechanical, but choosing which token/value to
-  consolidate onto is a judgment call, not a blind substitution.
+  classification: the duplication is mechanically observable, but choosing a token/value is a
+  judgment call. Because the existing token resolves to `8px`, the expected outcome retains the
+  `12px` literals until that design decision is approved.
 - `case2-behavior-sensitive/` — a redundant-looking wrapper `<div>` where the _inner_ div actually
   carries the click handler, `tabIndex`, and `role`. Exercises "behavior-sensitive" classification:
   collapsing the markup naively would silently move interaction/a11y semantics.
@@ -24,5 +25,6 @@ an explicit plan to preserve `onClick`/`tabIndex`/`role`, and case 3 as uncertai
 declining to delete `LegacyBadge` because of the `registry.ts` reference, and naming the repo-wide
 search it would still run before ever treating it as a deletion candidate.
 
-`after.css` and `after.tsx` record the intended mechanical/behavior-sensitive outcomes for cases 1
-and 2 for future reference; case 3 has no `after.*` because the correct outcome is "no change."
+`after.css` records the intentional no-change outcome for case 1, while `after.tsx` records the
+behavior-sensitive outcome for case 2. Case 3 has no `after.*` because its correct outcome is also
+"no change."

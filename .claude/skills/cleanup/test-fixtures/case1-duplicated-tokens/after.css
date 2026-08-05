@@ -1,17 +1,18 @@
-/* Expected cleanup: consolidate the duplicated literal onto the existing token. Safe mechanical —
-   no selector, markup, or behavior change, purely a value -> token substitution. */
+/* Expected outcome: retain the 12px literals. The only existing radius token resolves to 8px, so
+   substituting it would change the rendered UI. Consolidation requires an approved token/value
+   decision and is not a safe mechanical cleanup in this fixture. */
 .card {
-  border-radius: var(--radius-md);
+  border-radius: 12px;
   padding: 24px;
 }
 
 .panel {
-  border-radius: var(--radius-md);
+  border-radius: 12px;
   padding: 24px;
 }
 
 .tooltip {
-  border-radius: var(--radius-md);
+  border-radius: 12px;
 }
 
 :root {
