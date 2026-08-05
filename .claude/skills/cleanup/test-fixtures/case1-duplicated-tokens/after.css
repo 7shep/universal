@@ -1,0 +1,19 @@
+/* Expected cleanup: consolidate the duplicated literal onto the existing token. Safe mechanical —
+   no selector, markup, or behavior change, purely a value -> token substitution. */
+.card {
+  border-radius: var(--radius-md);
+  padding: 24px;
+}
+
+.panel {
+  border-radius: var(--radius-md);
+  padding: 24px;
+}
+
+.tooltip {
+  border-radius: var(--radius-md);
+}
+
+:root {
+  --radius-md: 8px;
+}
