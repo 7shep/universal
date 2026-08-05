@@ -121,8 +121,9 @@ for the full schema, worked examples, and severity/confidence rubrics:
   consequence;
 - **recommendation** — a scoped, actionable fix (not "redesign this"); note if it's more than a
   `/polish`-sized change;
-- **classification** — `deterministic` (rule-based, e.g. missing `:focus-visible`, a lint-style MCP
-  finding) or `judgment` (requires human taste/context, e.g. "this hero feels generic").
+- **classification** — `deterministic` (rule-based, e.g. a focus indicator explicitly suppressed
+  with no replacement, or a lint-style MCP finding) or `judgment` (requires human taste/context,
+  e.g. "this hero feels generic").
 
 Do not flag something as a defect solely because it differs from your personal taste — ground every
 judgment-based finding in a cited principle, anti-pattern, or a concretely described user-facing
