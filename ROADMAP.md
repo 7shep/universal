@@ -38,6 +38,32 @@ arbitrary packages, or a general-purpose execution sandbox. All five workstreams
 Future milestones below describe direction, not shipped hosted, deployment, arbitrary-package, or production-provider capabilities.
 
 ---
+### Phase 5 — MCP-guided design quality loop
+
+Phase 5 will make Universal useful after initial generation as well as before it. It will provide a
+structured, evidence-led workflow for finding and repairing generic or low-quality AI UI without
+turning subjective visual taste into an unsupported automated guarantee.
+
+- Add MCP analysis endpoints that return actionable findings: rule/category, severity, affected
+  files or selectors, rationale, and a scoped repair recommendation.
+- Support an agent-facing skill surface for `/audit`, `/polish`, `/cleanup`, `/art-direct`, and
+  `/review-ui`. Skills orchestrate file gathering, evidence capture, MCP analysis, implementation,
+  and verification; the MCP remains the reusable source of design intelligence.
+- Make visual references first-class in that skill workflow: a workspace agent can inspect images
+  attached to a Codex/Cursor-style conversation, derive a structured visual brief (palette,
+  typography, composition, material cues, interaction tone, and avoidances), and pass those
+  inspectable constraints to Universal alongside source and screenshot evidence. A future MCP
+  `referenceAssets` contract can make this native without blocking the useful agent-led version.
+- Evolve `review_implementation` into a before/after quality loop: inspect desktop and mobile
+  evidence, identify hierarchy, composition, component-vocabulary, accessibility, and generic
+  pattern issues, then re-review the targeted repair.
+- Keep repairs bounded and traceable: preserve requested functionality, explain the reason for each
+  change, and distinguish deterministic checks from recommendations requiring human judgment.
+
+This phase intentionally does not depend on the currently open Phase 5 pull request; that work can
+be closed and disregarded.
+
+---
 
 # Vision
 
