@@ -30,8 +30,13 @@ only when the main `SKILL.md` workflow needs the detail.
 ## Deterministic vs. judgment
 
 - **deterministic** — traceable to a rule: an MCP `review_implementation` finding, a `get_design_rules`
-  `implementationConstraints` violation, a missing `:focus-visible`/`prefers-reduced-motion` rule, a
-  literal contrast-ratio computation, or another mechanically checkable fact.
+  `implementationConstraints` violation, a confirmed-suppressed or confirmed-inadequate focus
+  indicator (e.g. `outline: none` with no replacement, or a rendered check showing no visible focus
+  state), a missing `prefers-reduced-motion` rule, a literal contrast-ratio computation, or another
+  mechanically checkable fact. The mere absence of a custom `:focus-visible` rule is not by itself
+  deterministic evidence of a missing focus state — browsers supply a default focus indicator unless
+  CSS suppresses it, so only flag this when you have evidence the native indicator is suppressed or
+  inadequate (a suppressing rule in source, or an inspected/rendered state showing no visible focus).
 - **judgment** — requires human taste or product context even when informed by evidence: "this hero
   composition reads as generic," "this hierarchy doesn't foreground the primary action enough." Keep
   these, but say plainly that they need human confirmation and cite what evidence informed them.

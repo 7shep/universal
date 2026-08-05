@@ -92,8 +92,13 @@ Call, when the MCP is connected:
   its findings with your own reading of any real evidence from step 3.
 
 If the MCP is unavailable, say so explicitly and fall back to `AGENTS.md`'s visual quality
-principles, clearly labeling every resulting finding as judgment-based rather than evidence-backed
-by a Universal tool.
+principles. Do not label every resulting finding as judgment-based by default — a fact you
+locally verified in this audit (an explicit `outline: none` with no replacement focus treatment, a
+contrast ratio you computed from the actual foreground/background colors, or confirmed overflow/
+clipping at a viewport you inspected) stays `deterministic`, because the evidence is mechanically
+checkable independent of MCP. Only findings that rely on Universal's design-policy judgment (taste
+principles, anti-patterns, direction alignment) lose that backing without MCP and must be
+downgraded to `judgment`, with a note that MCP policy support was unavailable to confirm them.
 
 ### 5. Build findings
 
