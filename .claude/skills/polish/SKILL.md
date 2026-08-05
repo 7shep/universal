@@ -13,8 +13,9 @@ mutation steps on your own initiative.
 
 `$ARGUMENTS` optionally names a page, route, component, viewport (`desktop`, `mobile`, or `both`),
 and/or a specific polish goal (e.g. "tighten spacing on the pricing table", "fix mobile nav
-overflow"). If empty, infer the most recently touched or most visually relevant surface from the
-conversation and repository state, and state that assumption before editing.
+overflow"). If empty, infer the target only when the active conversation identifies one page, route,
+or component unambiguously, and state that inference before editing. Otherwise ask the user to
+choose the target and do not mutate files until they answer.
 
 ## Non-negotiable boundaries
 
@@ -77,9 +78,11 @@ trivial, obviously-scoped single-property fix.
    introduce a new primitive only if it improves consistency and nothing existing covers it.
 
 8. **Run checks.** From the repository root, run what's applicable to the changed workspace:
-   `pnpm format`, `pnpm typecheck`, `pnpm --filter <workspace> test` (or `pnpm test` if scope is
-   broad), and `pnpm build` (or the workspace-scoped build) for changed packages/apps. Report exact
-   commands and outcomes; do not claim a check passed without having run it.
+   `pnpm format:check`, `pnpm typecheck`, `pnpm --filter <workspace> test` (or `pnpm test` if scope
+   is broad), and `pnpm build` (or the workspace-scoped build) for changed packages/apps. If
+   formatting is needed, format only the files changed by this `/polish` run, then inspect the diff
+   and reject unrelated formatter edits. Report exact commands and outcomes; do not claim a check
+   passed without having run it.
 
 9. **Inspect affected views.** Re-capture desktop and mobile screenshots of the changed surface
    using the same tooling as step 3, when available. If unavailable, state that no post-change
