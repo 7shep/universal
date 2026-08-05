@@ -16,12 +16,13 @@ function sharedAlignment(request: ConceptDevelopmentRequest): readonly string[] 
 
 function baseCandidates(request: ConceptDevelopmentRequest): readonly ConceptCandidate[] {
   const alignment = sharedAlignment(request);
-  const briefAnchor = `${request.brief.content.purpose.summary} ${request.brief.content.audience.summary}`;
+  const productPromise = request.brief.content.pageMap.pages[0]?.primaryMessage;
+  const briefAnchor = productPromise ?? request.brief.content.purpose.summary;
   return [
     {
       id: 'concept-editorial-argument',
       title: 'The Editorial Argument',
-      centralIdea: `Turn ${briefAnchor} into a decisive editorial thesis that unfolds through evidence.`,
+      centralIdea: `Present ${briefAnchor} as a decisive editorial argument whose claims unfold through evidence.`,
       narrativeStructure:
         'Open with the outcome, name the audience problem, reveal the method in chapters, then close with proof and action.',
       composition:
@@ -51,7 +52,7 @@ function baseCandidates(request: ConceptDevelopmentRequest): readonly ConceptCan
     {
       id: 'concept-guided-instrument',
       title: 'The Guided Instrument',
-      centralIdea: `Make ${briefAnchor} behave like a precise working instrument that lets visitors rehearse the promised outcome.`,
+      centralIdea: `Turn ${briefAnchor} into a precise working instrument where visitors rehearse the promised outcome.`,
       narrativeStructure:
         'Begin with one practical question, move through an input-to-outcome sequence, surface proof at decision points, then invite commitment.',
       composition:
@@ -77,7 +78,7 @@ function baseCandidates(request: ConceptDevelopmentRequest): readonly ConceptCan
     {
       id: 'concept-human-field-notes',
       title: 'Human Field Notes',
-      centralIdea: `Frame ${briefAnchor} through the lived moments and language of the people the product is meant to help.`,
+      centralIdea: `Reveal ${briefAnchor} through human field notes: lived moments, observed friction, and the language of the people being helped.`,
       narrativeStructure:
         'Start inside a recognizable moment, alternate short human stories with product responses, collect proof, and end on a shared future state.',
       composition:

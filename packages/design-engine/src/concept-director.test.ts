@@ -176,6 +176,37 @@ test('offline development produces three meaningfully differentiated concepts', 
   assert.equal(first.evaluations.length, 3);
 });
 
+test('offline concepts remain distinct when purpose and audience summaries are verbose', async () => {
+  const brief = approvedBrief();
+  const verboseBrief = {
+    ...brief,
+    content: {
+      ...brief.content,
+      purpose: {
+        summary:
+          'Explain a local-first design product clearly, make its approval-bound workflow tangible, and move qualified developers toward setup documentation or the source repository.',
+        details: [
+          'Visitors must understand why the product exists and how it improves coding-agent output.'
+        ]
+      },
+      audience: {
+        summary:
+          'Developers working locally with coding agents who want deliberately art-directed React interfaces and transparent, inspectable design decisions.',
+        details: ['They need a credible direction before implementation begins.']
+      }
+    }
+  } as CreativeBrief;
+  const candidates = await offlineCandidates(verboseBrief);
+
+  assert.doesNotThrow(() => assertMeaningfulConceptDifferentiation(candidates));
+  for (let left = 0; left < candidates.length; left += 1) {
+    for (let right = left + 1; right < candidates.length; right += 1) {
+      assert.ok(
+        getDifferingConceptDimensions(candidates[left]!, candidates[right]!).includes('centralIdea')
+      );
+    }
+  }
+});
 test('palette-only and minor stylistic variants are rejected', async () => {
   const [candidate] = await offlineCandidates();
   const variants = ['amber', 'blue', 'green'].map((palette, index) => ({
