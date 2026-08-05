@@ -76,7 +76,12 @@ Call, when the MCP is connected:
   deterministic input that every relevant critic may cite — not a critic pass by itself.
 
 If the MCP is unavailable, say so explicitly and fall back to `AGENTS.md`'s visual quality
-principles, labeling every resulting finding as judgment-based.
+principles. Preserve `deterministic` classification for facts verified locally from source,
+computation, or inspected viewport evidence (for example, an explicitly suppressed focus indicator
+with no replacement, a contrast ratio computed from resolved colors, an invalid semantic-control
+pattern, or confirmed overflow). Classify findings that depend on Universal's design-policy
+judgment — taste, anti-pattern, or direction-alignment conclusions — as `judgment` without MCP
+support.
 
 ### 4. Run independent critic passes
 
