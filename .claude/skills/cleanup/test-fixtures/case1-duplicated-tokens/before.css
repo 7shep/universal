@@ -1,0 +1,18 @@
+/* Fixture: same radius/spacing literal hard-coded in three places instead of the shared token. */
+.card {
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.panel {
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.tooltip {
+  border-radius: 12px;
+}
+
+:root {
+  --radius-md: 8px; /* established token, currently unused by the three rules above */
+}
