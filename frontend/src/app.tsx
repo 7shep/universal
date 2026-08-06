@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
+import { DocsPage } from './docs';
 
 const repoUrl = 'https://github.com/7shep/universal';
-const docsUrl = '/install';
+const installUrl = '/install';
+const docsUrl = '/docs';
 
 const workflow = [
   { command: 'start_art_direction', label: 'Discover', title: 'Begin with decisions, not components.', copy: 'Universal reads the product context and asks only the questions that materially change the direction.', output: ['purpose', 'audience', 'page map', 'constraints'] },
@@ -15,11 +17,11 @@ function GitHubIcon() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .7a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2.23c-3.22.7-3.9-1.37-3.9-1.37-.53-1.34-1.29-1.7-1.29-1.7-1.05-.72.08-.71.08-.71 1.17.08 1.78 1.2 1.78 1.2 1.04 1.77 2.72 1.26 3.38.96.1-.75.4-1.26.74-1.55-2.57-.29-5.27-1.29-5.27-5.69 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.16 1.18A10.97 10.97 0 0 1 12 6.12c.98 0 1.95.13 2.86.38 2.2-1.49 3.16-1.18 3.16-1.18.63 1.59.23 2.76.11 3.05.74.8 1.19 1.83 1.19 3.09 0 4.42-2.71 5.39-5.29 5.68.42.36.79 1.06.79 2.14v3.27c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .7Z" /></svg>;
 }
 
-function Wordmark() {
+export function Wordmark() {
   return <span className="wordmark"><img src="/assets/logo.svg" alt="Universal" /></span>;
 }
 
-function Navigation() {
+export function Navigation() {
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
     const update = () => setScrolled(window.scrollY > 48);
@@ -28,7 +30,7 @@ function Navigation() {
   }, []);
   return <header className={`site-nav ${scrolled ? 'is-scrolled' : ''}`}>
     <a href="/" aria-label="Universal home"><Wordmark /></a>
-    <nav aria-label="Primary navigation"><a href="/#designing">Designing</a><a href={docsUrl}>Installing</a><a className="github-link" href={repoUrl} aria-label="Universal on GitHub"><GitHubIcon /></a></nav>
+    <nav aria-label="Primary navigation"><a href="/#designing">Designing</a><a href={installUrl}>Installing</a><a href={docsUrl}>Docs</a><a className="github-link" href={repoUrl} aria-label="Universal on GitHub"><GitHubIcon /></a></nav>
   </header>;
 }
 
@@ -77,6 +79,50 @@ function DesigningWorkflow() {
   </section>;
 }
 
+const skillGroups = [
+  { label: 'Create', copy: 'Establish the direction and visual world.', commands: ['/art-direct', '/animate', '/assets'] },
+  { label: 'Refine', copy: 'Improve one craft dimension without losing intent.', commands: ['/polish', '/responsive', '/typography', '/color', '/layout', '/states', '/copy'] },
+  { label: 'Evaluate', copy: 'Find weaknesses using evidence, not instinct alone.', commands: ['/critique', '/audit', '/review-ui', '/compare', '/accessibility', '/performance'] },
+  { label: 'Maintain', copy: 'Keep the interface coherent as it evolves.', commands: ['/cleanup', '/consistency', '/document', '/final-pass'] },
+];
+
+const skillNeeds = [
+  { label: 'Starting from an idea', command: '/art-direct', prompt: '/art-direct Create an editorial product site for a developer tool.', checks: ['discovery', 'creative brief', 'selected direction', 'design plan'] },
+  { label: 'It looks unfinished', command: '/polish', prompt: '/polish Tighten hierarchy, typography, and spacing on the homepage.', checks: ['visual hierarchy', 'type rhythm', 'spacing', 'responsive finish'] },
+  { label: 'Mobile feels broken', command: '/responsive', prompt: '/responsive Repair the pricing route from 320px through desktop.', checks: ['overflow', 'content order', 'touch targets', 'navigation'] },
+  { label: 'Something feels off', command: '/critique', prompt: '/critique Why does the homepage hero feel visually weak?', checks: ['source evidence', 'rendered UI', 'selected direction', 'recommendations'] },
+  { label: 'Match an approved design', command: '/compare', prompt: '/compare Compare /pricing with the attached approved mockup.', checks: ['composition', 'typography', 'spacing', 'visual deltas'] },
+  { label: 'Prepare to ship', command: '/final-pass', prompt: '/final-pass Prepare the marketing site for release.', checks: ['responsive QA', 'accessibility', 'build health', 'final review'] },
+];
+
+const skillRecipes = [
+  { label: 'New product', commands: ['/art-direct', '/responsive', '/accessibility', '/final-pass'] },
+  { label: 'Existing interface', commands: ['/audit', '/cleanup', '/polish', '/review-ui'] },
+  { label: 'Approved design', commands: ['/compare', '/layout', '/typography', '/final-pass'] },
+];
+
+function SkillsShowcase() {
+  const [activeNeed, setActiveNeed] = useState(0);
+  const need = skillNeeds[activeNeed];
+  return <section className="skills-showcase" id="skills" aria-labelledby="skills-title">
+    <header className="skills-masthead">
+      <p className="section-label">MCP + agent skills</p>
+      <p className="skills-count">01 system<br />20 focused commands</p>
+      <h2 id="skills-title"><span>One MCP.</span><em>Twenty ways to make</em><span>the interface better.</span></h2>
+      <p className="skills-intro">Universal establishes the direction, then stays useful throughout the interface&rsquo;s life. Start from an idea, repair a weak layout, compare against a reference, or prepare the final release without losing the original intent.</p>
+    </header>
+    <div className="skills-system" aria-label="How Universal MCP and skills work together">
+      <div className="system-spine"><div><span>Design brain</span><strong>MCP</strong></div><ol><li>Discover</li><li>Align</li><li>Direct</li><li>Specify</li><li>Review</li></ol></div>
+      <div className="system-join" aria-hidden="true"><span>Direction becomes a protected contract</span></div>
+      <div className="skill-groups"><div className="skill-groups-label"><span>Craft layer</span><strong>Skills</strong></div>{skillGroups.map((group, index) => <article key={group.label}><span>0{index + 1}</span><div><h3>{group.label}</h3><p>{group.copy}</p><div>{group.commands.map((command) => <code key={command}>{command}</code>)}</div></div></article>)}</div>
+    </div>
+    <div className="skills-recommender">
+      <header><p className="section-label">Choose by need</p><h3>What does your interface need?</h3></header>
+      <div className="recommender-grid"><div className="need-list" role="list" aria-label="Interface needs">{skillNeeds.map((item, index) => <button key={item.command} type="button" onClick={() => setActiveNeed(index)} className={index === activeNeed ? 'is-active' : ''} aria-pressed={index === activeNeed}><span>0{index + 1}</span><span className="need-label">&ldquo;{item.label}&rdquo;</span><b aria-hidden="true">{index === activeNeed ? '\u2192' : ''}</b></button>)}</div><div className="need-output" aria-live="polite"><div className="need-output-bar"><span>universal / recommendation</span><span>{need.command}</span></div><pre><code><span>&gt;</span> {need.prompt}</code></pre><div className="need-checks"><p>Inspecting</p>{need.checks.map((check) => <span key={check}><i aria-hidden="true">&#10003;</i>{check}</span>)}</div><footer><span>Direction preserved</span><code>universal.design-plan.v2</code></footer></div></div>
+    </div>
+    <div className="skill-recipes"><header><p className="section-label">Composable workflows</p><h3>Use one command.<br />Or carry the idea all the way through.</h3></header><div>{skillRecipes.map((recipe, index) => <article key={recipe.label}><span>0{index + 1}</span><h4>{recipe.label}</h4><p>{recipe.commands.map((command, commandIndex) => <span key={command}><code>{command}</code>{commandIndex < recipe.commands.length - 1 && <i aria-hidden="true">&#8594;</i>}</span>)}</p></article>)}</div><a href="/docs#commands">Browse all twenty commands <span aria-hidden="true">&#8594;</span></a></div>
+  </section>;
+}
 function BeforeAfter() {
   const sectionRef = useRef<HTMLElement>(null);
   const [progress, setProgress] = useState(52);
@@ -108,7 +154,7 @@ function Closing() {
   return <section className="closing" aria-labelledby="closing-title"><p className="section-label">Start with a direction</p><h2 id="closing-title">Your agent can code.<br /><em>Give it taste.</em></h2><div className="closing-actions"><a href={docsUrl}>Read the docs <span aria-hidden="true">{'↗'}</span></a><a href={repoUrl}>View on GitHub <span aria-hidden="true">{'↗'}</span></a></div><footer><a href="#top"><Wordmark /></a><p>Open-source AI art direction for React interfaces.</p><p>{'©'} {new Date().getFullYear()} Universal</p></footer></section>;
 }
 
-function CopyBlock({ label, value }: { label: string; value: string }) {
+export function CopyBlock({ label, value }: { label: string; value: string }) {
   const [copied, setCopied] = useState(false);
 
   const copy = async () => {
@@ -196,7 +242,7 @@ function InstallPage() {
         </section>
         <section>
           <span className="install-number">04</span>
-          <div><h2>Start designing.</h2><p>Ask your agent to use Universal to art-direct a React interface. It will guide you through discovery before implementation.</p><a className="install-repo-link" href={repoUrl + '/tree/main/docs'}>View documentation <span aria-hidden="true">{'\u2197'}</span></a></div>
+          <div><h2>Start designing.</h2><p>Ask your agent to use Universal to art-direct a React interface. It will guide you through discovery before implementation.</p><a className="install-repo-link" href={docsUrl}>View documentation <span aria-hidden="true">{'\u2192'}</span></a></div>
         </section>
       </div>
       <InstallTerminal />
@@ -209,5 +255,6 @@ export function App() {
     ? window.location.pathname.slice(0, -1)
     : window.location.pathname;
   if (pathname === '/install') return <InstallPage />;
-  return <main><a className="skip-link" href="#main-content">Skip to content</a><Navigation /><div id="main-content"><Hero /><Proposition /><DesigningWorkflow /><BeforeAfter /><Principles /><Closing /></div></main>;
+  if (pathname === '/docs') return <DocsPage />;
+  return <main><a className="skip-link" href="#main-content">Skip to content</a><Navigation /><div id="main-content"><Hero /><Proposition /><DesigningWorkflow /><SkillsShowcase /><BeforeAfter /><Principles /><Closing /></div></main>;
 }
