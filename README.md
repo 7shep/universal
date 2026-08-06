@@ -150,14 +150,31 @@ They coordinate MCP tools with source inspection, verification, and design-quali
 > These commands are currently in progress. They are available to agents working from this
 > repository, but they are not yet distributed as stable standalone commands by the npm package.
 
-| Command                                                    | Purpose                                                                                                                                                            | Changes files?      |
-| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------- |
-| <code>/art-direct</code>                                   | Runs discovery, brief approval, direction selection, Design Plan v2, implementation, and review for a new or substantially redesigned interface.                   | Yes, after approval |
-| <code>/audit</code>                                        | Produces a prioritized, evidence-led audit of an existing route or component.                                                                                      | No                  |
-| <code>/polish</code>                                       | Applies bounded improvements to hierarchy, typography, spacing, responsiveness, and accessibility without redesigning behavior.                                    | Yes                 |
-| <code>/cleanup</code>                                      | Removes verified redundant, inconsistent, obsolete, or generic UI patterns while preserving behavior and APIs.                                                     | Yes                 |
-| <code>/review-ui</code>                                    | Coordinates multiple design-review perspectives into one deduplicated, ranked report.                                                                              | No                  |
-| <a href="docs/skills/compare.md"><code>/compare</code></a> | Compares the current implementation against a supplied screenshot, mockup, reference URL, `DESIGN.md`, or selected direction, and reports prioritized differences. | No                  |
+The five original commands cover the broad workflow. The fifteen focused commands below them each
+own one dimension of interface quality.
+
+| Command                                                     | Purpose                                                                                                                                                      | Changes files?           |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------ |
+| <code>/art-direct</code>                                    | Runs discovery, brief approval, direction selection, Design Plan v2, implementation, and review for a new or substantially redesigned interface.             | Yes, after approval      |
+| <code>/audit</code>                                         | Produces a prioritized, evidence-led audit of an existing route or component.                                                                                | No                       |
+| <code>/polish</code>                                        | Applies bounded improvements to hierarchy, typography, spacing, responsiveness, and accessibility without redesigning behavior.                              | Yes                      |
+| <code>/cleanup</code>                                       | Removes verified redundant, inconsistent, obsolete, or generic UI patterns while preserving behavior and APIs.                                               | Yes                      |
+| <code>/review-ui</code>                                     | Coordinates multiple design-review perspectives into one deduplicated, ranked report.                                                                        | No                       |
+| [<code>/accessibility</code>](docs/skills/accessibility.md) | Audits accessibility with WCAG 2.2-cited findings; repairs semantics, keyboard, focus, labels, contrast, touch targets, and reduced motion only on request.  | Only when requested      |
+| [<code>/animate</code>](docs/skills/animate.md)             | Adds purposeful motion — transitions, micro-interactions, scroll effects, loading feedback — with reduced-motion fallbacks.                                  | Yes                      |
+| [<code>/assets</code>](docs/skills/assets.md)               | Audits imagery, icons, and illustrations for quality, consistency, relevance, performance, and accessibility; replaces or generates only when authorized.    | Only when authorized     |
+| [<code>/color</code>](docs/skills/color.md)                 | Improves palette cohesion, semantic color roles, contrast, interaction-state colors, and design-token usage without changing the established palette.        | Yes                      |
+| [<code>/compare</code>](docs/skills/compare.md)             | Compares the implementation against a screenshot, mockup, reference URL, <code>DESIGN.md</code>, or selected direction, and reports prioritized differences. | No                       |
+| [<code>/consistency</code>](docs/skills/consistency.md)     | Detects design-system drift across components and routes by inventorying actual values before judging; repairs only explicitly selected findings.            | Only selected items      |
+| [<code>/copy</code>](docs/skills/copy.md)                   | Improves interface language — headings, CTAs, nav labels, form and help text, empty states, errors, confirmations — without changing meaning or behavior.    | Yes                      |
+| [<code>/critique</code>](docs/skills/critique.md)           | Answers one focused design question with evidence from source, rendered UI, and the established design direction.                                            | No                       |
+| [<code>/document</code>](docs/skills/document.md)           | Creates or updates a Google Stitch-compatible <code>DESIGN.md</code> from the actual implementation.                                                         | Yes, docs only           |
+| [<code>/final-pass</code>](docs/skills/final-pass.md)       | Orchestrates a release-readiness pass across the focused commands, applies bounded fixes, and reports a ready / ready-with-caveats / not-ready verdict.      | Yes, within a fix budget |
+| [<code>/layout</code>](docs/skills/layout.md)               | Improves composition, alignment, whitespace, section pacing, density, and visual hierarchy without redesigning or changing behavior.                         | Yes                      |
+| [<code>/performance</code>](docs/skills/performance.md)     | Finds and repairs evidence-backed, user-visible frontend performance problems with before/after measurement.                                                 | Yes, when measured       |
+| [<code>/responsive</code>](docs/skills/responsive.md)       | Reviews and repairs overflow, wrapping, navigation, touch targets, content order, density, and breakpoint composition across representative widths.          | Yes                      |
+| [<code>/states</code>](docs/skills/states.md)               | Finds and completes missing interaction and application states (hover, focus-visible, active, selected, disabled, loading, empty, error, success, skeleton). | Yes                      |
+| [<code>/typography</code>](docs/skills/typography.md)       | Refines font selection and loading, type scale, hierarchy, line length, weight, and vertical rhythm without changing layout or color.                        | Yes                      |
 
 Invoke a skill explicitly with a scoped request:
 
@@ -167,7 +184,21 @@ Invoke a skill explicitly with a scoped request:
 /polish Tighten the installation page typography and mobile spacing.
 /cleanup Consolidate duplicated tokens in frontend/src/styles.css.
 /review-ui Review the installation page against the selected direction.
+/accessibility Audit the checkout form for label and contrast issues.
+/animate Add a loading state to the newsletter submit button.
+/assets Audit the hero imagery on frontend/src/pages/Home.
+/color Fix low-contrast secondary text on the pricing page.
 /compare the installation page against DESIGN.md.
+/consistency Check button radii and spacing for drift across apps/studio/src/routes.
+/copy Tighten the CTA labels on the pricing page.
+/critique Is the hero CTA prominent enough on the landing page?
+/document frontend, focusing on typography and color tokens.
+/final-pass apps/studio/src/routes/Preview against the approved creative brief.
+/layout Rebalance section pacing on the marketing homepage.
+/performance Fix the oversized hero image on the marketing homepage.
+/responsive Fix pricing table overflow on mobile at apps/studio/src/routes/Pricing.
+/states Complete missing loading and error states on the settings form.
+/typography Tighten the heading scale on the pricing page.
 ```
 
 Read each skill's <code>SKILL.md</code> before changing its workflow or completion gates.
