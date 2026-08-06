@@ -50,6 +50,13 @@ supervision, workspace containment, revision retention).
   packaged shell preserves the loopback-only, no-LAN-exposure guarantee in ADR 0001.
 - The release gate in RELEASE_READINESS.md continues to validate the source-checkout path only. A
   packaged Studio build is explicitly out of scope for what a green CI matrix proves.
+- Publishing the MCP server to npm does not eliminate its one remaining local-toolchain dependency:
+  `build_react_project` still shells out to a global `pnpm install --offline --frozen-lockfile` (see
+  `packages/local-runtime/src/process-supervisor.ts`), so an npm-only consumer's machine still needs
+  pnpm resolvable on `PATH` for that one tool. This ADR is not the only place that should say so —
+  the README's [System requirements](../../README.md#system-requirements) note and
+  [MCP_REFERENCE.md's `build_react_project` section](../MCP_REFERENCE.md#build_react_project) call it
+  out where a consumer will actually read it before running the tool.
 
 ## Alternatives considered
 

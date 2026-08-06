@@ -79,6 +79,20 @@ Codex uses TOML. See [Connect Universal MCP to Codex](docs/CODEX_MCP_SETUP.md) f
 configuration and verification steps. Visit the [installation page](https://style.alexshepherd.dev/install)
 for the visual setup guide.
 
+### System requirements
+
+The npm install above is enough to run every tool in the art-direction workflow, including
+`start_art_direction` through `create_design_plan_v2`, `prepare_react_generation`,
+`get_design_rules`, `get_taste_profile`, and `review_implementation`.
+
+The one exception is `build_react_project`, the tool that turns your MCP host model's generated
+source into a locked, production-built, previewable project: it shells out to a **global pnpm
+installation** (`pnpm install --offline --frozen-lockfile`) and needs `pnpm` resolvable on `PATH`.
+If it isn't, install it with `npm install -g pnpm` or `corepack enable && corepack prepare pnpm@11
+--activate`. See [ADR 0004](docs/adr/0004-packaging-and-distribution.md) for why the package is
+distributed this way, and the [MCP reference](docs/MCP_REFERENCE.md#build_react_project) for the
+diagnostic `build_react_project` returns when pnpm is missing or its offline install fails.
+
 ## How it works
 
 ```text

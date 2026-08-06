@@ -260,6 +260,14 @@ through the trusted Phase 3 runtime. The runtime validates the provider schema a
 materializes an immutable revision outside the checkout, installs only the frozen runtime-owned
 dependencies offline, builds with Vite, and runs deterministic implementation review.
 
+Unlike every other tool in this reference, `build_react_project` requires a **global pnpm
+installation reachable on `PATH`**: it shells out to `pnpm install --offline --frozen-lockfile`
+and `pnpm run build`, and offline install cannot reach the network to fetch anything the local pnpm
+store does not already have. If pnpm cannot be resolved, or the offline install itself fails, the
+response's `error.action` field names the exact remediation (install pnpm globally, or populate the
+local store with the locked versions) — treat it as the diagnostic path rather than the bare
+`DEPENDENCY_INSTALL_FAILURE` code or message alone.
+
 ```json
 {
   "session": "<exact plan-created session>",
