@@ -192,6 +192,185 @@ const principles: readonly TastePrinciple[] = [
 
 const antiPatterns: readonly AntiPattern[] = [
   {
+    id: 'gradient-text-treatment',
+    description:
+      'Gradient-clipped text is used as default emphasis rather than meaningful encoding.',
+    detectionHints: ['background-clip text with a gradient', 'transparent text fill'],
+    recommendation: 'Use typographic contrast or one solid brand color.',
+    severityDefault: 'warning',
+    allowWhen: ['The gradient has a documented semantic or established brand role.']
+  },
+  {
+    id: 'default-dark-purple-theme',
+    description:
+      'A dark surface with purple, indigo, or cyan accents is selected as automatic tech styling.',
+    detectionHints: ['near-black background with purple accents', 'cyan-on-dark with colored glow'],
+    recommendation:
+      'Derive the palette from the product and audience instead of the category default.',
+    severityDefault: 'warning',
+    allowWhen: ['The palette is an established brand asset and the direction explains its use.']
+  },
+  {
+    id: 'low-contrast-dark-theme-text',
+    description: 'Muted grey or translucent text on a dark surface fails or barely passes WCAG AA.',
+    detectionHints: ['grey body text on near-black', 'translucent white body copy'],
+    recommendation: 'Measure rendered color pairs and raise body-copy contrast to WCAG AA.',
+    severityDefault: 'error',
+    allowWhen: ['Rendered contrast meets WCAG AA for the actual text size and weight.']
+  },
+  {
+    id: 'glassmorphism-orb-decoration',
+    description:
+      'Frosted surfaces, blurred orbs, or glow borders decorate without a layering purpose.',
+    detectionHints: ['backdrop blur cards', 'blurred background orb', 'translucent glow border'],
+    recommendation: 'Use solid surfaces and hierarchy unless the treatment explains real layering.',
+    severityDefault: 'warning',
+    allowWhen: ['The direction documents a material or depth concept that requires it.']
+  },
+  {
+    id: 'colored-card-edge',
+    description: 'A thick colored top or left border is used as a generic card accent.',
+    detectionHints: ['side-tab card', 'accent border on rounded card', 'colored left stripe'],
+    recommendation: 'Use hierarchy, spacing, or a meaningful state instead of a decorative edge.',
+    severityDefault: 'warning',
+    allowWhen: ['The border communicates a documented state, category, or severity.']
+  },
+  {
+    id: 'template-pattern-cluster',
+    description: 'Several generated landing-page motifs appear together as a copy-paste layout.',
+    detectionHints: [
+      'numbered steps plus stat row',
+      'icon-top cards plus all-caps labels',
+      'hero badge plus equal sections'
+    ],
+    recommendation:
+      'Keep only structures required by content and vary density, scale, and alignment.',
+    severityDefault: 'warning',
+    allowWhen: [
+      'The plan independently justifies each motif and establishes a non-template hierarchy.'
+    ]
+  },
+  {
+    id: 'shadcn-default-fingerprint',
+    description: 'Stock shadcn tokens, radii, typography, and utilities ship without adaptation.',
+    detectionHints: [
+      'default card and muted tokens',
+      'rounded-md shells',
+      'text-muted-foreground everywhere'
+    ],
+    recommendation:
+      'Keep accessible primitives but replace the default visual system and composition.',
+    severityDefault: 'warning',
+    allowWhen: ['The product design system intentionally documents those exact tokens.']
+  },
+  {
+    id: 'cluttered-primary-actions',
+    description: 'Too many controls, metrics, or requests compete at the top level.',
+    detectionHints: ['five or more hero actions', 'secondary analytics beside the primary CTA'],
+    recommendation: 'Keep the primary task visible and disclose secondary tools progressively.',
+    severityDefault: 'warning',
+    allowWhen: ['A documented expert workflow requires simultaneous access to the controls.']
+  },
+  {
+    id: 'lazy-impact-statement',
+    description: 'Copy claims impact or transformation without naming a mechanism or outcome.',
+    detectionHints: ['drive meaningful impact', 'transform your workflow', 'results that matter'],
+    recommendation: 'Name the audience, action, product mechanism, or measurable result.',
+    severityDefault: 'warning',
+    allowWhen: [
+      'The claim is immediately supported by specific evidence and approved campaign language.'
+    ]
+  },
+  {
+    id: 'redundant-interface-copy',
+    description: 'Labels, sublabels, helper text, and tooltips repeat the same instruction.',
+    detectionHints: ['same label repeated in one container', 'helper text restates the label'],
+    recommendation: 'Say the instruction once where it is most useful.',
+    severityDefault: 'warning',
+    allowWhen: ['Repetition is required across independently encountered accessible contexts.']
+  },
+  {
+    id: 'generic-font-monoculture',
+    description: 'Inter or Geist carries every role without a deliberate internal type system.',
+    detectionHints: ['one font family everywhere', 'Inter headings, body, labels, and buttons'],
+    recommendation:
+      'Choose a product-specific voice or define contrast through width, weight, scale, and rhythm.',
+    severityDefault: 'warning',
+    allowWhen: ['The plan documents a strong single-family system with measurable contrast.']
+  },
+  {
+    id: 'stock-font-pairing',
+    description:
+      'A frequently generated font combination or isolated serif-italic accent substitutes for a type concept.',
+    detectionHints: [
+      'Space Grotesk plus Instrument Serif',
+      'Geist utility type',
+      'one italic serif hero word'
+    ],
+    recommendation: 'Assign type roles from the brand concept rather than a fashionable default.',
+    severityDefault: 'warning',
+    allowWhen: ['The direction establishes an editorial register and explains the pairing.']
+  },
+  {
+    id: 'centered-generic-sans-hero',
+    description: 'A centered hero uses a generic sans-serif and familiar SaaS framing.',
+    detectionHints: ['centered Inter hero', 'badge above centered headline'],
+    recommendation: 'Use the selected composition and a deliberate display voice.',
+    severityDefault: 'warning',
+    allowWhen: ['The centered axis and type system are explicitly justified by the content.']
+  },
+  {
+    id: 'decorative-grid-background',
+    description: 'A grid-line background decorates a surface without supporting spatial work.',
+    detectionHints: ['repeating grid background', 'graph-paper hero texture'],
+    recommendation: 'Use product structure or a plain field unless the grid supports a real task.',
+    severityDefault: 'warning',
+    allowWhen: ['The surface is a canvas, map, editor, or measurement interface.']
+  },
+  {
+    id: 'hero-eyebrow-chip',
+    description: 'A tiny tracked kicker or pill sits immediately above an oversized hero headline.',
+    detectionHints: ['badge above h1', 'uppercase eyebrow above hero'],
+    recommendation: 'Fold the words into the headline or use a real breadcrumb.',
+    severityDefault: 'warning',
+    allowWhen: ['The label communicates genuine taxonomy or navigation context.']
+  },
+  {
+    id: 'meaningless-status-motion',
+    description:
+      'Pulsing dots, fake cursors, marquees, bounce easing, or hover transforms demand attention without state.',
+    detectionHints: ['pulsing status dot', 'decorative caret', 'auto marquee', 'bounce easing'],
+    recommendation: 'Animate only state, navigation, hierarchy, or documented material behavior.',
+    severityDefault: 'warning',
+    allowWhen: ['The motion reflects changing data or a meaningful physical interaction.']
+  },
+  {
+    id: 'generic-marketing-cadence',
+    description:
+      'Buzzwords, em-dash chains, aphoristic rebuttals, or theater framing imitate generated marketing voice.',
+    detectionHints: [
+      'supercharge your workflow',
+      'enterprise-grade',
+      'Not a feature. A platform.',
+      'growth theater'
+    ],
+    recommendation: 'Use specific verbs, nouns, mechanisms, and evidence in the product voice.',
+    severityDefault: 'warning',
+    allowWhen: ['The phrase belongs to an approved campaign voice and is used sparingly.']
+  },
+  {
+    id: 'shape-assembled-illustration',
+    description:
+      'Generic hand-coded SVG shapes substitute for purposeful illustration or product material.',
+    detectionHints: ['shape-assembled hero art', 'hand-coded mascot scene', 'decorative SVG blob'],
+    recommendation:
+      'Use real product imagery, commissioned or generated artwork, or no illustration.',
+    severityDefault: 'warning',
+    allowWhen: [
+      'The visual is an intentional diagram, icon, logo, or established illustration system.'
+    ]
+  },
+  {
     id: 'generic-vague-hero-copy',
     description: 'A vague future or potential claim substitutes for a concrete proposition.',
     detectionHints: ['Build the Future', 'Unlock Potential', 'The Future of X'],

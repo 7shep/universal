@@ -71,17 +71,34 @@ const ruleCategories: Readonly<Partial<Record<string, TasteCategory>>> = {
   'generic-vague-hero-copy': 'copy',
   'unjustified-gradients': 'color',
   'unjustified-purple-blue-gradient': 'color',
+  'gradient-text-treatment': 'color',
+  'default-dark-purple-theme': 'color',
+  'low-contrast-dark-theme-text': 'color',
   'decorative-glow-overuse': 'color',
+  'glassmorphism-orb-decoration': 'color',
+  'decorative-grid-background': 'composition',
+  'repeating-gradient-stripes': 'color',
+  'hairline-wide-shadow': 'composition',
   'repeated-card-pattern': 'composition',
   'standard-feature-grid': 'composition',
   'nested-card-pattern': 'composition',
+  'colored-card-edge': 'composition',
+  'template-pattern-cluster': 'composition',
+  'shadcn-default-fingerprint': 'composition',
   'uniform-container-treatment': 'composition',
   'default-centered-hero': 'composition',
   'default-split-hero': 'composition',
   'generic-horizontal-navbar': 'navigation',
   'default-horizontal-navigation': 'navigation',
   'generic-hover-or-motion-pattern': 'motion',
+  'cluttered-primary-actions': 'controls',
   'missing-typographic-contrast': 'typography',
+  'generic-font-monoculture': 'typography',
+  'stock-font-pairing': 'typography',
+  'centered-generic-sans-hero': 'typography',
+  'lazy-impact-statement': 'copy',
+  'generic-marketing-cadence': 'copy',
+  'hero-eyebrow-chip': 'typography',
   'missing-design-thesis': 'composition',
   'missing-motion-rationale': 'motion',
   'unjustified-signature-interaction': 'motion',
@@ -199,10 +216,31 @@ export function reviewImplementation(
   const profile = getActiveTasteProfile();
   const findings: ReviewFinding[] = [];
   const gradients = count(source, /(?:linear|radial|conic)-gradient\s*\(/gi);
+  const gradientText =
+    gradients > 0 &&
+    /(?:-webkit-)?background-clip\s*:\s*text|text-fill-color\s*:\s*transparent/i.test(source);
+  const darkTheme =
+    /(?:background|--background)\s*:\s*#(?:0[0-9a-f]{5}|1[0-9a-f]{5}|2[0-9a-f]{5}|3[0-9a-f]{5})\b/i.test(
+      source
+    );
+  const lowContrastDarkText =
+    darkTheme &&
+    /color\s*:\s*(?:#(?:64748b|6b7280|71717a|737373|6b6b6b)|rgba?\(\s*255\s*,\s*255\s*,\s*255\s*,\s*(?:0?\.[0-5]))/i.test(
+      source
+    );
   const purpleBlue = count(
     source,
     /#(?:8b5cf6|7c3aed|6d28d9|a855f7|9333ea|c084fc|2563eb|3b82f6|1d4ed8|6366f1)|(?:purple|violet|indigo|electric-blue)/gi
   );
+  const repeatingGradient = /repeating-(?:linear|radial|conic)-gradient\s*\(/i.test(source);
+  const decorativeGrid =
+    /background(?:-image)?\s*:[^;}]*(?:linear-gradient|repeating-linear-gradient)[^;}]*(?:linear-gradient|background-size\s*:\s*(?:[1-9]|[1-4]\d)px)/is.test(
+      source
+    );
+  const hairlineWideShadow =
+    /(?:card|panel|section)[\w-]*[^}]*\{(?=[^}]*border\s*:\s*1px)(?=[^}]*box-shadow\s*:[^;}]*(?:[2-9]\d|[1-9]\d{2,})px)[^}]*\}/is.test(
+      source
+    );
   const largeRadii = count(source, /border-radius\s*:\s*(?:[2-9]\d|[1-9]\d{2,})px/gi);
   const cardNames = count(source, /(?:feature-)?card/gi);
   const shadows = count(source, /box-shadow\s*:/gi);
@@ -211,6 +249,44 @@ export function reviewImplementation(
     /(?:neon|glow|drop-shadow\s*\(|box-shadow\s*:[^;}]{0,160}(?:#(?:8b5cf6|2563eb|22d3ee)|rgba?\())/gi
   );
   const threeColumn = /grid-template-columns\s*:\s*repeat\(\s*3\s*,/i.test(source);
+  const glassOrbs =
+    /backdrop-filter\s*:\s*blur|className=["'][^"']*(?:glass|frosted)[^"']*["']|(?:orb|blob)[\w-]*[^}]*\{[^}]*(?:filter\s*:\s*blur|box-shadow)/is.test(
+      source
+    );
+  const coloredCardEdge =
+    /\.(?:[\w-]*card|panel[\w-]*|side-tab[\w-]*|tab-card[\w-]*)[^}]*\{[^}]*(?:border-left|border-top)\s*:\s*(?:[2-9]px|[^;}]*var\(\s*--(?:accent|primary)|[^;}]*#(?:8b5cf6|7c3aed|a855f7|2563eb|3b82f6|fe938c|6cd4ff))/is.test(
+      source
+    );
+  const shadcnFingerprint =
+    /--card-foreground\s*:|--popover-foreground\s*:/.test(source) &&
+    /--muted-foreground\s*:|--border\s*:/.test(source) &&
+    /rounded-(?:md|lg)|bg-(?:card|background)|text-muted-foreground/.test(source);
+  const numberedSteps =
+    /(?:step|process)[\w-]*[\s\S]{0,1200}(?:01|1)[\s\S]{0,500}(?:02|2)[\s\S]{0,500}(?:03|3)/i.test(
+      source
+    );
+  const statRow =
+    /(?:stats?|metrics?)[-_ ]?(?:row|banner)|className=["'][^"']*(?:stats?|metrics?)[^"']*["']/i.test(
+      source
+    );
+  const iconTopCards =
+    /className=["'][^"']*(?:feature-)?card[^"']*["'][\s\S]{0,280}<(?:svg|img|[A-Z][A-Za-z]+Icon)\b/i.test(
+      source
+    );
+  const allCapsLabels = count(source, /text-transform\s*:\s*uppercase/gi) >= 3;
+  const badgeAboveHero = /className=["'][^"']*badge[^"']*["'][\s\S]{0,500}<h1\b/i.test(source);
+  const emojiNavigation =
+    /<(?:nav|aside)\b[\s\S]{0,1500}(?:[\u{1F300}-\u{1FAFF}]|&#x(?:1F[3-9A-F][0-9A-F]{2}))/iu.test(
+      source
+    );
+  const templateSignals = [
+    numberedSteps,
+    statRow,
+    iconTopCards,
+    allCapsLabels,
+    badgeAboveHero,
+    emojiNavigation
+  ].filter(Boolean).length;
   const centeredHero =
     /(?:\.hero[^}]*\{[^}]*text-align\s*:\s*center|\.hero[^}]*\{[^}]*align-items\s*:\s*center)/is.test(
       source
@@ -227,7 +303,9 @@ export function reviewImplementation(
     ) >= 3 ||
     (largeRadii >= 3 && shadows >= 3);
   const genericMotion =
-    /(?:fade[-_ ]?up|transition\s*:\s*all|:hover[^}]*transform\s*:\s*translateY)/is.test(source);
+    /(?:fade[-_ ]?up|transition\s*:\s*all|:hover[^}]*transform\s*:\s*translateY|@keyframes\s+(?:bounce|wiggle|float|pulse)|className=["'][^"']*(?:floating-badge|wiggle|bounce|pulse|marquee|fake-cursor)[^"']*["']|<marquee\b|(?:img:hover|:hover\s+img)[^}]*transform)/is.test(
+      source
+    );
   const anyMotion =
     genericMotion ||
     /(?:@keyframes|animation\s*:|transition\s*:|scroll-trigger|parallax|cursor)/i.test(source);
@@ -239,10 +317,26 @@ export function reviewImplementation(
     /(?:placeholder|stock[-_ ]?(?:image|photo)|abstract[-_ ]?(?:blob|orb|visual)|lorem[-_ ]?image)/i.test(
       source
     );
+  const heroEyebrow =
+    /className=["'][^"']*(?:badge|eyebrow|kicker|chip)[^"']*["'][\s\S]{0,500}<h1\b/i.test(source);
+  const marketingCadence =
+    /(?:streamline|empower|supercharge|world-class|enterprise-grade|next-generation)|(?:Not\s+(?:a|just)\s+[^.]+?\.\s+(?:A|An)\s+[^.]+?\.)|(?:growth|innovation|productivity)\s+theater/i.test(
+      source
+    ) || count(source, /\u2014/g) >= 3;
   const vagueHeroCopy =
-    /(?:build\s+the\s+future|unlock\s+(?:your\s+)?potential|the\s+future\s+of\s+[a-z])/i.test(
+    /(?:build\s+the\s+future|unlock\s+(?:your\s+)?potential|the\s+future\s+of\s+[a-z]|scale\s+without\s+limits)/i.test(
       source
     );
+  const lazyImpactStatement =
+    /(?:drive|deliver|create|unlock)\s+(?:real\s+|meaningful\s+|measurable\s+)?impact|(?:transform|revolutionize|supercharge|elevate)\s+(?:your\s+)?(?:business|workflow|experience)|results\s+that\s+(?:matter|speak)/i.test(
+      source
+    );
+  const topLevelSource =
+    source.match(/(?:className=["'][^"']*hero[^"']*["']|<header\b)[\s\S]{0,2400}/i)?.[0] ?? '';
+  const topLevelActionCount = count(
+    topLevelSource,
+    /<button\b|className=["'][^"']*(?:cta|action|primary)[^"']*["']/gi
+  );
   const fontFamilies = new Set(
     [...source.matchAll(/font-family\s*:\s*([^;}]+)/gi)].map((match) =>
       match[1]?.trim().toLowerCase()
@@ -251,6 +345,19 @@ export function reviewImplementation(
   const documentedSingleFamilyContrast = direction?.typographyRationale.length
     ? /weight|width|scale|contrast|display|rhythm/i.test(direction.typographyRationale)
     : false;
+  const genericFontMonoculture =
+    fontFamilies.size <= 1 &&
+    /font-family\s*:[^;}]*\b(?:Inter|Geist)\b/i.test(source) &&
+    !documentedSingleFamilyContrast;
+  const stockFontPairing =
+    [
+      /Space Grotesk/i.test(source),
+      /Instrument Serif/i.test(source),
+      /\bGeist\b/i.test(source)
+    ].filter(Boolean).length >= 2 ||
+    (/font-family\s*:[^;}]*\bInter\b/i.test(source) &&
+      /font-style\s*:\s*italic/i.test(source) &&
+      /font-family\s*:[^;}]*serif/i.test(source));
   const missingTypeContrast =
     fontFamilies.size <= 1 &&
     !documentedSingleFamilyContrast &&
@@ -316,6 +423,88 @@ export function reviewImplementation(
       )
     );
   }
+  if (
+    decorativeGrid &&
+    !hasException(direction, 'decorative-grid-background', ['decorative grid', 'grid background'])
+  )
+    findings.push(
+      finding(
+        'warning',
+        'decorative-grid-background',
+        'A grid-line background appears without evidence of a canvas, map, or measurement task.',
+        'Use product structure or a plain field unless the grid supports real spatial work.'
+      )
+    );
+  if (
+    repeatingGradient &&
+    !hasException(direction, 'repeating-gradient-stripes', ['repeating gradient', 'stripes'])
+  )
+    findings.push(
+      finding(
+        'warning',
+        'repeating-gradient-stripes',
+        'A repeating gradient is used as generic surface texture.',
+        'Use a deliberate material texture or leave the surface plain.'
+      )
+    );
+  if (
+    hairlineWideShadow &&
+    !hasException(direction, 'hairline-wide-shadow', ['hairline shadow', 'soft elevation'])
+  )
+    findings.push(
+      finding(
+        'warning',
+        'hairline-wide-shadow',
+        'A one-pixel border is paired with a wide diffuse shadow on the same container.',
+        'Commit to a defined edge or soft elevation instead of combining both generated-UI signatures.'
+      )
+    );
+  if (gradientText && !hasException(direction, 'gradient-text-treatment', ['gradient text']))
+    findings.push(
+      finding(
+        'warning',
+        'gradient-text-treatment',
+        'Gradient-clipped text is used as a default emphasis treatment.',
+        'Use typographic contrast or one solid brand color unless the gradient carries documented meaning.'
+      )
+    );
+  if (
+    darkTheme &&
+    purpleBlue > 0 &&
+    !hasException(direction, 'default-dark-purple-theme', ['dark purple', 'purple theme'])
+  )
+    findings.push(
+      finding(
+        'warning',
+        'default-dark-purple-theme',
+        'A dark surface with purple or indigo accents matches a common generated-tech default.',
+        'Choose colors from the product context or document why this palette is specific to the brand.'
+      )
+    );
+  if (
+    lowContrastDarkText &&
+    !hasException(direction, 'low-contrast-dark-theme-text', ['low contrast', 'muted text'])
+  )
+    findings.push(
+      finding(
+        'error',
+        'low-contrast-dark-theme-text',
+        'A known low-contrast grey or translucent white text treatment appears on a dark surface.',
+        'Measure the rendered foreground/background pair and raise body text to WCAG AA contrast.'
+      )
+    );
+  if (
+    glassOrbs &&
+    !hasException(direction, 'glassmorphism-orb-decoration', ['glass', 'orb', 'frosted'])
+  )
+    findings.push(
+      finding(
+        'warning',
+        'glassmorphism-orb-decoration',
+        'Frosted glass or blurred orb decoration appears without a documented material purpose.',
+        'Use a solid surface and purposeful hierarchy, or explain the material concept in the direction.'
+      )
+    );
   if (glows >= 2 && !hasException(direction, 'decorative-glow-overuse', ['glow', 'neon']))
     findings.push(
       finding(
@@ -356,6 +545,43 @@ export function reviewImplementation(
         'repeated-card-pattern',
         'Repeated card treatment appears to replace a more specific information hierarchy.',
         'Use type, dividers, varied spans, or sequencing unless the plan explains peer-level comparison.'
+      )
+    );
+  if (
+    coloredCardEdge &&
+    !hasException(direction, 'colored-card-edge', ['colored border', 'accent border', 'side tab'])
+  )
+    findings.push(
+      finding(
+        'warning',
+        'colored-card-edge',
+        'A card uses a colored top or left border as a generic accent.',
+        'Let content hierarchy, spacing, or a meaningful state carry emphasis instead of a decorative edge.'
+      )
+    );
+  if (
+    templateSignals >= 3 &&
+    !hasException(direction, 'template-pattern-cluster', ['template cluster', 'numbered steps'])
+  )
+    findings.push(
+      finding(
+        'warning',
+        'template-pattern-cluster',
+        String(templateSignals) +
+          ' generated-template motifs appear together: numbered steps, stat rows, icon cards, repeated uppercase labels, a hero badge, or emoji navigation.',
+        'Keep only motifs required by the content and vary hierarchy instead of filling a familiar landing-page frame.'
+      )
+    );
+  if (
+    shadcnFingerprint &&
+    !hasException(direction, 'shadcn-default-fingerprint', ['shadcn', 'component defaults'])
+  )
+    findings.push(
+      finding(
+        'warning',
+        'shadcn-default-fingerprint',
+        'Several stock shadcn token and utility patterns appear without visible product-specific adaptation.',
+        'Keep the accessible primitives, but replace default tokens, radii, type, and composition with the selected system.'
       )
     );
   if (nestedCards && !hasException(direction, 'nested-card-pattern', ['nested card']))
@@ -434,6 +660,91 @@ export function reviewImplementation(
     );
   }
   if (
+    heroEyebrow &&
+    !hasException(direction, 'hero-eyebrow-chip', ['hero eyebrow', 'kicker', 'badge'])
+  )
+    findings.push(
+      finding(
+        'warning',
+        'hero-eyebrow-chip',
+        'A badge, kicker, eyebrow, or chip sits immediately above the hero headline.',
+        'Fold the text into the headline or use a real breadcrumb unless it communicates genuine taxonomy.'
+      )
+    );
+  if (
+    marketingCadence &&
+    !hasException(direction, 'generic-marketing-cadence', ['marketing cadence', 'campaign voice'])
+  )
+    findings.push(
+      finding(
+        'warning',
+        'generic-marketing-cadence',
+        'The copy uses generated-marketing buzzwords, manufactured contrast, theater framing, or repeated em dashes.',
+        'Replace the cadence with specific verbs, nouns, mechanisms, and evidence.'
+      )
+    );
+  if (
+    topLevelActionCount >= 5 &&
+    !hasException(direction, 'cluttered-primary-actions', ['action density', 'primary actions'])
+  )
+    findings.push(
+      finding(
+        'warning',
+        'cluttered-primary-actions',
+        String(topLevelActionCount) + ' top-level action signals compete in the hero or header.',
+        'Keep the primary task visible and move secondary tools or analytics behind progressive disclosure.'
+      )
+    );
+  if (
+    lazyImpactStatement &&
+    !hasException(direction, 'lazy-impact-statement', ['impact statement', 'marketing copy'])
+  )
+    findings.push(
+      finding(
+        'warning',
+        'lazy-impact-statement',
+        'The copy makes an abstract impact claim without naming a product mechanism or measurable outcome.',
+        'Name the audience, action, mechanism, or result instead of claiming generic impact.'
+      )
+    );
+  if (
+    genericFontMonoculture &&
+    !hasException(direction, 'generic-font-monoculture', ['font monoculture', 'Inter', 'Geist'])
+  )
+    findings.push(
+      finding(
+        'warning',
+        'generic-font-monoculture',
+        'Inter or Geist appears to carry the entire interface without a documented internal type system.',
+        'Choose a product-specific type voice or define deliberate contrast through width, weight, scale, and rhythm.'
+      )
+    );
+  if (
+    stockFontPairing &&
+    !hasException(direction, 'stock-font-pairing', ['font pairing', 'type pairing'])
+  )
+    findings.push(
+      finding(
+        'warning',
+        'stock-font-pairing',
+        'A frequently generated font pairing or isolated serif-italic accent treatment was detected.',
+        'Select type roles from the brand concept instead of using a fashionable default pairing.'
+      )
+    );
+  if (
+    centeredHero &&
+    genericFontMonoculture &&
+    !hasException(direction, 'centered-generic-sans-hero', ['centered hero', 'generic sans'])
+  )
+    findings.push(
+      finding(
+        'warning',
+        'centered-generic-sans-hero',
+        'A centered hero relies on a generic sans-serif monoculture.',
+        'Use the selected composition and a deliberate display voice rather than the default centered SaaS opener.'
+      )
+    );
+  if (
     genericMotion &&
     !hasException(direction, 'generic-hover-or-motion-pattern', ['motion', 'hover', 'fade-up'])
   )
@@ -441,7 +752,7 @@ export function reviewImplementation(
       finding(
         'warning',
         'generic-hover-or-motion-pattern',
-        'A repeated fade-up, transition-all, or lift-on-hover pattern appears decorative.',
+        'A fade-up, transition-all, lift, bounce, wiggle, or floating-badge motion appears decorative.',
         'Remove it or connect the behavior to hierarchy, navigation, or state.'
       )
     );

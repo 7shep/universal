@@ -13,6 +13,31 @@ test('exposes the versioned default profile', () => {
   assert.ok(profile.antiPatterns.every((pattern) => pattern.allowWhen.length > 0));
 });
 
+test('includes the expanded AI-slop taxonomy', () => {
+  const ids = new Set(getActiveTasteProfile().antiPatterns.map((pattern) => pattern.id));
+  for (const id of [
+    'gradient-text-treatment',
+    'default-dark-purple-theme',
+    'low-contrast-dark-theme-text',
+    'glassmorphism-orb-decoration',
+    'colored-card-edge',
+    'template-pattern-cluster',
+    'shadcn-default-fingerprint',
+    'cluttered-primary-actions',
+    'lazy-impact-statement',
+    'redundant-interface-copy',
+    'generic-font-monoculture',
+    'stock-font-pairing',
+    'centered-generic-sans-hero',
+    'decorative-grid-background',
+    'hero-eyebrow-chip',
+    'meaningless-status-motion',
+    'generic-marketing-cadence',
+    'shape-assembled-illustration'
+  ])
+    assert.ok(ids.has(id), 'missing anti-pattern ' + id);
+});
+
 test('requires a matching and credible exception', () => {
   const direction = {
     exceptions: [
