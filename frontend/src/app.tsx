@@ -205,6 +205,9 @@ function InstallPage() {
   </main></>;
 }
 export function App() {
-  if (window.location.pathname === '/install') return <InstallPage />;
+  const pathname = window.location.pathname.endsWith('/') && window.location.pathname !== '/'
+    ? window.location.pathname.slice(0, -1)
+    : window.location.pathname;
+  if (pathname === '/install') return <InstallPage />;
   return <main><a className="skip-link" href="#main-content">Skip to content</a><Navigation /><div id="main-content"><Hero /><Proposition /><DesigningWorkflow /><BeforeAfter /><Principles /><Closing /></div></main>;
 }
