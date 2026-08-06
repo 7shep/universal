@@ -105,7 +105,7 @@ function Principles() {
 }
 
 function Closing() {
-  return <section className="closing" aria-labelledby="closing-title"><p className="section-label">Start with a direction</p><h2 id="closing-title">Your agent can code.<br /><em>Give it taste.</em></h2><div className="closing-actions"><a href={docsUrl}>Read the docs <span aria-hidden="true">&nearr;</span></a><a href={repoUrl}>View on GitHub <span aria-hidden="true">&nearr;</span></a></div><footer><a href="#top"><Wordmark /></a><p>Open-source AI art direction for React interfaces.</p><p>Ãƒâ€šÃ‚Â© {new Date().getFullYear()} Universal</p></footer></section>;
+  return <section className="closing" aria-labelledby="closing-title"><p className="section-label">Start with a direction</p><h2 id="closing-title">Your agent can code.<br /><em>Give it taste.</em></h2><div className="closing-actions"><a href={docsUrl}>Read the docs <span aria-hidden="true">{'↗'}</span></a><a href={repoUrl}>View on GitHub <span aria-hidden="true">{'↗'}</span></a></div><footer><a href="#top"><Wordmark /></a><p>Open-source AI art direction for React interfaces.</p><p>{'©'} {new Date().getFullYear()} Universal</p></footer></section>;
 }
 
 export function App() {
