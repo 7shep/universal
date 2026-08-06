@@ -16,6 +16,17 @@ Requires Node 22 or newer. The server speaks MCP over stdio and reads no model c
 own — generation is host-authored, meaning your MCP client's model writes the source and this server
 validates, materializes, and builds it.
 
+14 of the 16 tools — discovery through Design Plan v2, the Phase 1 compatibility API, and
+`review_implementation` — work from this `npx` install with nothing else needed, and are a complete,
+useful path on their own: structured design direction plus a critique loop against your own code.
+`prepare_react_generation` and `build_react_project` additionally require a checkout of the
+[Universal repository](https://github.com/7shep/universal) with `pnpm install --frozen-lockfile`
+already run once, with network access, to warm the pnpm store the runtime then installs from
+offline. That offline install is a deliberate security boundary for executing model-authored code;
+see [ADR 0004](https://github.com/7shep/universal/blob/main/docs/adr/0004-packaging-and-distribution.md)
+and the [runtime contributor
+workflow](https://github.com/7shep/universal/blob/main/docs/RUNTIME_CONTRIBUTOR_WORKFLOW.md).
+
 See [docs/MCP_RELEASE.md](../../docs/MCP_RELEASE.md) for client configuration, environment
 variables, what the tarball contains, and the release and rollback process, and
 [docs/MCP_REFERENCE.md](../../docs/MCP_REFERENCE.md) for every tool input and output.
@@ -40,7 +51,8 @@ start_art_direction
 `revise_creative_brief` revises a reviewed brief and invalidates digest-bound downstream artifacts.
 `get_art_direction_session` validates and inspects a serialized session.
 
-A current `plan-created` session can continue through the credential-free MCP host-generation path:
+A current `plan-created` session can continue through the credential-free MCP host-generation path,
+which needs the source-checkout setup above:
 
 ```text
 prepare_react_generation

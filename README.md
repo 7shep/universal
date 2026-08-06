@@ -33,14 +33,28 @@ Universal gives a compatible coding agent:
 - distinct art directions with a selected visual thesis;
 - composition, typography, color, imagery, motion, and accessibility constraints;
 - a versioned design plan that carries intent into implementation;
-- trusted local React generation, production builds, and previews; and
-- implementation review that identifies generic or off-direction choices.
+- implementation review that identifies generic or off-direction choices; and
+- trusted local React generation, production builds, and previews, from a source checkout.
 
 ## Install
 
 Universal is published on npm as [@7shep/universal-mcp](https://www.npmjs.com/package/@7shep/universal-mcp).
 It requires Node.js 22 or newer and runs locally over stdio. Universal does not read model API keys;
 your MCP client's existing model authors the source.
+
+### System requirements
+
+Fourteen of the sixteen tools — discovery through Design Plan v2, the Phase 1 compatibility API, and
+`review_implementation` — work from `npx` with nothing else installed. That tier alone is a complete,
+useful path: structured design direction plus a critique loop against your own code.
+
+`prepare_react_generation` and `build_react_project` additionally require a checkout of this
+repository with `pnpm install --frozen-lockfile` already run once, with network access, to warm the
+pnpm store the runtime installs from offline. That offline install is a deliberate security boundary
+for executing model-authored code, not a bug; see
+[Run the local Studio](#run-the-local-studio),
+[ADR 0004](docs/adr/0004-packaging-and-distribution.md), and
+[the runtime contributor workflow](docs/RUNTIME_CONTRIBUTOR_WORKFLOW.md).
 
 Run the server without a global install:
 
@@ -91,13 +105,21 @@ discovery questions -> approved creative brief
 art directions -> selected direction -> Design Plan v2
       |
       v
+source and visual review -> prioritized findings
+```
+
+That much runs from `npx` alone: `review_implementation` critiques any source you hand it, whether or
+not you continue to generation. Continuing into generation needs the source-checkout setup in
+[System requirements](#system-requirements):
+
+```text
 MCP host model authors React source
       |
       v
 trusted materialization -> locked build -> local Vite preview
       |
       v
-source and visual review -> prioritized findings
+review_implementation again, against the generated source
 ```
 
 The creative brief, approval, selected direction, and Design Plan v2 are digest-bound. Revising an
@@ -106,9 +128,11 @@ Stable request IDs make mutations safely retryable.
 
 ## MCP tools
 
-The published server exposes 16 tools.
+The published server exposes 16 tools. Fourteen work from `npx` alone; two require the
+source-checkout setup in [System requirements](#system-requirements). See the [MCP tool
+reference](docs/MCP_REFERENCE.md) for the tool-by-tool list.
 
-### Art-direction workflow
+### Art-direction workflow (`npx`)
 
 ```text
 start_art_direction
@@ -125,25 +149,27 @@ start_art_direction
 - <code>get_art_direction_session</code> validates and inspects a serialized session.
 - Every workflow response returns the serialized session required by the next operation.
 
-### Generation and review
+### Design intelligence and compatibility (`npx`)
+
+- <code>create_design_plan</code> provides the lower-level design-plan compatibility API.
+- <code>get_design_rules</code> returns category-specific design constraints.
+- <code>get_taste_profile</code> returns the active taste and anti-pattern policy.
+- <code>review_implementation</code> critiques React and CSS against the intended direction; it needs
+  only the source you give it, not a build.
+
+### Generation (source checkout required)
 
 ```text
 prepare_react_generation
   -> host model authors allowed React source and assets
   -> build_react_project
   -> immutable workspace and locked production build
-  -> review_implementation
 ```
 
 The runtime owns dependencies, scripts, configuration, materialization, build supervision, and the
-loopback preview. Submitted source is validated before it reaches the trusted workspace.
-
-### Design intelligence and compatibility
-
-- <code>create_design_plan</code> provides the lower-level design-plan compatibility API.
-- <code>get_design_rules</code> returns category-specific design constraints.
-- <code>get_taste_profile</code> returns the active taste and anti-pattern policy.
-- <code>review_implementation</code> critiques React and CSS against the intended direction.
+loopback preview. Submitted source is validated before it reaches the trusted workspace. Both tools
+need the pnpm store warmed by a source-checkout `pnpm install`, because the runtime then installs
+offline as a security boundary for executing model-authored code.
 
 See the [MCP tool reference](docs/MCP_REFERENCE.md) for request shapes, response envelopes, phase
 preconditions, idempotency behavior, and error codes.
@@ -211,19 +237,20 @@ Read each skill's <code>SKILL.md</code> before changing its workflow or completi
 
 ## What is ready today
 
-Universal is an early alpha. The public npm package provides the local MCP workflow from discovery
-through implementation review.
+Universal is an early alpha. The public npm package provides discovery through Design Plan v2 and
+implementation review from `npx` alone; generation and builds need the source-checkout setup in
+[System requirements](#system-requirements).
 
-| Available                                                  | Still in progress                             |
-| ---------------------------------------------------------- | --------------------------------------------- |
-| Public npm MCP package (<code>@7shep/universal-mcp</code>) | Stable 1.0 API guarantees                     |
-| Discovery, brief approval, and direction selection         | Production live-provider implementation       |
-| Design Plan v2 with digest-bound provenance                | OS or container sandboxing                    |
-| MCP-host-authored React generation                         | Hosted generation and public project previews |
-| Trusted immutable workspaces and locked builds             | One-command Studio desktop packaging          |
-| Isolated loopback previews and rendered QA                 | Broader subjective visual-quality automation  |
-| Windows, macOS, and Linux validation matrix                | Official MCP Registry listing                 |
-| Installable agent workflow skills and marketing site       |                                               |
+| Available                                                        | Still in progress                             |
+| ---------------------------------------------------------------- | --------------------------------------------- |
+| Public npm MCP package (<code>@7shep/universal-mcp</code>)       | Stable 1.0 API guarantees                     |
+| Discovery, brief approval, and direction selection               | Production live-provider implementation       |
+| Design Plan v2 with digest-bound provenance                      | OS or container sandboxing                    |
+| MCP-host-authored React generation (source checkout)             | Hosted generation and public project previews |
+| Trusted immutable workspaces and locked builds (source checkout) | One-command Studio desktop packaging          |
+| Isolated loopback previews and rendered QA (source checkout)     | Broader subjective visual-quality automation  |
+| Windows, macOS, and Linux validation matrix                      | Official MCP Registry listing                 |
+| Installable agent workflow skills and marketing site             |                                               |
 
 Tool names, inputs, outputs, and serialized sessions may change before 1.0. The
 [roadmap](ROADMAP.md) tracks planned milestones, and the [architecture guide](docs/ARCHITECTURE.md)
