@@ -38,7 +38,10 @@ test('runtime error validation preserves an optional actionable remediation fiel
   });
   assert.equal(withAction.ok, true);
   if (withAction.ok)
-    assert.equal(withAction.value.action, 'Install pnpm globally and ensure it is resolvable on PATH.');
+    assert.equal(
+      withAction.value.action,
+      'Install pnpm globally and ensure it is resolvable on PATH.'
+    );
 
   const withoutAction = validateRuntimeError({
     code: 'INTERNAL_FAILURE',

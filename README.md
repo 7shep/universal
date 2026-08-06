@@ -336,6 +336,7 @@ pnpm --filter @7shep/universal-mcp test
 - [Studio workflow](docs/STUDIO.md)
 - [Connect Universal MCP to Codex](docs/CODEX_MCP_SETUP.md)
 - [MCP tool reference](docs/MCP_REFERENCE.md)
+- [Before/after `review_implementation` example](docs/EXAMPLES.md)
 - [Publishing and release operations](docs/MCP_RELEASE.md)
 - [Downstream orchestration API](docs/DOWNSTREAM_API.md)
 - [Security policy](SECURITY.md)

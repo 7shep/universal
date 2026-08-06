@@ -61,7 +61,10 @@ export class BuildPipelineFailure extends RuntimeFailure {
     diagnostics: readonly BuildDiagnostic[],
     options: { action?: string } = {}
   ) {
-    super(code, message, { retryable: true, ...(options.action ? { action: options.action } : {}) });
+    super(code, message, {
+      retryable: true,
+      ...(options.action ? { action: options.action } : {})
+    });
     this.name = 'BuildPipelineFailure';
     this.diagnostics = diagnostics;
   }

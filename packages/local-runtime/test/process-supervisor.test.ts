@@ -312,7 +312,7 @@ test('build_react_project preflight explains a genuine offline install failure',
     await writeFile(
       path.join(fakePnpmDir, 'pnpm.mjs'),
       [
-        "const args = process.argv.slice(2);",
+        'const args = process.argv.slice(2);',
         "if (args[0] === 'install') {",
         "  process.stderr.write('ERR_PNPM_LOCKFILE_CONFIG_MISMATCH left-pad@1.3.0 is not in the local store\\n');",
         '  process.exit(1);',
