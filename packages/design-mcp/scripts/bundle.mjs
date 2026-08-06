@@ -23,6 +23,7 @@ const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const repoRoot = resolve(packageRoot, '../..');
 const distRoot = resolve(packageRoot, 'dist');
 const templateOut = resolve(packageRoot, 'template');
+const skillsOut = resolve(distRoot, 'skills');
 
 const manifest = JSON.parse(await readFile(resolve(packageRoot, 'package.json'), 'utf8'));
 const external = Object.keys(manifest.dependencies ?? {});
@@ -60,6 +61,8 @@ if (undeclared.length > 0) {
 
 await rm(templateOut, { recursive: true, force: true });
 await cp(resolve(repoRoot, 'packages/local-runtime/template'), templateOut, { recursive: true });
+await rm(skillsOut, { recursive: true, force: true });
+await cp(resolve(repoRoot, '.agents/skills'), skillsOut, { recursive: true });
 
 const generationSource = resolve(repoRoot, 'packages/generation/src');
 const providerAssets = (await readdir(generationSource)).filter((name) => name.endsWith('.txt'));
@@ -70,6 +73,8 @@ for (const name of providerAssets) {
 const required = [
   resolve(templateOut, 'package.json'),
   resolve(templateOut, 'vite.config.ts'),
+  resolve(skillsOut, 'art-direct/SKILL.md'),
+  resolve(skillsOut, 'final-pass/SKILL.md'),
   ...providerAssets.map((name) => resolve(distRoot, name))
 ];
 for (const path of required) {
@@ -80,4 +85,6 @@ for (const path of required) {
 if (providerAssets.length === 0) throw new Error('No deterministic provider assets were copied.');
 
 await chmod(outfile, 0o755);
-console.log(`bundled ${outfile} with ${providerAssets.length} provider assets and the template`);
+console.log(
+  `bundled ${outfile} with ${providerAssets.length} provider assets, the template, and bundled skills`
+);

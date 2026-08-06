@@ -48,6 +48,12 @@ Run the server without a global install:
 npx -y @7shep/universal-mcp@alpha
 ```
 
+Install all twenty workflow skills in your project for the full Universal experience:
+
+```bash
+npx -y @7shep/universal-mcp@alpha install-skills
+```
+
 ### Claude Code
 
 ```bash
@@ -147,8 +153,8 @@ preconditions, idempotency behavior, and error codes.
 Universal includes twenty repository-local workflow skills under [.agents/skills](.agents/skills).
 They coordinate MCP tools with source inspection, verification, and design-quality gates.
 
-> These commands are currently in progress. They are available to agents working from this
-> repository, but they are not yet distributed as stable standalone commands by the npm package.
+Install them into the current project with `npx -y @7shep/universal-mcp@alpha install-skills`.
+The installer adds each skill for supported agents while preserving any existing skill directories.
 
 The five original commands cover the broad workflow. The fifteen focused commands below them each
 own one dimension of interface quality.
@@ -208,16 +214,16 @@ Read each skill's <code>SKILL.md</code> before changing its workflow or completi
 Universal is an early alpha. The public npm package provides the local MCP workflow from discovery
 through implementation review.
 
-| Available                                                  | Still in progress                               |
-| ---------------------------------------------------------- | ----------------------------------------------- |
-| Public npm MCP package (<code>@7shep/universal-mcp</code>) | Stable 1.0 API guarantees                       |
-| Discovery, brief approval, and direction selection         | Production live-provider implementation         |
-| Design Plan v2 with digest-bound provenance                | OS or container sandboxing                      |
-| MCP-host-authored React generation                         | Hosted generation and public project previews   |
-| Trusted immutable workspaces and locked builds             | One-command Studio desktop packaging            |
-| Isolated loopback previews and rendered QA                 | Broader subjective visual-quality automation    |
-| Windows, macOS, and Linux validation matrix                | Standalone distribution of agent skill commands |
-| Marketing site and installation guide                      | Official MCP Registry listing                   |
+| Available                                                  | Still in progress                             |
+| ---------------------------------------------------------- | --------------------------------------------- |
+| Public npm MCP package (<code>@7shep/universal-mcp</code>) | Stable 1.0 API guarantees                     |
+| Discovery, brief approval, and direction selection         | Production live-provider implementation       |
+| Design Plan v2 with digest-bound provenance                | OS or container sandboxing                    |
+| MCP-host-authored React generation                         | Hosted generation and public project previews |
+| Trusted immutable workspaces and locked builds             | One-command Studio desktop packaging          |
+| Isolated loopback previews and rendered QA                 | Broader subjective visual-quality automation  |
+| Windows, macOS, and Linux validation matrix                | Official MCP Registry listing                 |
+| Installable agent workflow skills and marketing site       |                                               |
 
 Tool names, inputs, outputs, and serialized sessions may change before 1.0. The
 [roadmap](ROADMAP.md) tracks planned milestones, and the [architecture guide](docs/ARCHITECTURE.md)

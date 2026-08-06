@@ -3,7 +3,13 @@
 An AI art director for React interfaces, exposed as a local Model Context Protocol server.
 
 ```bash
-npx -y @7shep/universal-mcp
+npx -y @7shep/universal-mcp@alpha
+```
+
+Install all twenty workflow skills in the current project for the full Universal experience:
+
+```bash
+npx -y @7shep/universal-mcp@alpha install-skills
 ```
 
 Requires Node 22 or newer. The server speaks MCP over stdio and reads no model credentials of its

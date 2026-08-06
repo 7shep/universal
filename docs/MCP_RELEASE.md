@@ -8,7 +8,13 @@ else in the monorepo is private and stays private.
 ```bash
 npm install -g @7shep/universal-mcp
 # or, without installing:
-npx -y @7shep/universal-mcp
+npx -y @7shep/universal-mcp@alpha
+```
+
+Install the twenty workflow skills in the current project for the full experience:
+
+```bash
+npx -y @7shep/universal-mcp@alpha install-skills
 ```
 
 The package exposes one binary, `universal-mcp`, which speaks MCP over stdio. Node 22 or newer is
@@ -17,7 +23,7 @@ required.
 ### Claude Code
 
 ```bash
-claude mcp add universal -- npx -y @7shep/universal-mcp
+claude mcp add universal -- npx -y @7shep/universal-mcp@alpha
 ```
 
 ### Codex, Claude Desktop, and other clients that read a config file
@@ -54,6 +60,7 @@ Rendered QA uses Playwright. It is a declared dependency, but the browser binary
 `pnpm pack` produces a tarball containing only:
 
 - `dist/index.js` — the bundled server, plus the deterministic provider's `.txt` sources
+- `dist/skills/` — all twenty installable agent workflow skills
 - `template/` — the fixed React/Vite/TypeScript project template the runtime materializes
 - `server.json`, `README.md`, `LICENSE.MD`, `package.json`
 
