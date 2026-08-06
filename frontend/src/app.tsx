@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 const repoUrl = 'https://github.com/7shep/universal';
-const docsUrl = `${repoUrl}/tree/main/docs`;
+const docsUrl = '/install';
 
 const workflow = [
   { command: 'start_art_direction', label: 'Discover', title: 'Begin with decisions, not components.', copy: 'Universal reads the product context and asks only the questions that materially change the direction.', output: ['purpose', 'audience', 'page map', 'constraints'] },
@@ -27,8 +27,8 @@ function Navigation() {
     return () => window.removeEventListener('scroll', update);
   }, []);
   return <header className={`site-nav ${scrolled ? 'is-scrolled' : ''}`}>
-    <a href="#top" aria-label="Universal home"><Wordmark /></a>
-    <nav aria-label="Primary navigation"><a href="#designing">Designing</a><a href={docsUrl}>Docs</a><a className="github-link" href={repoUrl} aria-label="Universal on GitHub"><GitHubIcon /></a></nav>
+    <a href="/" aria-label="Universal home"><Wordmark /></a>
+    <nav aria-label="Primary navigation"><a href="/#designing">Designing</a><a href={docsUrl}>Installing</a><a className="github-link" href={repoUrl} aria-label="Universal on GitHub"><GitHubIcon /></a></nav>
   </header>;
 }
 
@@ -108,6 +108,103 @@ function Closing() {
   return <section className="closing" aria-labelledby="closing-title"><p className="section-label">Start with a direction</p><h2 id="closing-title">Your agent can code.<br /><em>Give it taste.</em></h2><div className="closing-actions"><a href={docsUrl}>Read the docs <span aria-hidden="true">{'↗'}</span></a><a href={repoUrl}>View on GitHub <span aria-hidden="true">{'↗'}</span></a></div><footer><a href="#top"><Wordmark /></a><p>Open-source AI art direction for React interfaces.</p><p>{'©'} {new Date().getFullYear()} Universal</p></footer></section>;
 }
 
+function CopyBlock({ label, value }: { label: string; value: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const copy = async () => {
+    await navigator.clipboard.writeText(value);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1800);
+  };
+
+  return <div className="install-command">
+    <div className="install-command-bar"><span>{label}</span><button type="button" onClick={copy} aria-label="Copy command">{copied ? 'Copied' : 'Copy'}</button></div>
+    <pre><code>{value}</code></pre>
+  </div>;
+}
+
+const terminalLines = [
+  '$ claude mcp add universal -- npx -y @7shep/universal-mcp@alpha',
+  'Resolving @7shep/universal-mcp@0.1.0-alpha.0',
+  'Universal MCP registered as "universal"',
+  'Ready: 16 design tools available',
+];
+
+function InstallTerminal() {
+  const [visible, setVisible] = useState(1);
+
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setVisible(terminalLines.length);
+      return;
+    }
+    const interval = window.setInterval(() => {
+      setVisible((current) => {
+        if (current >= terminalLines.length) {
+          window.clearInterval(interval);
+          return current;
+        }
+        return current + 1;
+      });
+    }, 720);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  return <aside className="install-terminal" aria-label="Universal installation terminal">
+    <div className="terminal-bar"><span>universal / install</span><span>stdio</span></div>
+    <div className="terminal-screen">
+      {terminalLines.slice(0, visible).map((line, index) => <p className={index === 0 ? 'terminal-input' : 'terminal-output'} key={line}>{line}</p>)}
+      <span className="terminal-cursor" aria-hidden="true" />
+    </div>
+    <div className="terminal-status"><span><i /> Connected</span><span>Node 22+</span></div>
+  </aside>;
+}
+
+function InstallPage() {
+  const claudeCommand = 'claude mcp add universal -- npx -y @7shep/universal-mcp@alpha';
+  const npxCommand = 'npx -y @7shep/universal-mcp@alpha';
+  const config = [
+    '{',
+    '  "mcpServers": {',
+    '    "universal": {',
+    '      "command": "npx",',
+    '      "args": ["-y", "@7shep/universal-mcp@alpha"]',
+    '    }',
+    '  }',
+    '}',
+  ].join('\n');
+
+  return <><Navigation /><main className="install-page" id="top">
+    <header className="install-intro">
+      <p className="section-label">Universal / Get started</p>
+      <h1>Installation<br /><em>Steps.</em></h1>
+      <p>Add Universal to your coding agent in minutes. It runs locally over stdio and uses your agent's existing model.</p>
+    </header>
+    <div className="install-layout">
+      <div className="install-steps">
+        <section>
+          <span className="install-number">01</span>
+          <div><h2>Check the requirement.</h2><p>Universal requires Node.js 22 or newer. No separate model API key is needed.</p></div>
+        </section>
+        <section>
+          <span className="install-number">02</span>
+          <div><h2>Add it to Claude Code.</h2><p>This registers Universal and lets Claude Code start it automatically when needed.</p><CopyBlock label="Terminal" value={claudeCommand} /></div>
+        </section>
+        <section>
+          <span className="install-number">03</span>
+          <div><h2>Using another coding agent?</h2><p>Run the package directly, or place the configuration below in your client's MCP settings.</p><CopyBlock label="Terminal" value={npxCommand} /><CopyBlock label="MCP configuration" value={config} /></div>
+        </section>
+        <section>
+          <span className="install-number">04</span>
+          <div><h2>Start designing.</h2><p>Ask your agent to use Universal to art-direct a React interface. It will guide you through discovery before implementation.</p><a className="install-repo-link" href={repoUrl}>View documentation <span aria-hidden="true">{'\u2197'}</span></a></div>
+        </section>
+      </div>
+      <InstallTerminal />
+    </div>
+    <footer className="install-footer"><a href="/"><Wordmark /></a><p>Open-source AI art direction for React interfaces.</p><p>{'\u00A9'} {new Date().getFullYear()} Universal</p></footer>
+  </main></>;
+}
 export function App() {
+  if (window.location.pathname === '/install') return <InstallPage />;
   return <main><a className="skip-link" href="#main-content">Skip to content</a><Navigation /><div id="main-content"><Hero /><Proposition /><DesigningWorkflow /><BeforeAfter /><Principles /><Closing /></div></main>;
 }
