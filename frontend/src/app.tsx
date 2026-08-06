@@ -196,7 +196,7 @@ function InstallPage() {
         </section>
         <section>
           <span className="install-number">04</span>
-          <div><h2>Start designing.</h2><p>Ask your agent to use Universal to art-direct a React interface. It will guide you through discovery before implementation.</p><a className="install-repo-link" href={repoUrl}>View documentation <span aria-hidden="true">{'\u2197'}</span></a></div>
+          <div><h2>Start designing.</h2><p>Ask your agent to use Universal to art-direct a React interface. It will guide you through discovery before implementation.</p><a className="install-repo-link" href={repoUrl + '/tree/main/docs'}>View documentation <span aria-hidden="true">{'\u2197'}</span></a></div>
         </section>
       </div>
       <InstallTerminal />
