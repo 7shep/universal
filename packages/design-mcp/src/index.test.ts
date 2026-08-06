@@ -72,6 +72,40 @@ test('serves compatible public design tools over stdio', async () => {
     assert.ok(tools.tools.some((tool) => tool.name === 'get_taste_profile'));
     assert.ok(tools.tools.some((tool) => tool.name === 'review_implementation'));
 
+    for (const name of ['prepare_react_generation', 'build_react_project']) {
+      const tool = tools.tools.find((candidate) => candidate.name === name);
+      assert.ok(tool, `missing MCP tool ${name}`);
+      assert.match(
+        tool.description ?? '',
+        /pnpm toolchain/,
+        `${name} description should disclose the source-checkout pnpm requirement`
+      );
+    }
+    for (const name of [
+      'start_art_direction',
+      'get_discovery_questions',
+      'submit_discovery_answers',
+      'get_creative_brief',
+      'revise_creative_brief',
+      'approve_creative_brief',
+      'develop_art_direction',
+      'get_selected_direction',
+      'create_design_plan_v2',
+      'create_design_plan',
+      'get_art_direction_session',
+      'get_design_rules',
+      'get_taste_profile',
+      'review_implementation'
+    ]) {
+      const tool = tools.tools.find((candidate) => candidate.name === name);
+      assert.ok(tool, `missing MCP tool ${name}`);
+      assert.doesNotMatch(
+        tool.description ?? '',
+        /pnpm toolchain/,
+        `${name} is npm-only tier and should not carry the source-checkout pnpm clause`
+      );
+    }
+
     const response = await client.callTool({
       name: 'create_design_plan',
       arguments: { prompt: 'Mechanical keyboard' }

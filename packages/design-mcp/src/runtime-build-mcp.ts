@@ -15,7 +15,12 @@ import {
   type RawGeneratedProject,
   type ReactGenerationProvider
 } from '@universal/generation';
-import { RuntimeFailure, RuntimeService } from '@universal/local-runtime';
+import {
+  BuildPipelineFailure,
+  RuntimeFailure,
+  RuntimeService,
+  isPnpmToolchainAvailable
+} from '@universal/local-runtime';
 import {
   ArtDirectorError,
   parseArtDirectorSession,
@@ -51,6 +56,8 @@ export interface RuntimeBuildMcpAdapterOptions {
   repositoryRoot?: string | undefined;
   now?: (() => string) | undefined;
   createId?: (() => string) | undefined;
+  /** Overridable for tests; defaults to the real pnpm-on-PATH preflight. */
+  checkPnpmToolchain?: (() => Promise<boolean>) | undefined;
 }
 
 export interface RuntimeBuildMcpAdapter {
@@ -90,6 +97,23 @@ export type RuntimeBuildResult =
       review?: unknown;
       error: unknown;
     };
+
+// Guidance for the two DEPENDENCY_INSTALL_FAILURE modes the source-checkout tier
+// can hit. These are distinguishable, not guessed: pnpmInvocation throws a plain
+// RuntimeFailure before spawning anything when no shell-free pnpm entrypoint is
+// resolvable, while installAndBuild only throws BuildPipelineFailure after pnpm
+// ran and the locked offline install itself exited non-zero.
+const PNPM_NOT_FOUND_ACTION =
+  'Install pnpm (https://pnpm.io/installation) so it resolves on PATH without a shell, or run this tool from a checkout of the repository where pnpm is already available. This tool requires the source-checkout tier: a local pnpm toolchain with a warm store, not just `npm install @7shep/universal-mcp`.';
+const PNPM_STORE_COLD_ACTION =
+  'pnpm is available but the offline install could not resolve the locked dependencies from the local store. From the root of a repository checkout with network access, run `pnpm install --frozen-lockfile` to warm the store, then retry.';
+
+function missingPnpmToolchainFailure(): RuntimeFailure {
+  return new RuntimeFailure(
+    'DEPENDENCY_INSTALL_FAILURE',
+    'Could not resolve a shell-free pnpm JavaScript entrypoint.'
+  );
+}
 
 function resolvePlan(serializedSession: string): {
   session: ArtDirectorSession;
@@ -212,7 +236,8 @@ export function createRuntimeBuildMcpAdapter(
       options.workspaceRoot ??
       (configuredWorkspaceRoot || path.join(os.homedir(), '.universal', 'workspaces')),
     configuredRepositoryRoot = process.env.UNIVERSAL_REPOSITORY_ROOT?.trim(),
-    repositoryRoot = options.repositoryRoot ?? configuredRepositoryRoot ?? defaultRepositoryRoot;
+    repositoryRoot = options.repositoryRoot ?? configuredRepositoryRoot ?? defaultRepositoryRoot,
+    checkPnpmToolchain = options.checkPnpmToolchain ?? isPnpmToolchainAvailable;
   let queue: Promise<void> = Promise.resolve();
 
   const exclusive = async <T>(operation: () => Promise<T>): Promise<T> => {
@@ -226,6 +251,11 @@ export function createRuntimeBuildMcpAdapter(
 
   return {
     async prepare(serializedSession) {
+      // Fail before the host model authors any source: build_react_project needs
+      // this same toolchain deep inside RuntimeService.startGeneration, and
+      // discovering that there only after a full source tree has been written
+      // wastes the effort. Reuses the exact detection installAndBuild relies on.
+      if (!(await checkPnpmToolchain())) throw missingPnpmToolchainFailure();
       const { session, plan } = resolvePlan(serializedSession);
       return {
         contractVersion: GENERATION_CONTRACT_VERSION,
@@ -364,8 +394,15 @@ function toolResult(value: unknown, isError = false) {
 
 function errorPayload(error: unknown): unknown {
   if (error instanceof ArtDirectorError) return error.toJSON();
-  if (error instanceof RuntimeFailure)
-    return { ...error.detail, message: redactSecrets(error.detail.message) };
+  if (error instanceof RuntimeFailure) {
+    const detail = { ...error.detail, message: redactSecrets(error.detail.message) };
+    if (detail.code === 'DEPENDENCY_INSTALL_FAILURE')
+      return {
+        ...detail,
+        action: error instanceof BuildPipelineFailure ? PNPM_STORE_COLD_ACTION : PNPM_NOT_FOUND_ACTION
+      };
+    return detail;
+  }
   return {
     code: 'RUNTIME_BUILD_FAILURE',
     message: redactSecrets(error instanceof Error ? error.message : String(error)),
@@ -402,7 +439,7 @@ export function registerRuntimeBuildTools(
 
   server.tool(
     'prepare_react_generation',
-    'Validate a plan-created Art Director session and return the exact Design Plan v2 generation context and trusted source-file contract. Call this before authoring React source.',
+    'Validate a plan-created Art Director session and return the exact Design Plan v2 generation context and trusted source-file contract. Call this before authoring React source. Requires a local pnpm toolchain with a warm store from a source checkout, not just an npm install of this package.',
     { session },
     async ({ session: serialized }) => {
       try {
@@ -415,7 +452,7 @@ export function registerRuntimeBuildTools(
 
   server.tool(
     'build_react_project',
-    'Submit MCP-host-model-authored React source for validation, immutable materialization, locked offline installation, production build, and deterministic review. Returns the trusted workspace path and a loopback Vite command. Runtime-owned files and arbitrary dependencies are forbidden.',
+    'Submit MCP-host-model-authored React source for validation, immutable materialization, locked offline installation, production build, and deterministic review. Returns the trusted workspace path and a loopback Vite command. Runtime-owned files and arbitrary dependencies are forbidden. Requires a local pnpm toolchain with a warm store from a source checkout, not just an npm install of this package.',
     {
       session,
       requestId: z.string().min(1).describe('Stable idempotency id for this source submission.'),
