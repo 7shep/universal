@@ -58,6 +58,9 @@ jobs:
       - name: Check formatting
         run: pnpm format:check 2>&1 | tee .ci-logs/format-check.log
 
+      - name: Check skill frontmatter parity
+        run: pnpm check:skill-parity 2>&1 | tee .ci-logs/skill-parity-check.log
+
       - name: Lint
         run: pnpm lint 2>&1 | tee .ci-logs/lint.log
 
