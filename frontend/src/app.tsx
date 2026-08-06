@@ -38,7 +38,7 @@ function Hero() {
   return <section className="hero" id="top" aria-labelledby="hero-title">
     <div className="hero-meta"><p>Open-source AI art director</p><p>For React + coding agents</p></div>
     <h1 id="hero-title"><span>Art direction</span><span>for agents that</span><span className="hero-accent">build React.</span></h1>
-    <figure className="hero-art" aria-hidden="true"><img src="/assets/blossom-atmosphere.png" alt="" /><figcaption>Atmosphere / direction / 01</figcaption></figure>
+    <figure className="hero-art" aria-hidden="true"><img src="/assets/blossom-atmosphere.webp" alt="" /><figcaption>Atmosphere / direction / 01</figcaption></figure>
     <div className="hero-bottom"><p>Universal gives coding agents a deliberate design direction before implementation&mdash;and a concrete critique after it.</p><a className="text-link" href="#designing">See how it works <span aria-hidden="true">&darr;</span></a></div>
     <p className="hero-index" aria-hidden="true">01 / 06</p>
   </section>;
@@ -103,7 +103,23 @@ const skillRecipes = [
 
 function SkillsShowcase() {
   const [activeNeed, setActiveNeed] = useState(0);
+  const [systemVisible, setSystemVisible] = useState(false);
+  const systemRef = useRef<HTMLDivElement>(null);
   const need = skillNeeds[activeNeed];
+  useEffect(() => {
+    const system = systemRef.current;
+    if (!system || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setSystemVisible(true);
+      return;
+    }
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry?.isIntersecting) return;
+      setSystemVisible(true);
+      observer.disconnect();
+    }, { threshold: .28 });
+    observer.observe(system);
+    return () => observer.disconnect();
+  }, []);
   return <section className="skills-showcase" id="skills" aria-labelledby="skills-title">
     <header className="skills-masthead">
       <p className="section-label">MCP + agent skills</p>
@@ -111,7 +127,7 @@ function SkillsShowcase() {
       <h2 id="skills-title"><span>One MCP.</span><em>Twenty ways to make</em><span>the interface better.</span></h2>
       <p className="skills-intro">Universal establishes the direction, then stays useful throughout the interface&rsquo;s life. Start from an idea, repair a weak layout, compare against a reference, or prepare the final release without losing the original intent.</p>
     </header>
-    <div className="skills-system" aria-label="How Universal MCP and skills work together">
+    <div ref={systemRef} className={`skills-system ${systemVisible ? 'is-visible' : ''}`} aria-label="How Universal MCP and skills work together">
       <div className="system-spine"><div><span>Design brain</span><strong>MCP</strong></div><ol><li>Discover</li><li>Align</li><li>Direct</li><li>Specify</li><li>Review</li></ol></div>
       <div className="system-join" aria-hidden="true"><span>Direction becomes a protected contract</span></div>
       <div className="skill-groups"><div className="skill-groups-label"><span>Craft layer</span><strong>Skills</strong></div>{skillGroups.map((group, index) => <article key={group.label}><span>0{index + 1}</span><div><h3>{group.label}</h3><p>{group.copy}</p><div>{group.commands.map((command) => <code key={command}>{command}</code>)}</div></div></article>)}</div>
@@ -220,7 +236,7 @@ function InstallPage() {
     '}',
   ].join('\n');
 
-  return <><Navigation /><main className="install-page" id="top">
+  return <><a className="skip-link" href="#install-content">Skip to installation</a><Navigation /><main className="install-page" id="install-content">
     <header className="install-intro">
       <p className="section-label">Universal / Get started</p>
       <h1>Installation<br /><em>Steps.</em></h1>
