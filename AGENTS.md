@@ -44,6 +44,7 @@ The following planned agent-facing commands are **IN PROGRESS** and must not be 
 - `/cleanup` — **IN PROGRESS:** remove inconsistent, redundant, or generic UI patterns without changing intended behavior.
 - `/art-direct` — **IN PROGRESS:** orchestrate discovery, creative direction, design planning, implementation, and verification.
 - `/review-ui` — **IN PROGRESS:** run multi-dimensional UI review across hierarchy, composition, typography, accessibility, brand, motion, and implementation craft.
+- `/assets` — **IN PROGRESS:** audit imagery, icons, and illustrations for quality, consistency, relevance, performance, and accessibility; replace or generate assets only when explicitly authorized.
 
 Until those commands ship, perform their underlying steps explicitly with the currently available Universal MCP tools and normal repository checks. Do not invent command output or silently substitute an unfinished command.
 
