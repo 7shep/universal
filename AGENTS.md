@@ -44,7 +44,21 @@ The following planned agent-facing commands are **IN PROGRESS** and must not be 
 - `/cleanup` — **IN PROGRESS:** remove inconsistent, redundant, or generic UI patterns without changing intended behavior.
 - `/art-direct` — **IN PROGRESS:** orchestrate discovery, creative direction, design planning, implementation, and verification.
 - `/review-ui` — **IN PROGRESS:** run multi-dimensional UI review across hierarchy, composition, typography, accessibility, brand, motion, and implementation craft.
-- `/performance` — **IN PROGRESS:** find and repair evidence-backed, user-visible frontend performance problems with before/after measurement.
+- `/accessibility` — **IN PROGRESS:** audit accessibility with cited WCAG 2.2 criteria, and repair only when explicitly requested.
+- `/animate` — **IN PROGRESS:** add purposeful motion with reduced-motion fallbacks, without gratuitous animation.
+- `/assets` — **IN PROGRESS:** audit imagery, icons, and illustrations, replacing or generating them only when authorized.
+- `/color` — **IN PROGRESS:** improve palette cohesion, semantic roles, contrast, and token usage without changing the direction.
+- `/compare` — **IN PROGRESS:** compare the implementation against a supplied reference and report prioritized differences.
+- `/consistency` — **IN PROGRESS:** detect design-system drift and repair only explicitly selected inconsistencies.
+- `/copy` — **IN PROGRESS:** improve interface language without altering product meaning, factual claims, or behavior.
+- `/critique` — **IN PROGRESS:** answer one focused design question with evidence, without editing files.
+- `/document` — **IN PROGRESS:** create or update a Google Stitch-compatible `DESIGN.md` from the actual implementation.
+- `/final-pass` — **IN PROGRESS:** orchestrate the release-readiness review, apply bounded fixes, and report a readiness verdict.
+- `/layout` — **IN PROGRESS:** improve composition, whitespace, pacing, and hierarchy below the threshold of a redesign.
+- `/performance` — **IN PROGRESS:** repair evidence-backed, user-visible performance problems with before/after measurement.
+- `/responsive` — **IN PROGRESS:** review and repair the interface across representative viewport widths.
+- `/states` — **IN PROGRESS:** complete missing interaction and application states with accessible, consistent feedback.
+- `/typography` — **IN PROGRESS:** refine the typographic system while preserving the visual direction and content meaning.
 
 Until those commands ship, perform their underlying steps explicitly with the currently available Universal MCP tools and normal repository checks. Do not invent command output or silently substitute an unfinished command.
 
