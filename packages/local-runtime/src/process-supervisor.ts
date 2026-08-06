@@ -265,9 +265,13 @@ async function exists(file: string): Promise<boolean> {
     return false;
   }
 }
-async function pnpmInvocation(
-  args: readonly string[]
-): Promise<{ command: string; args: readonly string[] }> {
+/**
+ * Locates a pnpm entrypoint that Node can execute directly (no shell), so the
+ * installer stays shell-free on every platform. Shared by pnpmInvocation, which
+ * needs the resolved path to spawn, and isPnpmToolchainAvailable, which only
+ * needs to know whether one exists.
+ */
+async function resolvePnpmJsEntrypoint(): Promise<string | undefined> {
   const pathCandidates = (process.env.PATH ?? '')
     .split(path.delimiter)
     .flatMap((entry) => [
@@ -280,14 +284,37 @@ async function pnpmInvocation(
     ...pathCandidates
   ].filter((item): item is string => Boolean(item));
   for (const candidate of candidates)
-    if (/pnpm\.(?:mjs|c?js)$/i.test(candidate) && (await exists(candidate)))
-      return { command: process.execPath, args: [candidate, ...args] };
+    if (/pnpm\.(?:mjs|c?js)$/i.test(candidate) && (await exists(candidate))) return candidate;
+  return undefined;
+}
+async function pnpmInvocation(
+  args: readonly string[]
+): Promise<{ command: string; args: readonly string[] }> {
+  const entrypoint = await resolvePnpmJsEntrypoint();
+  if (entrypoint) return { command: process.execPath, args: [entrypoint, ...args] };
   if (process.platform === 'win32')
     throw new RuntimeFailure(
       'DEPENDENCY_INSTALL_FAILURE',
       'Could not resolve a shell-free pnpm JavaScript entrypoint.'
     );
   return { command: 'pnpm', args };
+}
+/**
+ * Preflight for the same shell-free pnpm entrypoint installAndBuild requires,
+ * without spawning anything. Lets a caller such as prepare_react_generation
+ * surface a missing toolchain before a host model spends effort authoring
+ * source that build_react_project could never install.
+ *
+ * Mirrors pnpmInvocation's own platform branch: on win32 the JS entrypoint is
+ * mandatory (no shell to resolve a .cmd shim through), so its absence means
+ * pnpm is unavailable. On other platforms pnpmInvocation itself falls back to
+ * a bare `pnpm` command and trusts the OS to resolve it, so this preflight
+ * makes the same assumption rather than claiming a certainty the real install
+ * path doesn't have either.
+ */
+export async function isPnpmToolchainAvailable(): Promise<boolean> {
+  if (await resolvePnpmJsEntrypoint()) return true;
+  return process.platform !== 'win32';
 }
 export async function installAndBuild(input: {
   root: string;

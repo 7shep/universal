@@ -1,9 +1,54 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { runSupervisedCommand, RuntimeFailure } from '../src/index.ts';
+import { isPnpmToolchainAvailable, runSupervisedCommand, RuntimeFailure } from '../src/index.ts';
+
+test('pnpm toolchain preflight finds a shell-free entrypoint on PATH', async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'universal-pnpm-preflight-'));
+  const originalPath = process.env.PATH,
+    originalNpmExecpath = process.env.npm_execpath,
+    originalPnpmHome = process.env.PNPM_HOME;
+  try {
+    await writeFile(path.join(root, 'pnpm.cjs'), '// fake pnpm entrypoint for the preflight test');
+    delete process.env.npm_execpath;
+    delete process.env.PNPM_HOME;
+    process.env.PATH = root;
+    assert.equal(await isPnpmToolchainAvailable(), true);
+  } finally {
+    process.env.PATH = originalPath;
+    if (originalNpmExecpath === undefined) delete process.env.npm_execpath;
+    else process.env.npm_execpath = originalNpmExecpath;
+    if (originalPnpmHome === undefined) delete process.env.PNPM_HOME;
+    else process.env.PNPM_HOME = originalPnpmHome;
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test(
+  'pnpm toolchain preflight reports unavailable on win32 with no resolvable entrypoint',
+  { skip: process.platform !== 'win32' },
+  async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), 'universal-pnpm-preflight-missing-'));
+    const originalPath = process.env.PATH,
+      originalNpmExecpath = process.env.npm_execpath,
+      originalPnpmHome = process.env.PNPM_HOME;
+    try {
+      delete process.env.npm_execpath;
+      delete process.env.PNPM_HOME;
+      process.env.PATH = root;
+      assert.equal(await isPnpmToolchainAvailable(), false);
+    } finally {
+      process.env.PATH = originalPath;
+      if (originalNpmExecpath === undefined) delete process.env.npm_execpath;
+      else process.env.npm_execpath = originalNpmExecpath;
+      if (originalPnpmHome === undefined) delete process.env.PNPM_HOME;
+      else process.env.PNPM_HOME = originalPnpmHome;
+      await rm(root, { recursive: true, force: true });
+    }
+  }
+);
 
 test('cancellation and timeout terminate supervised commands', async () => {
   const controller = new AbortController();
