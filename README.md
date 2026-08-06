@@ -144,19 +144,20 @@ preconditions, idempotency behavior, and error codes.
 
 ## Agent skill commands
 
-Universal includes five repository-local workflow skills under [.agents/skills](.agents/skills).
+Universal includes twenty repository-local workflow skills under [.agents/skills](.agents/skills).
 They coordinate MCP tools with source inspection, verification, and design-quality gates.
 
 > These commands are currently in progress. They are available to agents working from this
 > repository, but they are not yet distributed as stable standalone commands by the npm package.
 
-| Command                  | Purpose                                                                                                                                          | Changes files?      |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------- |
-| <code>/art-direct</code> | Runs discovery, brief approval, direction selection, Design Plan v2, implementation, and review for a new or substantially redesigned interface. | Yes, after approval |
-| <code>/audit</code>      | Produces a prioritized, evidence-led audit of an existing route or component.                                                                    | No                  |
-| <code>/polish</code>     | Applies bounded improvements to hierarchy, typography, spacing, responsiveness, and accessibility without redesigning behavior.                  | Yes                 |
-| <code>/cleanup</code>    | Removes verified redundant, inconsistent, obsolete, or generic UI patterns while preserving behavior and APIs.                                   | Yes                 |
-| <code>/review-ui</code>  | Coordinates multiple design-review perspectives into one deduplicated, ranked report.                                                            | No                  |
+| Command                                   | Purpose                                                                                                                                               | Changes files?      |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
+| <code>/art-direct</code>                  | Runs discovery, brief approval, direction selection, Design Plan v2, implementation, and review for a new or substantially redesigned interface.      | Yes, after approval |
+| <code>/audit</code>                       | Produces a prioritized, evidence-led audit of an existing route or component.                                                                         | No                  |
+| <code>/polish</code>                      | Applies bounded improvements to hierarchy, typography, spacing, responsiveness, and accessibility without redesigning behavior.                       | Yes                 |
+| <code>/cleanup</code>                     | Removes verified redundant, inconsistent, obsolete, or generic UI patterns while preserving behavior and APIs.                                        | Yes                 |
+| <code>/review-ui</code>                   | Coordinates multiple design-review perspectives into one deduplicated, ranked report.                                                                 | No                  |
+| [<code>/copy</code>](docs/skills/copy.md) | Improves interface language — headings, CTAs, nav labels, form/help text, empty states, errors, confirmations — without changing meaning or behavior. | Yes                 |
 
 Invoke a skill explicitly with a scoped request:
 
@@ -166,6 +167,7 @@ Invoke a skill explicitly with a scoped request:
 /polish Tighten the installation page typography and mobile spacing.
 /cleanup Consolidate duplicated tokens in frontend/src/styles.css.
 /review-ui Review the installation page against the selected direction.
+/copy Tighten the CTA labels on the pricing page.
 ```
 
 Read each skill's <code>SKILL.md</code> before changing its workflow or completion gates.
