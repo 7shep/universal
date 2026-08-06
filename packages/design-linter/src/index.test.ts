@@ -157,6 +157,73 @@ test('generic cyber tech sample receives actionable taste warnings', () => {
   assert.ok(!review.passedPrinciples.includes('brand-specific-color'));
 });
 
+test('flags clustered AI-template visual and UX fingerprints', () => {
+  const review = reviewImplementation(
+    [
+      {
+        path: 'page.tsx',
+        content:
+          '<nav>Home &#x1F680;</nav><main><section className="hero"><span className="badge">New</span><h1>Drive meaningful impact</h1><p>Supercharge your workflow</p><button>One</button><button>Two</button><button>Three</button><button>Four</button><button>Five</button><div className="steps">1 Plan 2 Build 3 Scale</div><div className="stats-row">99% faster</div><div className="feature-card"><svg/></div><div className="glass-orb"/></section></main>'
+      },
+      {
+        path: 'styles.css',
+        content:
+          ':root{--background:#10151b;--card-foreground:#fff;--popover-foreground:#fff;--muted-foreground:#64748b;--border:#333}.hero{text-align:center;font-family:Inter,sans-serif;background:#10151b;color:#64748b}.gradient-text{background:linear-gradient(90deg,#8b5cf6,#2563eb);background-clip:text;color:transparent}.glass-orb{backdrop-filter:blur(18px)}.feature-card{border:1px solid #333;border-left:3px solid #8b5cf6;box-shadow:0 12px 40px rgba(0,0,0,.3)}.grid{background-image:linear-gradient(#333 1px,transparent 1px),linear-gradient(90deg,#333 1px,transparent 1px);background-size:20px 20px}.stripes{background:repeating-linear-gradient(90deg,#111 0 4px,#222 4px 8px)}.label-a,.label-b,.label-c{text-transform:uppercase}.rounded-md{border-radius:6px}.text-muted-foreground{color:#64748b}'
+      }
+    ],
+    completeEvidence,
+    { tasteDirection: tasteDirection({ typographyRationale: '' }) }
+  );
+
+  for (const rule of [
+    'decorative-grid-background',
+    'repeating-gradient-stripes',
+    'hairline-wide-shadow',
+    'hero-eyebrow-chip',
+    'generic-marketing-cadence',
+    'gradient-text-treatment',
+    'default-dark-purple-theme',
+    'low-contrast-dark-theme-text',
+    'glassmorphism-orb-decoration',
+    'colored-card-edge',
+    'template-pattern-cluster',
+    'shadcn-default-fingerprint',
+    'cluttered-primary-actions',
+    'lazy-impact-statement',
+    'generic-font-monoculture',
+    'centered-generic-sans-hero'
+  ])
+    assert.ok(
+      review.findings.some((item) => item.rule === rule),
+      'missing ' + rule
+    );
+  assert.ok(
+    review.findings.some(
+      (item) => item.rule === 'low-contrast-dark-theme-text' && item.severity === 'error'
+    )
+  );
+});
+
+test('flags stock generated font combinations and isolated serif italic accents', () => {
+  const review = reviewImplementation(
+    [
+      {
+        path: 'page.tsx',
+        content: '<main><h1><em>Designed</em> for teams</h1><p>Specific product copy.</p></main>'
+      },
+      {
+        path: 'styles.css',
+        content:
+          '.display{font-family:"Space Grotesk",sans-serif}.accent{font-family:"Instrument Serif",serif;font-style:italic}.utility{font-family:Geist,sans-serif}'
+      }
+    ],
+    completeEvidence,
+    { tasteDirection: tasteDirection() }
+  );
+
+  assert.ok(review.findings.some((item) => item.rule === 'stock-font-pairing'));
+});
+
 test('deliberate dark technical direction is not penalized for its aesthetic', () => {
   const direction = tasteDirection({
     designThesis:
