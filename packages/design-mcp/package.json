@@ -1,6 +1,6 @@
 {
   "name": "@7shep/universal-mcp",
-  "version": "0.1.0-alpha.0",
+  "version": "0.1.0-alpha.1",
   "description": "Universal: an AI art director for React interfaces, exposed as a local Model Context Protocol server.",
   "license": "MIT",
   "author": "7shep",
@@ -33,6 +33,7 @@
   "files": [
     "dist/index.js",
     "dist/*.txt",
+    "dist/skills",
     "template",
     "server.json",
     "README.md",

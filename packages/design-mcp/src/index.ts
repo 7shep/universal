@@ -10,6 +10,7 @@ import {
 import { registerArtDirectorTools } from './art-director-mcp.js';
 import { registerRuntimeBuildTools } from './runtime-build-mcp.js';
 import { reviewImplementation } from '@universal/design-linter';
+import { installSkills } from './install-skills.js';
 
 const server = new McpServer({ name: 'universal', version: '0.3.0' });
 registerArtDirectorTools(server);
@@ -203,6 +204,24 @@ server.tool(
 );
 
 async function main(): Promise<void> {
+  if (process.argv[2] === 'install-skills') {
+    const result = await installSkills({ force: process.argv.includes('--force') });
+    console.log(
+      'Installed ' +
+        result.installed.length +
+        ' skill directories across ' +
+        result.targets.length +
+        ' agent targets.'
+    );
+    if (result.skipped.length > 0) {
+      console.log(
+        'Preserved ' +
+          result.skipped.length +
+          ' existing skill directories. Re-run with --force to replace them.'
+      );
+    }
+    return;
+  }
   await server.connect(new StdioServerTransport());
   console.error('Universal MCP server connected over stdio.');
 }

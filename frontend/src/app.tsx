@@ -187,7 +187,7 @@ export function CopyBlock({ label, value }: { label: string; value: string }) {
 
 const terminalLines = [
   '$ claude mcp add universal -- npx -y @7shep/universal-mcp@alpha',
-  'Resolving @7shep/universal-mcp@0.1.0-alpha.0',
+  'Resolving @7shep/universal-mcp@0.1.0-alpha.1',
   'Universal MCP registered as "universal"',
   'Ready: 16 design tools available',
 ];
@@ -225,6 +225,7 @@ function InstallTerminal() {
 function InstallPage() {
   const claudeCommand = 'claude mcp add universal -- npx -y @7shep/universal-mcp@alpha';
   const npxCommand = 'npx -y @7shep/universal-mcp@alpha';
+  const skillsCommand = 'npx -y @7shep/universal-mcp@alpha install-skills';
   const config = [
     '{',
     '  "mcpServers": {',
@@ -258,6 +259,10 @@ function InstallPage() {
         </section>
         <section>
           <span className="install-number">04</span>
+          <div><h2>Install the skills.</h2><p>Run the installer to add all twenty workflow skills to your project for the full Universal experience.</p><CopyBlock label="Terminal" value={skillsCommand} /></div>
+        </section>
+        <section>
+          <span className="install-number">05</span>
           <div><h2>Start designing.</h2><p>Ask your agent to use Universal to art-direct a React interface. It will guide you through discovery before implementation.</p><a className="install-repo-link" href={docsUrl}>View documentation <span aria-hidden="true">{'\u2192'}</span></a></div>
         </section>
       </div>

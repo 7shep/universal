@@ -10,7 +10,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { mkdtemp, readFile, readdir, rm, symlink, mkdir } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm, symlink, mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import test from 'node:test';
@@ -20,6 +20,28 @@ import { promisify } from 'node:util';
 const run = promisify(execFile);
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const manifest = JSON.parse(await readFile(join(packageRoot, 'package.json'), 'utf8'));
+const skillNames = [
+  'accessibility',
+  'animate',
+  'art-direct',
+  'assets',
+  'audit',
+  'cleanup',
+  'color',
+  'compare',
+  'consistency',
+  'copy',
+  'critique',
+  'document',
+  'final-pass',
+  'layout',
+  'performance',
+  'polish',
+  'responsive',
+  'review-ui',
+  'states',
+  'typography'
+];
 
 async function packToTemporary() {
   const staging = await mkdtemp(join(tmpdir(), 'universal-mcp-pack-'));
@@ -64,6 +86,12 @@ test('the tarball carries the runtime files and nothing else', async () => {
       entries.some((entry) => /^dist\/fake-.*\.txt$/.test(entry)),
       'tarball is missing the deterministic provider assets'
     );
+    for (const name of skillNames) {
+      assert.ok(
+        entries.includes(`dist/skills/${name}/SKILL.md`),
+        `tarball is missing the ${name} skill`
+      );
+    }
 
     // Source, tests, and build configuration are development-only.
     for (const entry of entries) {
@@ -138,6 +166,46 @@ test('the packed binary starts and serves tools outside the monorepo', async () 
 
     // Nothing from the checkout may have been copied in alongside the package.
     assert.deepEqual((await readdir(fixture)).sort(), ['package']);
+  } finally {
+    await rm(staging, { recursive: true, force: true });
+    await rm(fixture, { recursive: true, force: true });
+  }
+});
+
+test('the install-skills command installs and safely updates every bundled skill', async () => {
+  const { staging, tarball } = await packToTemporary();
+  const fixture = await mkdtemp(join(tmpdir(), 'universal-skills-install-'));
+  try {
+    await run('tar', ['-xf', tarball, '-C', fixture]);
+    const installed = join(fixture, 'package');
+    const modules = join(installed, 'node_modules');
+    for (const name of Object.keys(manifest.dependencies ?? {})) {
+      const target = join(packageRoot, 'node_modules', name);
+      const link = join(modules, name);
+      await mkdir(dirname(link), { recursive: true });
+      await symlink(target, link, 'junction');
+    }
+
+    const project = join(fixture, 'consumer');
+    await mkdir(project);
+    const binary = join(installed, 'dist', 'index.js');
+    const first = await run(process.execPath, [binary, 'install-skills'], { cwd: project });
+    assert.match(first.stdout, /Installed 40 skill directories across 2 agent targets/);
+
+    for (const root of ['.agents/skills', '.claude/skills']) {
+      for (const name of skillNames) {
+        await readFile(join(project, root, name, 'SKILL.md'), 'utf8');
+      }
+    }
+
+    const sentinel = join(project, '.agents', 'skills', 'animate', 'SKILL.md');
+    await writeFile(sentinel, 'preserve me', 'utf8');
+    const second = await run(process.execPath, [binary, 'install-skills'], { cwd: project });
+    assert.match(second.stdout, /Preserved 40 existing skill directories/);
+    assert.equal(await readFile(sentinel, 'utf8'), 'preserve me');
+
+    await run(process.execPath, [binary, 'install-skills', '--force'], { cwd: project });
+    assert.notEqual(await readFile(sentinel, 'utf8'), 'preserve me');
   } finally {
     await rm(staging, { recursive: true, force: true });
     await rm(fixture, { recursive: true, force: true });

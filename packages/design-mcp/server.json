@@ -8,14 +8,14 @@
     "source": "github",
     "subfolder": "packages/design-mcp"
   },
-  "version": "0.1.0-alpha.0",
+  "version": "0.1.0-alpha.1",
   "websiteUrl": "https://github.com/7shep/universal#readme",
   "packages": [
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "@7shep/universal-mcp",
-      "version": "0.1.0-alpha.0",
+      "version": "0.1.0-alpha.1",
       "runtimeHint": "npx",
       "transport": {
         "type": "stdio"
