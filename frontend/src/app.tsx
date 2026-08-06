@@ -38,7 +38,7 @@ function Hero() {
   return <section className="hero" id="top" aria-labelledby="hero-title">
     <div className="hero-meta"><p>Open-source AI art director</p><p>For React + coding agents</p></div>
     <h1 id="hero-title"><span>Art direction</span><span>for agents that</span><span className="hero-accent">build React.</span></h1>
-    <figure className="hero-art" aria-hidden="true"><img src="/assets/blossom-atmosphere.png" alt="" /><figcaption>Atmosphere / direction / 01</figcaption></figure>
+    <figure className="hero-art" aria-hidden="true"><img src="/assets/blossom-atmosphere.webp" alt="" /><figcaption>Atmosphere / direction / 01</figcaption></figure>
     <div className="hero-bottom"><p>Universal gives coding agents a deliberate design direction before implementation&mdash;and a concrete critique after it.</p><a className="text-link" href="#designing">See how it works <span aria-hidden="true">&darr;</span></a></div>
     <p className="hero-index" aria-hidden="true">01 / 06</p>
   </section>;
@@ -79,6 +79,66 @@ function DesigningWorkflow() {
   </section>;
 }
 
+const skillGroups = [
+  { label: 'Create', copy: 'Establish the direction and visual world.', commands: ['/art-direct', '/animate', '/assets'] },
+  { label: 'Refine', copy: 'Improve one craft dimension without losing intent.', commands: ['/polish', '/responsive', '/typography', '/color', '/layout', '/states', '/copy'] },
+  { label: 'Evaluate', copy: 'Find weaknesses using evidence, not instinct alone.', commands: ['/critique', '/audit', '/review-ui', '/compare', '/accessibility', '/performance'] },
+  { label: 'Maintain', copy: 'Keep the interface coherent as it evolves.', commands: ['/cleanup', '/consistency', '/document', '/final-pass'] },
+];
+
+const skillNeeds = [
+  { label: 'Starting from an idea', command: '/art-direct', prompt: '/art-direct Create an editorial product site for a developer tool.', checks: ['discovery', 'creative brief', 'selected direction', 'design plan'] },
+  { label: 'It looks unfinished', command: '/polish', prompt: '/polish Tighten hierarchy, typography, and spacing on the homepage.', checks: ['visual hierarchy', 'type rhythm', 'spacing', 'responsive finish'] },
+  { label: 'Mobile feels broken', command: '/responsive', prompt: '/responsive Repair the pricing route from 320px through desktop.', checks: ['overflow', 'content order', 'touch targets', 'navigation'] },
+  { label: 'Something feels off', command: '/critique', prompt: '/critique Why does the homepage hero feel visually weak?', checks: ['source evidence', 'rendered UI', 'selected direction', 'recommendations'] },
+  { label: 'Match an approved design', command: '/compare', prompt: '/compare Compare /pricing with the attached approved mockup.', checks: ['composition', 'typography', 'spacing', 'visual deltas'] },
+  { label: 'Prepare to ship', command: '/final-pass', prompt: '/final-pass Prepare the marketing site for release.', checks: ['responsive QA', 'accessibility', 'build health', 'final review'] },
+];
+
+const skillRecipes = [
+  { label: 'New product', commands: ['/art-direct', '/responsive', '/accessibility', '/final-pass'] },
+  { label: 'Existing interface', commands: ['/audit', '/cleanup', '/polish', '/review-ui'] },
+  { label: 'Approved design', commands: ['/compare', '/layout', '/typography', '/final-pass'] },
+];
+
+function SkillsShowcase() {
+  const [activeNeed, setActiveNeed] = useState(0);
+  const [systemVisible, setSystemVisible] = useState(false);
+  const systemRef = useRef<HTMLDivElement>(null);
+  const need = skillNeeds[activeNeed];
+  useEffect(() => {
+    const system = systemRef.current;
+    if (!system || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setSystemVisible(true);
+      return;
+    }
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry?.isIntersecting) return;
+      setSystemVisible(true);
+      observer.disconnect();
+    }, { threshold: .28 });
+    observer.observe(system);
+    return () => observer.disconnect();
+  }, []);
+  return <section className="skills-showcase" id="skills" aria-labelledby="skills-title">
+    <header className="skills-masthead">
+      <p className="section-label">MCP + agent skills</p>
+      <p className="skills-count">01 system<br />20 focused commands</p>
+      <h2 id="skills-title"><span>One MCP.</span><em>Twenty ways to make</em><span>the interface better.</span></h2>
+      <p className="skills-intro">Universal establishes the direction, then stays useful throughout the interface&rsquo;s life. Start from an idea, repair a weak layout, compare against a reference, or prepare the final release without losing the original intent.</p>
+    </header>
+    <div ref={systemRef} className={`skills-system ${systemVisible ? 'is-visible' : ''}`} aria-label="How Universal MCP and skills work together">
+      <div className="system-spine"><div><span>Design brain</span><strong>MCP</strong></div><ol><li>Discover</li><li>Align</li><li>Direct</li><li>Specify</li><li>Review</li></ol></div>
+      <div className="system-join" aria-hidden="true"><span>Direction becomes a protected contract</span></div>
+      <div className="skill-groups"><div className="skill-groups-label"><span>Craft layer</span><strong>Skills</strong></div>{skillGroups.map((group, index) => <article key={group.label}><span>0{index + 1}</span><div><h3>{group.label}</h3><p>{group.copy}</p><div>{group.commands.map((command) => <code key={command}>{command}</code>)}</div></div></article>)}</div>
+    </div>
+    <div className="skills-recommender">
+      <header><p className="section-label">Choose by need</p><h3>What does your interface need?</h3></header>
+      <div className="recommender-grid"><div className="need-list" role="list" aria-label="Interface needs">{skillNeeds.map((item, index) => <button key={item.command} type="button" onClick={() => setActiveNeed(index)} className={index === activeNeed ? 'is-active' : ''} aria-pressed={index === activeNeed}><span>0{index + 1}</span><span className="need-label">&ldquo;{item.label}&rdquo;</span><b aria-hidden="true">{index === activeNeed ? '\u2192' : ''}</b></button>)}</div><div className="need-output" aria-live="polite"><div className="need-output-bar"><span>universal / recommendation</span><span>{need.command}</span></div><pre><code><span>&gt;</span> {need.prompt}</code></pre><div className="need-checks"><p>Inspecting</p>{need.checks.map((check) => <span key={check}><i aria-hidden="true">&#10003;</i>{check}</span>)}</div><footer><span>Direction preserved</span><code>universal.design-plan.v2</code></footer></div></div>
+    </div>
+    <div className="skill-recipes"><header><p className="section-label">Composable workflows</p><h3>Use one command.<br />Or carry the idea all the way through.</h3></header><div>{skillRecipes.map((recipe, index) => <article key={recipe.label}><span>0{index + 1}</span><h4>{recipe.label}</h4><p>{recipe.commands.map((command, commandIndex) => <span key={command}><code>{command}</code>{commandIndex < recipe.commands.length - 1 && <i aria-hidden="true">&#8594;</i>}</span>)}</p></article>)}</div><a href="/docs#commands">Browse all twenty commands <span aria-hidden="true">&#8594;</span></a></div>
+  </section>;
+}
 function BeforeAfter() {
   const sectionRef = useRef<HTMLElement>(null);
   const [progress, setProgress] = useState(52);
@@ -176,7 +236,7 @@ function InstallPage() {
     '}',
   ].join('\n');
 
-  return <><Navigation /><main className="install-page" id="top">
+  return <><a className="skip-link" href="#install-content">Skip to installation</a><Navigation /><main className="install-page" id="install-content">
     <header className="install-intro">
       <p className="section-label">Universal / Get started</p>
       <h1>Installation<br /><em>Steps.</em></h1>
@@ -212,5 +272,5 @@ export function App() {
     : window.location.pathname;
   if (pathname === '/install') return <InstallPage />;
   if (pathname === '/docs') return <DocsPage />;
-  return <main><a className="skip-link" href="#main-content">Skip to content</a><Navigation /><div id="main-content"><Hero /><Proposition /><DesigningWorkflow /><BeforeAfter /><Principles /><Closing /></div></main>;
+  return <main><a className="skip-link" href="#main-content">Skip to content</a><Navigation /><div id="main-content"><Hero /><Proposition /><DesigningWorkflow /><SkillsShowcase /><BeforeAfter /><Principles /><Closing /></div></main>;
 }
