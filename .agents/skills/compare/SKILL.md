@@ -46,7 +46,7 @@ guess at an unscoped comparison or an unnamed reference.
   direction attribute).
 - Only call MCP tools that exist for this task: `get_design_rules`, `get_taste_profile`, and
   `review_implementation`. Do not invent tool names or fields, and do not attempt the stateful Phase
-  2 Art Director sequence (`start_art_direction` and friends) — `/compare` may only *read* an
+  2 Art Director sequence (`start_art_direction` and friends) — `/compare` may only _read_ an
   existing session via `get_art_direction_session` when the reference is a selected direction; it
   never starts, mutates, or advances one. That belongs to `/art-direct`.
 - Load only the source relevant to the resolved target (target files, their direct imports, shared

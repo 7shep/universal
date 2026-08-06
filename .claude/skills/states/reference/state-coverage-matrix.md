@@ -9,24 +9,24 @@ renders a collection).
 Legend: **R** = required when reachable, **C** = conditional (required only if the named
 precondition holds), **—** = not applicable, do not add.
 
-| Component type                              | hover | focus-visible | active | selected | disabled | loading | empty | error | success | skeleton |
-| --------------------------------------------- | :---: | :------------: | :----: | :------: | :------: | :-----: | :---: | :---: | :-----: | :------: |
-| Button / icon button                          |   R   |       R        |   R    |    —     |    R     |    C¹   |   —   |   —   |    C²   |    —     |
-| Link (in-app navigation)                      |   R   |       R        |   R    |    —     |    C³    |    —    |   —   |   —   |    —    |    —     |
-| Toggle / switch / checkbox / radio            |   R   |       R        |   R    |    R     |    R     |    —    |   —   |   —   |    —    |    —     |
-| Tab / segmented control item                  |   R   |       R        |   R    |    R     |    C³    |    —    |   —   |   —   |    —    |    —     |
-| Menu item / combobox option / list row        |   R   |       R        |   R    |    R     |    C³    |    —    |   —   |   —   |    —    |    —     |
-| Text input / textarea / select                |   R   |       R        |   —    |    —     |    R     |    C⁴   |   —   |   R   |    C²   |    —     |
-| Form (submit flow)                            |   —   |       —        |   —    |    —     |    R⁵    |    R    |   —   |   R   |    R    |    —     |
-| Data table / list (collection view)           |   C⁶  |       C⁶       |   —    |    C⁶    |    —     |    R    |   R   |   R   |    —    |    R     |
-| Card (interactive, e.g. clickable row)        |   R   |       R        |   R    |    C³    |    C³    |    —    |   —   |   —   |    —    |    —     |
-| Card (static content container)               |   —   |       —        |   —    |    —     |    —     |    —    |   C⁷  |   —   |    —    |    C⁷    |
-| Modal / dialog trigger + content               |   R⁸  |       R⁸       |   R⁸   |    —     |    C³    |    C⁴   |   —   |   R   |    C²   |    —     |
-| Async panel / widget (fetches its own data)   |   —   |       —        |   —    |    —     |    —     |    R    |   R   |   R   |    C²   |    R     |
-| Route / page (top-level data-dependent view)  |   —   |       —        |   —    |    —     |    —     |    R    |   R   |   R   |    —    |    R     |
-| Toast / inline status message                 |   —   |       —        |   —    |    —     |    —     |    —    |   —   |   R   |    R    |    —     |
-| Tooltip / popover trigger                     |   R   |       R        |   —    |    —     |    C³    |    —    |   —   |   —   |    —    |    —     |
-| Drag handle / sortable item                   |   R   |       R        |   R    |    C⁶    |    C³    |    —    |   —   |   —   |    —    |    —     |
+| Component type                               | hover | focus-visible | active | selected | disabled | loading | empty | error | success | skeleton |
+| -------------------------------------------- | :---: | :-----------: | :----: | :------: | :------: | :-----: | :---: | :---: | :-----: | :------: |
+| Button / icon button                         |   R   |       R       |   R    |    —     |    R     |   C¹    |   —   |   —   |   C²    |    —     |
+| Link (in-app navigation)                     |   R   |       R       |   R    |    —     |    C³    |    —    |   —   |   —   |    —    |    —     |
+| Toggle / switch / checkbox / radio           |   R   |       R       |   R    |    R     |    R     |    —    |   —   |   —   |    —    |    —     |
+| Tab / segmented control item                 |   R   |       R       |   R    |    R     |    C³    |    —    |   —   |   —   |    —    |    —     |
+| Menu item / combobox option / list row       |   R   |       R       |   R    |    R     |    C³    |    —    |   —   |   —   |    —    |    —     |
+| Text input / textarea / select               |   R   |       R       |   —    |    —     |    R     |   C⁴    |   —   |   R   |   C²    |    —     |
+| Form (submit flow)                           |   —   |       —       |   —    |    —     |    R⁵    |    R    |   —   |   R   |    R    |    —     |
+| Data table / list (collection view)          |  C⁶   |      C⁶       |   —    |    C⁶    |    —     |    R    |   R   |   R   |    —    |    R     |
+| Card (interactive, e.g. clickable row)       |   R   |       R       |   R    |    C³    |    C³    |    —    |   —   |   —   |    —    |    —     |
+| Card (static content container)              |   —   |       —       |   —    |    —     |    —     |    —    |  C⁷   |   —   |    —    |    C⁷    |
+| Modal / dialog trigger + content             |  R⁸   |      R⁸       |   R⁸   |    —     |    C³    |   C⁴    |   —   |   R   |   C²    |    —     |
+| Async panel / widget (fetches its own data)  |   —   |       —       |   —    |    —     |    —     |    R    |   R   |   R   |   C²    |    R     |
+| Route / page (top-level data-dependent view) |   —   |       —       |   —    |    —     |    —     |    R    |   R   |   R   |    —    |    R     |
+| Toast / inline status message                |   —   |       —       |   —    |    —     |    —     |    —    |   —   |   R   |    R    |    —     |
+| Tooltip / popover trigger                    |   R   |       R       |   —    |    —     |    C³    |    —    |   —   |   —   |    —    |    —     |
+| Drag handle / sortable item                  |   R   |       R       |   R    |    C⁶    |    C³    |    —    |   —   |   —   |    —    |    —     |
 
 Footnotes:
 
