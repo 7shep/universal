@@ -12,7 +12,7 @@ import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { mkdtemp, readFile, readdir, rm, symlink, mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
@@ -58,12 +58,34 @@ async function packToTemporary() {
   return { staging, tarball: resolve(staging, tarball) };
 }
 
+// GNU tar treats an argument like `C:\foo\bar.tgz` as a `host:path` remote
+// archive spec (the same syntax rsync/older tar use for remote transport),
+// so an absolute Windows path passed to `-f` makes it attempt a network
+// connection instead of reading the local file (`tar: Cannot connect to C:
+// resolve failed`). Running tar with its cwd set to the archive's directory
+// and passing just the basename avoids the leading `X:` entirely. This is a
+// plain relative path, so it behaves identically on macOS/Linux tar.
 async function listTarball(tarball) {
-  const { stdout } = await run('tar', ['-tf', tarball]);
+  const { stdout } = await run('tar', ['-tf', basename(tarball)], { cwd: dirname(tarball) });
   return stdout
     .split(/\r?\n/)
     .map((line) => line.trim().replace(/^package\//, ''))
     .filter(Boolean);
+}
+
+async function extractTarball(tarball, destination) {
+  // See listTarball above for the `-f` argument. The `-C` destination has a
+  // second, separate Windows-only problem: Node's child_process spawns the
+  // (MSYS-built) tar.exe directly, so Windows' argv-to-command-line quoting
+  // runs instead of a POSIX shell's. MSYS's own argument parser then reads
+  // backslashes in that command line as escape characters and silently
+  // drops them (`C:\Users\...` becomes `C:Users...`), so tar looks for a
+  // mangled, nonexistent directory. GNU tar accepts forward slashes on
+  // Windows identically to backslashes, and every POSIX tar already expects
+  // them, so normalizing to `/` sidesteps the escaping and is a no-op on
+  // macOS/Linux.
+  const posixDestination = destination.split('\\').join('/');
+  await run('tar', ['-xf', basename(tarball), '-C', posixDestination], { cwd: dirname(tarball) });
 }
 
 test('the tarball carries the runtime files and nothing else', async () => {
@@ -122,7 +144,7 @@ test('the packed binary starts and serves tools outside the monorepo', async () 
   const { staging, tarball } = await packToTemporary();
   const fixture = await mkdtemp(join(tmpdir(), 'universal-mcp-install-'));
   try {
-    await run('tar', ['-xf', tarball, '-C', fixture]);
+    await extractTarball(tarball, fixture);
     const installed = join(fixture, 'package');
 
     // Link only the declared runtime dependencies. If the bundle reaches for
@@ -176,7 +198,7 @@ test('the install-skills command installs and safely updates every bundled skill
   const { staging, tarball } = await packToTemporary();
   const fixture = await mkdtemp(join(tmpdir(), 'universal-skills-install-'));
   try {
-    await run('tar', ['-xf', tarball, '-C', fixture]);
+    await extractTarball(tarball, fixture);
     const installed = join(fixture, 'package');
     const modules = join(installed, 'node_modules');
     for (const name of Object.keys(manifest.dependencies ?? {})) {
