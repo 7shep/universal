@@ -44,6 +44,7 @@ The following planned agent-facing commands are **IN PROGRESS** and must not be 
 - `/cleanup` — **IN PROGRESS:** remove inconsistent, redundant, or generic UI patterns without changing intended behavior.
 - `/art-direct` — **IN PROGRESS:** orchestrate discovery, creative direction, design planning, implementation, and verification.
 - `/review-ui` — **IN PROGRESS:** run multi-dimensional UI review across hierarchy, composition, typography, accessibility, brand, motion, and implementation craft.
+- `/states` — **IN PROGRESS:** find and complete missing interaction/application states (hover, focus-visible, active, selected, disabled, loading, empty, error, success, skeleton).
 
 Until those commands ship, perform their underlying steps explicitly with the currently available Universal MCP tools and normal repository checks. Do not invent command output or silently substitute an unfinished command.
 
