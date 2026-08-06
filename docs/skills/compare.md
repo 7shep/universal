@@ -24,12 +24,12 @@ outright breaks against that reference.
 - **vs. `/cleanup`** — `/cleanup` removes redundant/obsolete/generic patterns from working code, with
   or without a reference. `/compare` only produces findings; it never removes anything.
 - **vs. `/art-direct`** — `/art-direct` runs the full discovery-through-implementation Art Director
-  workflow and can produce a new selected direction. `/compare` can *read* an existing selected
+  workflow and can produce a new selected direction. `/compare` can _read_ an existing selected
   direction (via `get_art_direction_session`) as one of its five reference types, but it never
   starts, advances, or mutates an Art Director session.
-- **vs. `/consistency`** — `/consistency` detects design-system drift *within* the codebase itself
+- **vs. `/consistency`** — `/consistency` detects design-system drift _within_ the codebase itself
   (token/component inconsistency across files). `/compare` measures drift/defect against an
-  *external* reference supplied for this run, not internal cross-file consistency.
+  _external_ reference supplied for this run, not internal cross-file consistency.
 - **vs. `/review-ui`** — `/review-ui` synthesizes multiple internal critique perspectives without
   requiring an external reference. `/compare` is single-purpose: implementation vs. one (or more)
   supplied external references.
@@ -50,12 +50,12 @@ anything — it does not guess at either.
 
 ## Reference types
 
-| Reference type            | How it's validated                                                                        |
-| -------------------------- | ------------------------------------------------------------------------------------------ |
-| Screenshot / mockup image | `Read` the file; valid only if it exists and actually renders as image content.            |
-| Reference URL              | Rendered with whatever browsing tooling already exists in this environment (e.g. `/browse`); valid only if the page actually loaded and was viewed. |
-| `DESIGN.md` / design doc  | `Read` the file; valid only if it exists and holds substantive, filled-in design content.  |
-| Selected Universal direction | `get_art_direction_session` with a session string the user supplies; valid only if the session validates at phase `direction-selected` or later. |
+| Reference type               | How it's validated                                                                                                                                  |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Screenshot / mockup image    | `Read` the file; valid only if it exists and actually renders as image content.                                                                     |
+| Reference URL                | Rendered with whatever browsing tooling already exists in this environment (e.g. `/browse`); valid only if the page actually loaded and was viewed. |
+| `DESIGN.md` / design doc     | `Read` the file; valid only if it exists and holds substantive, filled-in design content.                                                           |
+| Selected Universal direction | `get_art_direction_session` with a session string the user supplies; valid only if the session validates at phase `direction-selected` or later.    |
 
 If the resolved reference does not validate — a missing file, an inaccessible URL with no rendering
 tooling available, an empty/templated `DESIGN.md`, or an invalid/unavailable session — `/compare`

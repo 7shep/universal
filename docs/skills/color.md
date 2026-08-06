@@ -1,8 +1,8 @@
 # `/color`
 
-Improves how color is *used* in an existing Universal UI: palette cohesion, semantic color roles,
+Improves how color is _used_ in an existing Universal UI: palette cohesion, semantic color roles,
 contrast, interaction-state colors, and design-token discipline. It does not change what the
-palette *is* — it makes the UI use the existing palette more consistently and more legibly.
+palette _is_ — it makes the UI use the existing palette more consistently and more legibly.
 
 Full workflow, boundaries, and required report structure live in the skill itself:
 
@@ -27,8 +27,8 @@ Given a page, route, component, directory, or a named color goal, `/color`:
 4. Builds a prioritized repair plan: contrast failures first, then missing/reused interaction-state
    colors, then one-off literals that should route onto an existing token, then missing semantic
    roles, then dark-mode/theme gaps.
-5. Applies only the approved/resolved-scope fixes, consolidating one-off values into the *nearest
-   existing token* by default.
+5. Applies only the approved/resolved-scope fixes, consolidating one-off values into the _nearest
+   existing token_ by default.
 6. Runs `pnpm format:check` / `pnpm typecheck` / relevant tests / build for the touched workspace,
    recomputes the changed contrast ratios post-edit, and re-runs `review_implementation` to confirm
    no new taste/composition regressions were introduced.
@@ -46,7 +46,7 @@ Given a page, route, component, directory, or a named color goal, `/color`:
   established palette") is a subset of what `/color` does in depth. Use `/polish` for a general
   bounded refinement pass that happens to touch color lightly; use `/color` when color/contrast/
   token consolidation is the actual focus and needs the full contrast-computation rigor.
-- **vs. `/cleanup`** — `/cleanup` also consolidates duplicated tokens, but across *any* visual
+- **vs. `/cleanup`** — `/cleanup` also consolidates duplicated tokens, but across _any_ visual
   property (radii, spacing, shadows, typography, color included) with a classification workflow
   (safe-mechanical / behavior-sensitive / design-judgment / uncertain). Use `/cleanup` when the
   cleanup target spans multiple token families; use `/color` when the target is specifically
@@ -81,7 +81,7 @@ and makes no changes until the user answers.
   being merely mentioned or referenced by another skill.
 - **May change:** literal color values routed onto existing tokens, new interaction-state color
   rules (hover/active/focus-visible/disabled/selected) for elements already interactive, a token's
-  *usage* in the scoped files, and — only when explicitly justified and no existing token fits — one
+  _usage_ in the scoped files, and — only when explicitly justified and no existing token fits — one
   new token added to serve a role nothing existing covers.
 - **May not change:** the established palette/hue family, the overall visual direction, non-color
   markup structure, business logic, state, routing, or accessibility semantics unrelated to color.

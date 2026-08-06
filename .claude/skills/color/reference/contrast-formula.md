@@ -89,7 +89,7 @@ exists.
 
 ## Common mistakes to avoid
 
-- Computing contrast against a token's *name* or a color the token is "supposed to represent" instead
+- Computing contrast against a token's _name_ or a color the token is "supposed to represent" instead
   of its actual resolved literal value in the theme being checked.
 - Skipping alpha-compositing before computing luminance for translucent foregrounds/backgrounds.
 - Reusing a light-mode-computed ratio for a dark-mode claim, or vice versa, when the token resolves

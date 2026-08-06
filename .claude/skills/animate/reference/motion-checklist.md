@@ -24,13 +24,13 @@ Fallback guidance for `/animate` when the Universal MCP (`get_design_rules` with
 
 Use these when the project has no existing motion tokens to reuse:
 
-| Motion type                                  | Duration      | Easing                                |
-| --------------------------------------------- | ------------- | -------------------------------------- |
-| Micro-interaction (hover, press, focus)       | 100-150ms     | ease-out                               |
-| Small UI transition (toggle, tooltip, menu)   | 150-250ms     | ease-out (entering) / ease-in (leaving)|
-| Larger transition (modal, drawer, route)      | 250-400ms     | ease-in-out                            |
-| Scroll-triggered reveal                       | 300-500ms     | ease-out, with a small translate (8-24px), not a full slide-in |
-| Loading/progress (indeterminate)              | continuous, capped intensity | linear (spinners) or ease-in-out (pulses) |
+| Motion type                                 | Duration                     | Easing                                                         |
+| ------------------------------------------- | ---------------------------- | -------------------------------------------------------------- |
+| Micro-interaction (hover, press, focus)     | 100-150ms                    | ease-out                                                       |
+| Small UI transition (toggle, tooltip, menu) | 150-250ms                    | ease-out (entering) / ease-in (leaving)                        |
+| Larger transition (modal, drawer, route)    | 250-400ms                    | ease-in-out                                                    |
+| Scroll-triggered reveal                     | 300-500ms                    | ease-out, with a small translate (8-24px), not a full slide-in |
+| Loading/progress (indeterminate)            | continuous, capped intensity | linear (spinners) or ease-in-out (pulses)                      |
 
 Anything longer than ~500ms for a UI-feedback transition needs a stated reason (e.g. it mirrors an
 existing product convention) — long transitions read as sluggish, not premium.
