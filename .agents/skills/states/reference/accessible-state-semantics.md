@@ -11,7 +11,7 @@ present. Reuse the project's existing tokens/primitives for the visual treatment
   from the tab order, and not announced as actionable.
 - Use `aria-disabled="true"` **instead of** native `disabled` when the control must stay focusable
   and independently discoverable — for example, a submit button that is not yet valid but should
-  still be reachable by keyboard so screen reader users can discover *why* it's disabled (paired
+  still be reachable by keyboard so screen reader users can discover _why_ it's disabled (paired
   with `aria-describedby` pointing at the validation message), or any control inside a toolbar/tab
   sequence where removing it from the tab order would break expected keyboard navigation.
 - Never combine both in a way that contradicts the actual condition: don't set `aria-disabled="false"`

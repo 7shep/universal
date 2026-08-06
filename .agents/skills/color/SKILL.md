@@ -5,7 +5,7 @@ description: Bounded improvement of palette cohesion, semantic color roles, cont
 
 # /color
 
-Evaluate and improve how color is *used* in an existing UI: palette cohesion, semantic color roles
+Evaluate and improve how color is _used_ in an existing UI: palette cohesion, semantic color roles
 (background/surface/text/muted/accent/border/danger/success/warning, etc.), contrast compliance,
 interaction-state colors (hover/active/focus/disabled/selected), and design-token discipline.
 Source mutation only happens through an explicit `/color` invocation — never invoke this skill's

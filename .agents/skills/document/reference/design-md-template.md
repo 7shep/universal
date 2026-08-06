@@ -10,6 +10,7 @@ isolation to understand the visual system without re-deriving it from source.
 
 ```md
 <!-- GENERATED:<section-id> source=/document updated=<ISO date> -->
+
 ...generated content...
 <!-- /GENERATED:<section-id> -->
 ```
@@ -111,18 +112,19 @@ sentence, not folded silently into another section. This section always exists, 
 
 ```md
 <!-- GENERATED:color source=/document updated=2026-08-05 -->
+
 ## Color
 
-| Token      | Value                    | Defined in              | Used for                          |
-| ---------- | ------------------------ | ------------------------ | ---------------------------------- |
-| `--blush`  | `#f1dede`                 | `frontend/src/styles.css` | Page/hero background               |
-| `--rose`   | `#d496a7`                 | `frontend/src/styles.css` | Footer text accent                 |
-| `--taupe`  | `#5d576b`                 | `frontend/src/styles.css` | Secondary text, dark section fill  |
-| `--lake`   | `#6cd4ff`                 | `frontend/src/styles.css` | Focus ring, selection, CTA accent  |
-| `--salmon` | `#fe938c`                 | `frontend/src/styles.css` | Status dot, decorative accent      |
-| `--ink`    | `#282432`                 | `frontend/src/styles.css` | Primary text, dark surfaces        |
-| `--paper`  | `#fff8f6`                 | `frontend/src/styles.css` | Light surface, inverted text       |
-| `--line`   | `rgba(40,36,50,.22)`      | `frontend/src/styles.css` | Hairline borders/dividers          |
+| Token      | Value                | Defined in                | Used for                          |
+| ---------- | -------------------- | ------------------------- | --------------------------------- |
+| `--blush`  | `#f1dede`            | `frontend/src/styles.css` | Page/hero background              |
+| `--rose`   | `#d496a7`            | `frontend/src/styles.css` | Footer text accent                |
+| `--taupe`  | `#5d576b`            | `frontend/src/styles.css` | Secondary text, dark section fill |
+| `--lake`   | `#6cd4ff`            | `frontend/src/styles.css` | Focus ring, selection, CTA accent |
+| `--salmon` | `#fe938c`            | `frontend/src/styles.css` | Status dot, decorative accent     |
+| `--ink`    | `#282432`            | `frontend/src/styles.css` | Primary text, dark surfaces       |
+| `--paper`  | `#fff8f6`            | `frontend/src/styles.css` | Light surface, inverted text      |
+| `--line`   | `rgba(40,36,50,.22)` | `frontend/src/styles.css` | Hairline borders/dividers         |
 
 _Unknown — not found in implementation:_ no semantic error/warning/success tokens were found;
 color usage outside this token set was not observed in the inspected files.
