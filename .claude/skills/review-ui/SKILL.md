@@ -3,6 +3,7 @@ name: review-ui
 description: Read-only, multi-perspective design review and synthesis of an existing route, component, or recent implementation in Universal — coordinates independent critique passes across typography, composition/hierarchy, accessibility, brand/direction alignment, motion/interaction, responsive behavior, component vocabulary, and implementation craft, then normalizes, deduplicates, and ranks the findings into one prioritized report. Never edits, formats, stages, commits, or pushes anything.
 allowed-tools: Read, Glob, Grep, Task, Bash(git status:*), Bash(git diff:*), Bash(git log:*), Skill, AskUserQuestion, mcp__universal__get_design_rules, mcp__universal__get_taste_profile, mcp__universal__review_implementation
 argument-hint: '[route/component] [viewport] [reference] [focus] [depth]'
+disable-model-invocation: true
 ---
 
 # /review-ui
