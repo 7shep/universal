@@ -55,8 +55,13 @@ async function acquireInstallLock(
 
 export class BuildPipelineFailure extends RuntimeFailure {
   readonly diagnostics: readonly BuildDiagnostic[];
-  constructor(code: RuntimeErrorCode, message: string, diagnostics: readonly BuildDiagnostic[]) {
-    super(code, message, { retryable: true });
+  constructor(
+    code: RuntimeErrorCode,
+    message: string,
+    diagnostics: readonly BuildDiagnostic[],
+    options: { action?: string } = {}
+  ) {
+    super(code, message, { retryable: true, ...(options.action ? { action: options.action } : {}) });
     this.name = 'BuildPipelineFailure';
     this.diagnostics = diagnostics;
   }
@@ -265,15 +270,27 @@ async function exists(file: string): Promise<boolean> {
     return false;
   }
 }
+const PNPM_NOT_FOUND_ACTION =
+  'Install pnpm globally and ensure it is resolvable on PATH ' +
+  '(`npm install -g pnpm` or `corepack enable && corepack prepare pnpm@11 --activate`), ' +
+  'then retry build_react_project with a new requestId. ' +
+  'build_react_project is the only Universal MCP tool that requires a local pnpm ' +
+  'installation; every other tool works from the npm-installed package alone.';
+
+/**
+ * Preflight: resolve a concrete, shell-free pnpm entrypoint before attempting any
+ * install or build. This runs ahead of every `pnpm install`/`pnpm run build`
+ * invocation so an unresolvable pnpm fails fast with an actionable error instead
+ * of surfacing as an opaque spawn failure partway through the build pipeline.
+ */
 async function pnpmInvocation(
   args: readonly string[]
 ): Promise<{ command: string; args: readonly string[] }> {
-  const pathCandidates = (process.env.PATH ?? '')
-    .split(path.delimiter)
-    .flatMap((entry) => [
-      path.join(entry, 'node_modules', 'pnpm', 'bin', 'pnpm.mjs'),
-      path.join(entry, 'pnpm.cjs')
-    ]);
+  const pathEntries = (process.env.PATH ?? '').split(path.delimiter);
+  const pathCandidates = pathEntries.flatMap((entry) => [
+    path.join(entry, 'node_modules', 'pnpm', 'bin', 'pnpm.mjs'),
+    path.join(entry, 'pnpm.cjs')
+  ]);
   const candidates = [
     process.env.npm_execpath,
     process.env.PNPM_HOME ? path.join(process.env.PNPM_HOME, 'pnpm.cjs') : undefined,
@@ -285,9 +302,21 @@ async function pnpmInvocation(
   if (process.platform === 'win32')
     throw new RuntimeFailure(
       'DEPENDENCY_INSTALL_FAILURE',
-      'Could not resolve a shell-free pnpm JavaScript entrypoint.'
+      'Could not resolve a shell-free pnpm JavaScript entrypoint.',
+      { action: PNPM_NOT_FOUND_ACTION }
     );
-  return { command: 'pnpm', args };
+  // Non-Windows: fall back to a plain executable named `pnpm` on PATH, but
+  // preflight that it actually exists so a missing pnpm still fails fast with
+  // an actionable message instead of an opaque ENOENT from the child process.
+  for (const entry of pathEntries) {
+    if (!entry) continue;
+    if (await exists(path.join(entry, 'pnpm'))) return { command: 'pnpm', args };
+  }
+  throw new RuntimeFailure(
+    'DEPENDENCY_INSTALL_FAILURE',
+    'Could not resolve a pnpm executable on PATH.',
+    { action: PNPM_NOT_FOUND_ACTION }
+  );
 }
 export async function installAndBuild(input: {
   root: string;
@@ -329,7 +358,18 @@ export async function installAndBuild(input: {
     throw new BuildPipelineFailure(
       'DEPENDENCY_INSTALL_FAILURE',
       'Locked dependency installation failed.',
-      diagnostics
+      diagnostics,
+      {
+        action:
+          'pnpm was found, but `pnpm install --offline --frozen-lockfile` exited non-zero. ' +
+          'This install never reaches the network: your local pnpm content-addressable ' +
+          'store is missing one or more of the exact locked versions in ' +
+          'packages/local-runtime/template/pnpm-lock.yaml (react, vite, ' +
+          '@vitejs/plugin-react, and related devDependencies). Inspect the install ' +
+          'diagnostic output above for the missing package(s), then run a normal ' +
+          '(online) `pnpm install` once, anywhere, with that exact lockfile so those ' +
+          'versions populate your local store, and retry with a new requestId.'
+      }
     );
   const build = await pnpmInvocation(['run', 'build']);
   result = await runSupervisedCommand({

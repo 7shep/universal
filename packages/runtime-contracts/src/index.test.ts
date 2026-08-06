@@ -4,6 +4,7 @@ import {
   RUNTIME_CONTRACT_VERSION,
   validateBuildRecord,
   validatePreviewDescriptor,
+  validateRuntimeError,
   validateRuntimeOperation,
   validateRuntimeState
 } from './index.ts';
@@ -28,6 +29,26 @@ test('preview descriptor rejects arbitrary and non-loopback URLs', () => {
     false
   );
 });
+test('runtime error validation preserves an optional actionable remediation field', () => {
+  const withAction = validateRuntimeError({
+    code: 'DEPENDENCY_INSTALL_FAILURE',
+    message: 'Could not resolve a shell-free pnpm JavaScript entrypoint.',
+    retryable: false,
+    action: 'Install pnpm globally and ensure it is resolvable on PATH.'
+  });
+  assert.equal(withAction.ok, true);
+  if (withAction.ok)
+    assert.equal(withAction.value.action, 'Install pnpm globally and ensure it is resolvable on PATH.');
+
+  const withoutAction = validateRuntimeError({
+    code: 'INTERNAL_FAILURE',
+    message: 'Unexpected failure.',
+    retryable: false
+  });
+  assert.equal(withoutAction.ok, true);
+  if (withoutAction.ok) assert.equal(withoutAction.value.action, undefined);
+});
+
 test('operation validation reports stable property paths', () => {
   const checked = validateRuntimeOperation({ contractVersion: RUNTIME_CONTRACT_VERSION });
   assert.equal(checked.ok, false);

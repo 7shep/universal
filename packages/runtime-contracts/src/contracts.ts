@@ -21,6 +21,13 @@ export interface RuntimeError {
   retryable: boolean;
   path?: string | undefined;
   diagnosticId?: string | undefined;
+  /**
+   * A concrete, actionable next step for the caller to take to recover from
+   * this failure (e.g. an exact command to run). Optional: most runtime
+   * errors are self-explanatory, but failures with a clear remediation
+   * (like a missing local toolchain) should populate this.
+   */
+  action?: string | undefined;
 }
 export type RuntimeOperationKind = 'generate-build-preview';
 export type RuntimeOperationStatus =

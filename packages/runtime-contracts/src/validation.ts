@@ -58,7 +58,8 @@ export function validateRuntimeError(value: unknown): RuntimeContractResult<Runt
       message: value.message,
       retryable: value.retryable,
       ...(text(value.path) ? { path: value.path } : {}),
-      ...(text(value.diagnosticId) ? { diagnosticId: value.diagnosticId } : {})
+      ...(text(value.diagnosticId) ? { diagnosticId: value.diagnosticId } : {}),
+      ...(text(value.action) ? { action: value.action } : {})
     }
   };
 }
