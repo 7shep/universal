@@ -105,7 +105,34 @@ function SkillsShowcase() {
   const [activeNeed, setActiveNeed] = useState(0);
   const [systemVisible, setSystemVisible] = useState(false);
   const systemRef = useRef<HTMLDivElement>(null);
+  const needTabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const need = skillNeeds[activeNeed];
+  const focusNeedTab = (index: number) => {
+    setActiveNeed(index);
+    needTabRefs.current[index]?.focus();
+  };
+  const handleNeedTabKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
+    switch (event.key) {
+      case 'ArrowRight':
+        event.preventDefault();
+        focusNeedTab((index + 1) % skillNeeds.length);
+        break;
+      case 'ArrowLeft':
+        event.preventDefault();
+        focusNeedTab((index - 1 + skillNeeds.length) % skillNeeds.length);
+        break;
+      case 'Home':
+        event.preventDefault();
+        focusNeedTab(0);
+        break;
+      case 'End':
+        event.preventDefault();
+        focusNeedTab(skillNeeds.length - 1);
+        break;
+      default:
+        break;
+    }
+  };
   useEffect(() => {
     const system = systemRef.current;
     if (!system || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -127,14 +154,14 @@ function SkillsShowcase() {
       <h2 id="skills-title"><span>One MCP.</span><em>Twenty ways to make</em><span>the interface better.</span></h2>
       <p className="skills-intro">Universal establishes the direction, then stays useful throughout the interface&rsquo;s life. Start from an idea, repair a weak layout, compare against a reference, or prepare the final release without losing the original intent.</p>
     </header>
-    <div ref={systemRef} className={`skills-system ${systemVisible ? 'is-visible' : ''}`} aria-label="How Universal MCP and skills work together">
+    <div ref={systemRef} className={`skills-system ${systemVisible ? 'is-visible' : ''}`} role="group" aria-label="How Universal MCP and skills work together">
       <div className="system-spine"><div><span>Design brain</span><strong>MCP</strong></div><ol><li>Discover</li><li>Align</li><li>Direct</li><li>Specify</li><li>Review</li></ol></div>
       <div className="system-join" aria-hidden="true"><span>Direction becomes a protected contract</span></div>
       <div className="skill-groups"><div className="skill-groups-label"><span>Craft layer</span><strong>Skills</strong></div>{skillGroups.map((group, index) => <article key={group.label}><span>0{index + 1}</span><div><h3>{group.label}</h3><p>{group.copy}</p><div>{group.commands.map((command) => <code key={command}>{command}</code>)}</div></div></article>)}</div>
     </div>
     <div className="skills-recommender">
       <header><p className="section-label">Choose by need</p><h3>What does your interface need?</h3></header>
-      <div className="recommender-grid"><div className="need-list" role="list" aria-label="Interface needs">{skillNeeds.map((item, index) => <button key={item.command} type="button" onClick={() => setActiveNeed(index)} className={index === activeNeed ? 'is-active' : ''} aria-pressed={index === activeNeed}><span>0{index + 1}</span><span className="need-label">&ldquo;{item.label}&rdquo;</span><b aria-hidden="true">{index === activeNeed ? '\u2192' : ''}</b></button>)}</div><div className="need-output" aria-live="polite"><div className="need-output-bar"><span>universal / recommendation</span><span>{need.command}</span></div><pre><code><span>&gt;</span> {need.prompt}</code></pre><div className="need-checks"><p>Inspecting</p>{need.checks.map((check) => <span key={check}><i aria-hidden="true">&#10003;</i>{check}</span>)}</div><footer><span>Direction preserved</span><code>universal.design-plan.v2</code></footer></div></div>
+      <div className="recommender-grid"><div className="need-list" role="tablist" aria-label="Interface needs" aria-orientation="vertical">{skillNeeds.map((item, index) => <button key={item.command} ref={(element) => { needTabRefs.current[index] = element; }} type="button" id={`need-tab-${index}`} role="tab" aria-selected={index === activeNeed} aria-controls="need-output" tabIndex={index === activeNeed ? 0 : -1} onClick={() => setActiveNeed(index)} onKeyDown={(event) => handleNeedTabKeyDown(event, index)} className={index === activeNeed ? 'is-active' : ''}><span>0{index + 1}</span><span className="need-label">&ldquo;{item.label}&rdquo;</span><b aria-hidden="true">{index === activeNeed ? '\u2192' : ''}</b></button>)}</div><div className="need-output" id="need-output" role="tabpanel" aria-labelledby={`need-tab-${activeNeed}`}><div className="need-output-bar"><span>universal / recommendation</span><span>{need.command}</span></div><pre><code><span>&gt;</span> {need.prompt}</code></pre><div className="need-checks"><p>Inspecting</p>{need.checks.map((check) => <span key={check}><i aria-hidden="true">&#10003;</i>{check}</span>)}</div><footer><span>Direction preserved</span><code>universal.design-plan.v2</code></footer></div></div>
     </div>
     <div className="skill-recipes"><header><p className="section-label">Composable workflows</p><h3>Use one command.<br />Or carry the idea all the way through.</h3></header><div>{skillRecipes.map((recipe, index) => <article key={recipe.label}><span>0{index + 1}</span><h4>{recipe.label}</h4><p>{recipe.commands.map((command, commandIndex) => <span key={command}><code>{command}</code>{commandIndex < recipe.commands.length - 1 && <i aria-hidden="true">&#8594;</i>}</span>)}</p></article>)}</div><a href="/docs#commands">Browse all twenty commands <span aria-hidden="true">&#8594;</span></a></div>
   </section>;
