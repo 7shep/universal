@@ -29,6 +29,30 @@ const manifest = JSON.parse(await readFile(resolve(packageRoot, 'package.json'),
 const external = Object.keys(manifest.dependencies ?? {});
 const outfile = resolve(distRoot, 'index.js');
 
+// package.json is the single source of truth for the published version
+// (see src/index.ts); server.json duplicates it for the MCP registry and
+// must not be allowed to drift. `pnpm run check:mcp-version` at the repo
+// root enforces this in CI too, but checking it here as well means a stray
+// `pnpm pack`/`publish` fails locally instead of shipping a mismatch.
+const serverJson = JSON.parse(await readFile(resolve(packageRoot, 'server.json'), 'utf8'));
+const versionMismatches = [
+  serverJson.version !== manifest.version
+    ? `server.json version "${serverJson.version}" !== package.json version "${manifest.version}"`
+    : null,
+  ...(serverJson.packages ?? [])
+    .filter((entry) => entry.identifier === manifest.name)
+    .filter((entry) => entry.version !== manifest.version)
+    .map(
+      (entry) =>
+        `server.json packages[] entry "${entry.identifier}" version "${entry.version}" !== package.json version "${manifest.version}"`
+    )
+].filter(Boolean);
+if (versionMismatches.length > 0) {
+  throw new Error(
+    `Version drift between package.json and server.json:\n  - ${versionMismatches.join('\n  - ')}`
+  );
+}
+
 await mkdir(distRoot, { recursive: true });
 const result = await build({
   entryPoints: [resolve(packageRoot, 'src/index.ts')],

@@ -216,7 +216,7 @@ export function CopyBlock({ label, value }: { label: string; value: string }) {
 
 const terminalLines = [
   '$ claude mcp add universal -- npx -y @7shep/universal-mcp@alpha',
-  'Resolving @7shep/universal-mcp@0.1.0-alpha.1',
+  'Resolving @7shep/universal-mcp@alpha',
   'Universal MCP registered as "universal"',
   'Ready: 16 design tools available',
 ];
