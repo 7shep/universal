@@ -38,7 +38,15 @@ function Hero() {
   return <section className="hero" id="top" aria-labelledby="hero-title">
     <div className="hero-meta"><p>Open-source AI art director</p><p>For React + coding agents</p></div>
     <h1 id="hero-title"><span>Art direction</span><span>for agents that</span><span className="hero-accent">build React.</span></h1>
-    <figure className="hero-art" aria-hidden="true"><img src="/assets/blossom-atmosphere.webp" alt="" /><figcaption>Atmosphere / direction / 01</figcaption></figure>
+    <figure className="hero-art" aria-hidden="true"><img
+      src="/assets/blossom-atmosphere-1280.webp"
+      srcSet="/assets/blossom-atmosphere-640.webp 640w, /assets/blossom-atmosphere-1280.webp 1280w"
+      sizes="100vw"
+      width={1280}
+      height={853}
+      alt=""
+      fetchPriority="high"
+    /><figcaption>Atmosphere / direction / 01</figcaption></figure>
     <div className="hero-bottom"><p>Universal gives coding agents a deliberate design direction before implementation&mdash;and a concrete critique after it.</p><a className="text-link" href="#designing">See how it works <span aria-hidden="true">&darr;</span></a></div>
     <p className="hero-index" aria-hidden="true">01 / 06</p>
   </section>;
