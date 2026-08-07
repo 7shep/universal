@@ -10,7 +10,7 @@ import {
 import { registerArtDirectorTools } from './art-director-mcp.js';
 import { registerRuntimeBuildTools } from './runtime-build-mcp.js';
 import { reviewImplementation } from '@universal/design-linter';
-import { installSkills } from './install-skills.js';
+import { installSkills, type InstallSkillsTarget } from './install-skills.js';
 
 const server = new McpServer({ name: 'universal', version: '0.3.0' });
 registerArtDirectorTools(server);
@@ -203,30 +203,70 @@ server.tool(
   })
 );
 
+function parseTargetFlag(argv: string[]): InstallSkillsTarget | undefined {
+  const flag = argv.find((arg) => arg.startsWith('--target'));
+  if (!flag) return undefined;
+  const value = flag.includes('=')
+    ? flag.slice(flag.indexOf('=') + 1)
+    : argv[argv.indexOf(flag) + 1];
+  if (value === 'agents' || value === 'claude' || value === 'both') return value;
+  throw new Error(
+    `Invalid --target value ${JSON.stringify(value)}. Expected agents, claude, or both.`
+  );
+}
+
+function parseCwdFlag(argv: string[]): string | undefined {
+  const flag = argv.find((arg) => arg.startsWith('--cwd'));
+  if (!flag) return undefined;
+  return flag.includes('=') ? flag.slice(flag.indexOf('=') + 1) : argv[argv.indexOf(flag) + 1];
+}
+
 async function main(): Promise<void> {
   if (process.argv[2] === 'install-skills') {
-    const result = await installSkills({ force: process.argv.includes('--force') });
+    const argv = process.argv.slice(3);
+    const dryRun = argv.includes('--dry-run');
+    const target = parseTargetFlag(argv);
+    const cwd = parseCwdFlag(argv);
+    const result = await installSkills({
+      force: argv.includes('--force'),
+      dryRun,
+      ...(target !== undefined ? { target } : {}),
+      ...(cwd !== undefined ? { cwd } : {})
+    });
     const directories = (count: number): string =>
       count + (count === 1 ? ' skill directory' : ' skill directories');
-    console.log(
-      'Installed ' +
-        directories(result.installed.length) +
-        ' across ' +
-        result.targets.length +
-        ' agent targets.'
-    );
-    if (result.updated.length > 0) {
-      console.log('Updated ' + directories(result.updated.length) + ' to the bundled version.');
-    }
-    if (result.unchanged.length > 0) {
-      console.log('Already up to date: ' + directories(result.unchanged.length) + '.');
-    }
-    if (result.preserved.length > 0) {
+    const verb = (installed: string, dry: string): string => (dryRun ? dry : installed);
+
+    for (const targetResult of result.targets) {
+      console.log(`Target ${targetResult.name} (${targetResult.root}):`);
       console.log(
-        'Preserved ' +
-          directories(result.preserved.length) +
-          ' with local edits. Re-run with --force to overwrite them.'
+        '  ' +
+          verb('Installed', '[dry run] Would install') +
+          ' ' +
+          directories(targetResult.installed.length) +
+          '.'
       );
+      if (targetResult.updated.length > 0) {
+        console.log(
+          '  ' +
+            verb('Updated', '[dry run] Would update') +
+            ' ' +
+            directories(targetResult.updated.length) +
+            ' to the bundled version.'
+        );
+      }
+      if (targetResult.unchanged.length > 0) {
+        console.log('  Already up to date: ' + directories(targetResult.unchanged.length) + '.');
+      }
+      if (targetResult.preserved.length > 0) {
+        console.log(
+          '  ' +
+            verb('Preserved', '[dry run] Would preserve') +
+            ' ' +
+            directories(targetResult.preserved.length) +
+            ' with local edits. Re-run with --force to overwrite them.'
+        );
+      }
     }
     return;
   }
