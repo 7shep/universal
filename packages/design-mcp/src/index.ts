@@ -206,18 +206,26 @@ server.tool(
 async function main(): Promise<void> {
   if (process.argv[2] === 'install-skills') {
     const result = await installSkills({ force: process.argv.includes('--force') });
+    const directories = (count: number): string =>
+      count + (count === 1 ? ' skill directory' : ' skill directories');
     console.log(
       'Installed ' +
-        result.installed.length +
-        ' skill directories across ' +
+        directories(result.installed.length) +
+        ' across ' +
         result.targets.length +
         ' agent targets.'
     );
-    if (result.skipped.length > 0) {
+    if (result.updated.length > 0) {
+      console.log('Updated ' + directories(result.updated.length) + ' to the bundled version.');
+    }
+    if (result.unchanged.length > 0) {
+      console.log('Already up to date: ' + directories(result.unchanged.length) + '.');
+    }
+    if (result.preserved.length > 0) {
       console.log(
         'Preserved ' +
-          result.skipped.length +
-          ' existing skill directories. Re-run with --force to replace them.'
+          directories(result.preserved.length) +
+          ' with local edits. Re-run with --force to overwrite them.'
       );
     }
     return;

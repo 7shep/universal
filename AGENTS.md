@@ -37,14 +37,40 @@ For a new or substantially redesigned website, landing page, dashboard, portfoli
 
 ## Phase 5 skill commands
 
-The following planned agent-facing commands are **COMPLETE**
+The following agent-facing commands have **SHIPPED** and may be invoked directly. They live in
+[.agents/skills](.agents/skills) and are installable into any project with
+`npx -y @7shep/universal-mcp@alpha install-skills`.
 
-- `/audit` 
-- `/polish`
-- `/cleanup` 
-- `/art-direct` 
-- `/review-ui`
-Until those commands ship, perform their underlying steps explicitly with the currently available Universal MCP tools and normal repository checks. Do not invent command output or silently substitute an unfinished command.
+The five broad workflow commands:
+
+- `/art-direct` — orchestrate discovery, creative direction, design planning, implementation, and verification.
+- `/audit` — gather source and visual evidence, then return prioritized design-quality findings.
+- `/polish` — apply bounded, traceable visual refinements and verify them with before/after evidence.
+- `/cleanup` — remove inconsistent, redundant, or generic UI patterns without changing intended behavior.
+- `/review-ui` — run multi-dimensional UI review across hierarchy, composition, typography, accessibility, brand, motion, and implementation craft.
+
+The fifteen focused commands, each owning one dimension of interface quality:
+
+- `/accessibility` — audit accessibility with cited WCAG 2.2 criteria, and repair only when explicitly requested.
+- `/animate` — add purposeful motion with reduced-motion fallbacks, without gratuitous animation.
+- `/assets` — audit imagery, icons, and illustrations, replacing or generating them only when authorized.
+- `/color` — improve palette cohesion, semantic roles, contrast, and token usage without changing the direction.
+- `/compare` — compare the implementation against a supplied reference and report prioritized differences.
+- `/consistency` — detect design-system drift and repair only explicitly selected inconsistencies.
+- `/copy` — improve interface language without altering product meaning, factual claims, or behavior.
+- `/critique` — answer one focused design question with evidence, without editing files.
+- `/document` — create or update a Google Stitch-compatible `DESIGN.md` from the actual implementation.
+- `/final-pass` — orchestrate the release-readiness review, apply bounded fixes, and report a readiness verdict.
+- `/layout` — improve composition, whitespace, pacing, and hierarchy below the threshold of a redesign.
+- `/performance` — repair evidence-backed, user-visible performance problems with before/after measurement.
+- `/responsive` — review and repair the interface across representative viewport widths.
+- `/states` — complete missing interaction and application states with accessible, consistent feedback.
+- `/typography` — refine the typographic system while preserving the visual direction and content meaning.
+
+Choose the narrowest command that matches the work, and state the route, component, or question you
+want it to address. When a command is unavailable in the current environment, perform its underlying
+steps explicitly with the Universal MCP tools and normal repository checks. Do not invent command
+output or silently substitute a command you did not run.
 
 ## Completion gate
 

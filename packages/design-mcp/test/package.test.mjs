@@ -189,8 +189,13 @@ test('the install-skills command installs and safely updates every bundled skill
     const project = join(fixture, 'consumer');
     await mkdir(project);
     const binary = join(installed, 'dist', 'index.js');
+    const expected = skillNames.length * 2;
+
     const first = await run(process.execPath, [binary, 'install-skills'], { cwd: project });
-    assert.match(first.stdout, /Installed 40 skill directories across 2 agent targets/);
+    assert.match(
+      first.stdout,
+      new RegExp(`Installed ${expected} skill directories across 2 agent targets`)
+    );
 
     for (const root of ['.agents/skills', '.claude/skills']) {
       for (const name of skillNames) {
@@ -198,12 +203,38 @@ test('the install-skills command installs and safely updates every bundled skill
       }
     }
 
-    const sentinel = join(project, '.agents', 'skills', 'animate', 'SKILL.md');
-    await writeFile(sentinel, 'preserve me', 'utf8');
+    // A re-run with nothing changed must not claim to have written anything.
     const second = await run(process.execPath, [binary, 'install-skills'], { cwd: project });
-    assert.match(second.stdout, /Preserved 40 existing skill directories/);
+    assert.match(second.stdout, new RegExp(`Already up to date: ${expected} skill directories`));
+    assert.doesNotMatch(second.stdout, /Updated \d+ skill director/);
+    assert.doesNotMatch(second.stdout, /Preserved \d+ skill director/);
+
+    // A newer bundled skill must reach an installation the user has not touched.
+    await writeFile(join(installed, 'dist', 'skills', 'animate', 'SKILL.md'), 'bundled v2', 'utf8');
+    const third = await run(process.execPath, [binary, 'install-skills'], { cwd: project });
+    assert.match(third.stdout, /Updated 2 skill directories to the bundled version/);
+    for (const root of ['.agents/skills', '.claude/skills']) {
+      assert.equal(
+        await readFile(join(project, root, 'animate', 'SKILL.md'), 'utf8'),
+        'bundled v2'
+      );
+    }
+
+    // A locally edited skill must survive that same upgrade path.
+    const sentinel = join(project, '.agents', 'skills', 'color', 'SKILL.md');
+    await writeFile(sentinel, 'preserve me', 'utf8');
+    const fourth = await run(process.execPath, [binary, 'install-skills'], { cwd: project });
+    assert.match(fourth.stdout, /Preserved 1 skill directory with local edits/);
     assert.equal(await readFile(sentinel, 'utf8'), 'preserve me');
 
+    // An incomplete directory is repaired rather than preserved forever.
+    const broken = join(project, '.agents', 'skills', 'layout');
+    await rm(join(broken, 'SKILL.md'));
+    const fifth = await run(process.execPath, [binary, 'install-skills'], { cwd: project });
+    assert.match(fifth.stdout, /Updated 1 skill directory to the bundled version/);
+    await readFile(join(broken, 'SKILL.md'), 'utf8');
+
+    // --force is the documented escape hatch that discards local edits.
     await run(process.execPath, [binary, 'install-skills', '--force'], { cwd: project });
     assert.notEqual(await readFile(sentinel, 'utf8'), 'preserve me');
   } finally {
