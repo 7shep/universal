@@ -94,11 +94,23 @@ for (const name of providerAssets) {
   await cp(resolve(generationSource, name), resolve(distRoot, name));
 }
 
+const bundledSkills = (await readdir(skillsOut, { withFileTypes: true }))
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => entry.name);
+if (bundledSkills.length === 0) throw new Error('No skill directories were copied.');
+for (const name of bundledSkills) {
+  const skillFile = resolve(skillsOut, name, 'SKILL.md');
+  const contents = await readFile(skillFile, 'utf8').catch(() => {
+    throw new Error(`Bundled skill "${name}" is missing SKILL.md at ${skillFile}`);
+  });
+  if (contents.trim().length === 0) {
+    throw new Error(`Bundled skill "${name}" has an empty SKILL.md at ${skillFile}`);
+  }
+}
+
 const required = [
   resolve(templateOut, 'package.json'),
   resolve(templateOut, 'vite.config.ts'),
-  resolve(skillsOut, 'art-direct/SKILL.md'),
-  resolve(skillsOut, 'final-pass/SKILL.md'),
   ...providerAssets.map((name) => resolve(distRoot, name))
 ];
 for (const path of required) {
