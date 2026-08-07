@@ -6,6 +6,14 @@ envelope; its text is pretty-printed JSON. Build and connect the server with
 schemas in `packages/design-mcp/src/index.ts`; the Phase 2 Art Director tools match
 `packages/design-mcp/src/art-director-mcp.ts`.
 
+Fourteen of these tools work from a plain `npx` install. `prepare_react_generation` and
+`build_react_project` additionally require a source checkout of this repository with a pnpm store
+warmed by a network-connected `pnpm install --frozen-lockfile`, because the runtime then installs
+dependencies offline as a security boundary for executing model-authored code. See
+[ADR 0004](adr/0004-packaging-and-distribution.md) and the [runtime contributor
+workflow](RUNTIME_CONTRIBUTOR_WORKFLOW.md) for why, and their tool sections below for what that
+means in practice.
+
 ## Phase 2 Art Director workflow
 
 Use Phase 2 when a project needs discovery, explicit brief approval, concept development,
@@ -238,6 +246,12 @@ Use this tool instead of `create_design_plan` when provenance and approval gates
 
 ### `prepare_react_generation`
 
+Requires a source checkout with a pnpm store already warmed by a network-connected
+`pnpm install --frozen-lockfile` at the repository root; a plain `npx` install of the published
+package cannot satisfy `build_react_project`'s later offline install. See
+[ADR 0004](adr/0004-packaging-and-distribution.md) and the [runtime contributor
+workflow](RUNTIME_CONTRIBUTOR_WORKFLOW.md).
+
 Validates an exact `plan-created` session and returns the digest-bound generation context plus the
 source contract the MCP host model must follow. It does not generate or write files.
 
@@ -254,6 +268,13 @@ modified serialized session returns an MCP error.
 The architecture policy scales with the plan. A nontrivial multi-route response requires one identifiable page component module per approved route, keeps `App.tsx` focused on routing/top-level composition, and extracts repeated navigation/header/footer regions. A substantial single-page response requires cohesive section or feature extraction; a genuinely small page is not forced into extra files. A common shape is `src/App.tsx` plus `src/pages/`, `src/components/`, optional `src/data/`, and organized styles behind `src/styles.css`, but those names are examples rather than subjective folder rules.
 
 ### `build_react_project`
+
+Requires the same source-checkout setup as `prepare_react_generation`: a pnpm store warmed by a
+network-connected `pnpm install --frozen-lockfile` at the repository root. Without it, the runtime's
+offline install fails with `DEPENDENCY_INSTALL_FAILURE`, since it never falls back to network access
+— that boundary is intentional and is not relaxed for a plain `npx` install. See
+[ADR 0004](adr/0004-packaging-and-distribution.md) and the [runtime contributor
+workflow](RUNTIME_CONTRIBUTOR_WORKFLOW.md).
 
 Accepts source authored by the MCP host model from the exact prepared Design Plan v2 and sends it
 through the trusted Phase 3 runtime. The runtime validates the provider schema and secret scan,
