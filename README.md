@@ -180,7 +180,21 @@ Universal includes twenty repository-local workflow skills under [.agents/skills
 They coordinate MCP tools with source inspection, verification, and design-quality gates.
 
 Install them into the current project with `npx -y @7shep/universal-mcp@alpha install-skills`.
-The installer adds each skill for supported agents while preserving any existing skill directories.
+The installer is safe to re-run after upgrading the package. It compares the content of each
+installed skill against the bundled version and reports what it did:
+
+- **Installed** — the skill was not present yet.
+- **Updated** — your copy matched what a previous run wrote and the bundled version has changed, so
+  it was refreshed. Incomplete directories left by an interrupted run are repaired here too.
+- **Already up to date** — your copy matches the bundled version; nothing was written.
+- **Preserved** — you edited the skill locally, so it was left untouched.
+
+Locally edited skills are never overwritten by a normal run. Passing `--force` deletes and replaces
+every skill directory in both targets, discarding any local edits, so reach for it only when you
+want to reset to the bundled versions.
+
+Each target directory carries a `.universal-skills.json` manifest recording what the installer
+wrote. Deleting it makes the installer treat every existing skill as locally authored.
 
 The five original commands cover the broad workflow. The fifteen focused commands below them each
 own one dimension of interface quality.

@@ -13,3 +13,6 @@ generated
 .worktrees/
 .gstack/
 sandbox/
+
+# Written by `universal-mcp install-skills`; .agents/skills is the source of truth in this repo.
+.universal-skills.json
