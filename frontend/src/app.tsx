@@ -40,10 +40,10 @@ function Hero() {
     <h1 id="hero-title"><span>Art direction</span><span>for agents that</span><span className="hero-accent">build React.</span></h1>
     <figure className="hero-art" aria-hidden="true"><img
       src="/assets/blossom-atmosphere-1280.webp"
-      srcSet="/assets/blossom-atmosphere-640.webp 640w, /assets/blossom-atmosphere-1280.webp 1280w, /assets/blossom-atmosphere-1920.webp 1920w"
+      srcSet="/assets/blossom-atmosphere-640.webp 640w, /assets/blossom-atmosphere-1280.webp 1280w"
       sizes="100vw"
-      width={1920}
-      height={1280}
+      width={1280}
+      height={853}
       alt=""
       fetchPriority="high"
     /><figcaption>Atmosphere / direction / 01</figcaption></figure>
