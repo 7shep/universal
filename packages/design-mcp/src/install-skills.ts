@@ -11,9 +11,10 @@ export interface InstallSkillsOptions {
   cwd?: string;
   force?: boolean;
   /**
-   * Which agent director(ies) to write skills into. Defaults to autodetection: targets whose
-   * top-level directory (`.agents` or `.claude`) already exists in the project, falling back to
-   * `.agents` alone when neither is present.
+   * Which agent director(ies) to write skills into. Defaults to autodetection: narrows to
+   * whichever top-level directory (`.agents` or `.claude`) already exists in the project, or
+   * writes both when neither is present, since there is then no signal to narrow on. See
+   * {@link resolveTargetNames} for the full rule.
    */
   target?: InstallSkillsTarget;
   /** Compute and report what would happen without writing anything, including the manifest. */
@@ -118,10 +119,20 @@ async function readManifest(targetRoot: string): Promise<SkillManifest> {
 /**
  * Resolves which agent target(s) to install into.
  *
- * An explicit `target` option always wins. Otherwise this autodetects: a target is selected when
- * its top-level directory (`.agents` or `.claude`) already exists in the project, since that is
- * the signal that the corresponding agent is in use there. When neither exists (a fresh project),
- * it falls back to `.agents` alone rather than writing two directories nobody asked for yet.
+ * An explicit `target` option always wins. Otherwise this autodetects, and the rule is:
+ * detection may only ever NARROW from a real, positive signal — it must never guess when there
+ * is no signal.
+ *
+ * - Exactly one of `.agents` / `.claude` already exists in the project: that is real evidence of
+ *   which agent is in use there, so target it alone. This narrowing is the reason this option
+ *   exists; do not regress it.
+ * - Both already exist: target both, same as before this option existed.
+ * - Neither exists: there is no signal to narrow on. Before target selection existed, every
+ *   install wrote both directories, so a Claude Code user in a fresh project always ended up
+ *   with working `.claude/skills`. Falling back to `.agents` alone here would silently regress
+ *   that first-run experience — the user would see "Installed 20 skill directories" while Claude
+ *   Code reads none of them. So the no-signal case preserves the pre-existing behavior and
+ *   writes both, rather than guessing.
  */
 async function resolveTargetNames(
   projectRoot: string,
@@ -136,7 +147,7 @@ async function resolveTargetNames(
       detected.push(name);
     }
   }
-  return detected.length > 0 ? detected : ['agents'];
+  return detected.length > 0 ? detected : ['agents', 'claude'];
 }
 
 export async function installSkills(

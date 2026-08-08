@@ -189,13 +189,13 @@ installed skill against the bundled version and reports what it did, per target 
 - **Already up to date** — your copy matches the bundled version; nothing was written.
 - **Preserved** — you edited the skill locally, so it was left untouched.
 
-By default the installer writes only to the agent directories already present in your project:
-`.agents/skills` if `.agents` exists, `.claude/skills` if `.claude` exists, or both if both exist.
-If neither exists yet, it falls back to `.agents/skills` alone rather than guessing at two
-directories nobody has asked for. Override this with `--target=<agents|claude|both>`. Add
-`--dry-run` to preview exactly what each target would do without writing anything (no skill
-files, no manifest), and `--cwd=<path>` to install into a directory other than the current one,
-e.g.:
+By default the installer narrows to whichever agent directories already exist in your project:
+just `.agents/skills` if only `.agents` exists, just `.claude/skills` if only `.claude` exists, or
+both if both exist. Detection only ever narrows from that kind of real signal — if neither
+directory exists yet, there is nothing to narrow on, so it installs to both rather than guessing
+which single agent you use. Override this with `--target=<agents|claude|both>`. Add `--dry-run`
+to preview exactly what each target would do without writing anything (no skill files, no
+manifest), and `--cwd=<path>` to install into a directory other than the current one, e.g.:
 
 ```bash
 npx -y @7shep/universal-mcp@alpha install-skills --target=claude --dry-run

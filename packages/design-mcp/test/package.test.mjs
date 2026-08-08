@@ -304,20 +304,23 @@ test('install-skills autodetects the target from existing agent directories', as
     const installed = await stageInstalledPackage(fixture);
     const binary = join(installed, 'dist', 'index.js');
 
-    // Neither .agents nor .claude exists yet: falls back to .agents/skills alone. A vacuous
-    // check like `assert.rejects(readFile('.claude'))` would pass whether or not `.claude` was
-    // created (a missing path and an existing directory both make `readFile` reject, the latter
-    // with EISDIR), so this asserts the actual directory listing instead.
+    // Neither .agents nor .claude exists yet: there is no signal to narrow on, so both are
+    // written, preserving the pre-target-selection behavior (see the doc comment on
+    // resolveTargetNames). A vacuous check like `assert.rejects(readFile('.claude'))` would pass
+    // whether or not `.claude` was created (a missing path and an existing directory both make
+    // `readFile` reject, the latter with EISDIR), so this asserts the actual directory listing
+    // instead.
     const freshProject = join(fixture, 'fresh');
     await mkdir(freshProject);
     const freshRun = await run(process.execPath, [binary, 'install-skills'], { cwd: freshProject });
     assert.match(freshRun.stdout, /Target agents \(/);
-    assert.doesNotMatch(freshRun.stdout, /Target claude \(/);
+    assert.match(freshRun.stdout, /Target claude \(/);
     await readFile(join(freshProject, '.agents', 'skills', 'accessibility', 'SKILL.md'), 'utf8');
+    await readFile(join(freshProject, '.claude', 'skills', 'accessibility', 'SKILL.md'), 'utf8');
     assert.deepEqual(
       (await readdir(freshProject)).sort(),
-      ['.agents'],
-      'a fresh project must get only .agents, not .claude'
+      ['.agents', '.claude'],
+      'a project with no existing agent directory must get both, not a guess'
     );
 
     // A project that already has a .claude directory (but not .agents) gets only .claude/skills.
