@@ -39,7 +39,12 @@ For a new or substantially redesigned website, landing page, dashboard, portfoli
 
 The following agent-facing commands have **SHIPPED** and may be invoked directly. They live in
 [.agents/skills](.agents/skills) and are installable into any project with
-`npx -y @7shep/universal-mcp@alpha install-skills`.
+`npx -y @7shep/universal-mcp@alpha install-skills`. By default this narrows to whichever agent
+directories already exist in the project (`.agents/skills`, `.claude/skills`, or both), and
+installs both when neither exists yet since there is no signal to narrow on. Pass
+`--target=<agents|claude|both>` to override detection, `--dry-run` to preview without writing,
+and `--cwd=<path>` to target a different directory. See
+[README.md](README.md#agent-skill-commands) for the full behavior.
 
 The five broad workflow commands:
 

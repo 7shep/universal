@@ -3,9 +3,22 @@ import { cp, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promi
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+export type SkillTargetName = 'agents' | 'claude';
+
+export type InstallSkillsTarget = SkillTargetName | 'both';
+
 export interface InstallSkillsOptions {
   cwd?: string;
   force?: boolean;
+  /**
+   * Which agent director(ies) to write skills into. Defaults to autodetection: narrows to
+   * whichever top-level directory (`.agents` or `.claude`) already exists in the project, or
+   * writes both when neither is present, since there is then no signal to narrow on. See
+   * {@link resolveTargetNames} for the full rule.
+   */
+  target?: InstallSkillsTarget;
+  /** Compute and report what would happen without writing anything, including the manifest. */
+  dryRun?: boolean;
 }
 
 /**
@@ -18,12 +31,18 @@ export interface InstallSkillsOptions {
  * - `preserved` — the local copy differs from both the bundled version and anything this installer
  *   wrote, so it is treated as user-authored and left alone.
  */
-export interface InstallSkillsResult {
+export interface TargetResult {
+  name: SkillTargetName;
+  root: string;
   installed: string[];
   updated: string[];
   unchanged: string[];
   preserved: string[];
-  targets: string[];
+}
+
+export interface InstallSkillsResult {
+  dryRun: boolean;
+  targets: TargetResult[];
 }
 
 interface SkillManifest {
@@ -38,6 +57,11 @@ const bundledSkills = resolve(moduleDirectory, 'skills');
 /** Tracks what this installer wrote, so a later run can tell our own output from a user's edits. */
 const manifestName = '.universal-skills.json';
 const manifestVersion = 1;
+
+const targetDirectories: Record<SkillTargetName, string> = {
+  agents: '.agents',
+  claude: '.claude'
+};
 
 async function exists(path: string): Promise<boolean> {
   return stat(path).then(
@@ -92,11 +116,47 @@ async function readManifest(targetRoot: string): Promise<SkillManifest> {
   );
 }
 
+/**
+ * Resolves which agent target(s) to install into.
+ *
+ * An explicit `target` option always wins. Otherwise this autodetects, and the rule is:
+ * detection may only ever NARROW from a real, positive signal — it must never guess when there
+ * is no signal.
+ *
+ * - Exactly one of `.agents` / `.claude` already exists in the project: that is real evidence of
+ *   which agent is in use there, so target it alone. This narrowing is the reason this option
+ *   exists; do not regress it.
+ * - Both already exist: target both, same as before this option existed.
+ * - Neither exists: there is no signal to narrow on. Before target selection existed, every
+ *   install wrote both directories, so a Claude Code user in a fresh project always ended up
+ *   with working `.claude/skills`. Falling back to `.agents` alone here would silently regress
+ *   that first-run experience — the user would see "Installed 20 skill directories" while Claude
+ *   Code reads none of them. So the no-signal case preserves the pre-existing behavior and
+ *   writes both, rather than guessing.
+ */
+async function resolveTargetNames(
+  projectRoot: string,
+  target: InstallSkillsTarget | undefined
+): Promise<SkillTargetName[]> {
+  if (target === 'both') return ['agents', 'claude'];
+  if (target === 'agents' || target === 'claude') return [target];
+
+  const detected: SkillTargetName[] = [];
+  for (const name of Object.keys(targetDirectories) as SkillTargetName[]) {
+    if (await exists(resolve(projectRoot, targetDirectories[name]))) {
+      detected.push(name);
+    }
+  }
+  return detected.length > 0 ? detected : ['agents', 'claude'];
+}
+
 export async function installSkills(
   options: InstallSkillsOptions = {}
 ): Promise<InstallSkillsResult> {
   const projectRoot = resolve(options.cwd ?? process.cwd());
-  const targets = [resolve(projectRoot, '.agents/skills'), resolve(projectRoot, '.claude/skills')];
+  const dryRun = options.dryRun ?? false;
+  const targetNames = await resolveTargetNames(projectRoot, options.target);
+
   const skillNames = (await readdir(bundledSkills, { withFileTypes: true }))
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
@@ -112,17 +172,25 @@ export async function installSkills(
   }
 
   const version = await packageVersion();
-  const result: InstallSkillsResult = {
-    installed: [],
-    updated: [],
-    unchanged: [],
-    preserved: [],
-    targets
-  };
+  const result: InstallSkillsResult = { dryRun, targets: [] };
 
-  for (const targetRoot of targets) {
-    await mkdir(targetRoot, { recursive: true });
-    const manifest = await readManifest(targetRoot);
+  for (const name of targetNames) {
+    const targetRoot = resolve(projectRoot, targetDirectories[name], 'skills');
+    const targetResult: TargetResult = {
+      name,
+      root: targetRoot,
+      installed: [],
+      updated: [],
+      unchanged: [],
+      preserved: []
+    };
+
+    if (!dryRun) {
+      await mkdir(targetRoot, { recursive: true });
+    }
+    const manifest = (await exists(targetRoot))
+      ? await readManifest(targetRoot)
+      : { version: manifestVersion, skills: {} };
     const next: SkillManifest = { version: manifestVersion, package: version, skills: {} };
 
     for (const skillName of skillNames) {
@@ -131,10 +199,12 @@ export async function installSkills(
       const bundledDigest = bundledDigests.get(skillName) as string;
 
       const write = async (bucket: 'installed' | 'updated'): Promise<void> => {
-        await rm(destination, { recursive: true, force: true });
-        await cp(source, destination, { recursive: true, force: true });
+        if (!dryRun) {
+          await rm(destination, { recursive: true, force: true });
+          await cp(source, destination, { recursive: true, force: true });
+        }
         next.skills[skillName] = { digest: bundledDigest };
-        result[bucket].push(destination);
+        targetResult[bucket].push(destination);
       };
 
       if (!(await exists(destination))) {
@@ -152,7 +222,7 @@ export async function installSkills(
         // Already current. Record the digest so a copy installed before manifests existed is
         // recognized as ours and stays eligible for future updates.
         next.skills[skillName] = { digest: bundledDigest };
-        result.unchanged.push(destination);
+        targetResult.unchanged.push(destination);
         continue;
       }
 
@@ -172,14 +242,18 @@ export async function installSkills(
 
       // Locally modified. Keep the user's work and carry their provenance entry forward.
       if (recorded) next.skills[skillName] = { digest: recorded };
-      result.preserved.push(destination);
+      targetResult.preserved.push(destination);
     }
 
-    await writeFile(
-      resolve(targetRoot, manifestName),
-      JSON.stringify(next, null, 2) + '\n',
-      'utf8'
-    );
+    if (!dryRun) {
+      await writeFile(
+        resolve(targetRoot, manifestName),
+        JSON.stringify(next, null, 2) + '\n',
+        'utf8'
+      );
+    }
+
+    result.targets.push(targetResult);
   }
 
   return result;

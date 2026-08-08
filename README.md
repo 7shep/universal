@@ -181,7 +181,7 @@ They coordinate MCP tools with source inspection, verification, and design-quali
 
 Install them into the current project with `npx -y @7shep/universal-mcp@alpha install-skills`.
 The installer is safe to re-run after upgrading the package. It compares the content of each
-installed skill against the bundled version and reports what it did:
+installed skill against the bundled version and reports what it did, per target directory:
 
 - **Installed** — the skill was not present yet.
 - **Updated** — your copy matched what a previous run wrote and the bundled version has changed, so
@@ -189,9 +189,21 @@ installed skill against the bundled version and reports what it did:
 - **Already up to date** — your copy matches the bundled version; nothing was written.
 - **Preserved** — you edited the skill locally, so it was left untouched.
 
+By default the installer narrows to whichever agent directories already exist in your project:
+just `.agents/skills` if only `.agents` exists, just `.claude/skills` if only `.claude` exists, or
+both if both exist. Detection only ever narrows from that kind of real signal — if neither
+directory exists yet, there is nothing to narrow on, so it installs to both rather than guessing
+which single agent you use. Override this with `--target=<agents|claude|both>`. Add `--dry-run`
+to preview exactly what each target would do without writing anything (no skill files, no
+manifest), and `--cwd=<path>` to install into a directory other than the current one, e.g.:
+
+```bash
+npx -y @7shep/universal-mcp@alpha install-skills --target=claude --dry-run
+```
+
 Locally edited skills are never overwritten by a normal run. Passing `--force` deletes and replaces
-every skill directory in both targets, discarding any local edits, so reach for it only when you
-want to reset to the bundled versions.
+every skill directory within the selected target(s), discarding any local edits, so reach for it
+only when you want to reset to the bundled versions.
 
 Each target directory carries a `.universal-skills.json` manifest recording what the installer
 wrote. Deleting it makes the installer treat every existing skill as locally authored.

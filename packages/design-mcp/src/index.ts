@@ -10,7 +10,7 @@ import {
 import { registerArtDirectorTools } from './art-director-mcp.js';
 import { registerRuntimeBuildTools } from './runtime-build-mcp.js';
 import { reviewImplementation } from '@universal/design-linter';
-import { installSkills } from './install-skills.js';
+import { installSkills, type InstallSkillsTarget } from './install-skills.js';
 // `package.json` is the single source of truth for the version this server
 // reports in the MCP handshake. This import resolves at build time: under
 // `tsc` (used by the unit-test build) it stays a relative import that Node
@@ -211,30 +211,155 @@ server.tool(
   })
 );
 
+/**
+ * Thrown for a malformed `install-skills` invocation. Kept distinct from any error the
+ * installer itself might throw so `main()` can report it as a CLI usage mistake instead of
+ * letting it fall through to the generic "server failed to start" catch-all — a typo in a flag
+ * has nothing to do with the MCP server failing to boot, and telling the user that sends them
+ * looking in the wrong place.
+ */
+class CliArgumentError extends Error {}
+
+interface ParsedInstallSkillsArgs {
+  force: boolean;
+  dryRun: boolean;
+  target: InstallSkillsTarget | undefined;
+  cwd: string | undefined;
+}
+
+const INSTALL_SKILLS_BOOLEAN_FLAGS = new Set(['--force', '--dry-run']);
+const INSTALL_SKILLS_VALUE_FLAGS = new Set(['--target', '--cwd']);
+
+function parseBooleanFlagValue(flagName: string, rawValue: string | undefined): boolean {
+  if (rawValue === undefined) return true;
+  if (rawValue === 'true') return true;
+  if (rawValue === 'false') return false;
+  throw new CliArgumentError(
+    `Invalid ${flagName} value ${JSON.stringify(rawValue)}. Expected true or false, or omit the value.`
+  );
+}
+
+/**
+ * A strict parser for `install-skills` CLI flags. Every flag must be spelled exactly
+ * (`--dry-run`, not `--dryrun`; `--target`, not `--targetfoo`) so a typo is reported as a clear
+ * usage error rather than silently ignored (a misspelled `--dry-run` must never fall through to
+ * a real install) or misparsed against the wrong flag. Unrecognized `--` arguments are rejected
+ * rather than ignored, for the same reason.
+ */
+function parseInstallSkillsArgs(argv: string[]): ParsedInstallSkillsArgs {
+  const result: ParsedInstallSkillsArgs = {
+    force: false,
+    dryRun: false,
+    target: undefined,
+    cwd: undefined
+  };
+
+  for (let i = 0; i < argv.length; i++) {
+    const raw = argv[i] as string;
+    if (!raw.startsWith('--')) {
+      throw new CliArgumentError(`Unrecognized argument ${JSON.stringify(raw)}.`);
+    }
+    const equalsIndex = raw.indexOf('=');
+    const name = equalsIndex === -1 ? raw : raw.slice(0, equalsIndex);
+    const inlineValue = equalsIndex === -1 ? undefined : raw.slice(equalsIndex + 1);
+
+    if (INSTALL_SKILLS_BOOLEAN_FLAGS.has(name)) {
+      const value = parseBooleanFlagValue(name, inlineValue);
+      if (name === '--force') result.force = value;
+      else result.dryRun = value;
+      continue;
+    }
+
+    if (INSTALL_SKILLS_VALUE_FLAGS.has(name)) {
+      let value = inlineValue;
+      if (value === undefined) {
+        const next = argv[i + 1];
+        if (next === undefined || next.startsWith('--')) {
+          throw new CliArgumentError(`${name} requires a value.`);
+        }
+        value = next;
+        i++;
+      }
+      // An empty value reaches here from both `--cwd=` (inline) and `--cwd ""` (separate, since an
+      // empty argument does not start with `--`). Left unchecked it flows into `resolve('')`, which
+      // Node resolves to the process's current directory — so a malformed command would quietly
+      // install into whatever project the shell happens to be in instead of failing.
+      if (value.trim() === '') {
+        throw new CliArgumentError(`${name} requires a non-empty value.`);
+      }
+      if (name === '--target') {
+        if (value !== 'agents' && value !== 'claude' && value !== 'both') {
+          throw new CliArgumentError(
+            `Invalid --target value ${JSON.stringify(value)}. Expected agents, claude, or both.`
+          );
+        }
+        result.target = value;
+      } else {
+        result.cwd = value;
+      }
+      continue;
+    }
+
+    throw new CliArgumentError(`Unrecognized flag ${JSON.stringify(name)}.`);
+  }
+
+  return result;
+}
+
 async function main(): Promise<void> {
   if (process.argv[2] === 'install-skills') {
-    const result = await installSkills({ force: process.argv.includes('--force') });
+    let parsed: ParsedInstallSkillsArgs;
+    try {
+      parsed = parseInstallSkillsArgs(process.argv.slice(3));
+    } catch (error) {
+      if (error instanceof CliArgumentError) {
+        console.error(`install-skills: ${error.message}`);
+        process.exitCode = 1;
+        return;
+      }
+      throw error;
+    }
+    const { force, dryRun, target, cwd } = parsed;
+    const result = await installSkills({
+      force,
+      dryRun,
+      ...(target !== undefined ? { target } : {}),
+      ...(cwd !== undefined ? { cwd } : {})
+    });
     const directories = (count: number): string =>
       count + (count === 1 ? ' skill directory' : ' skill directories');
-    console.log(
-      'Installed ' +
-        directories(result.installed.length) +
-        ' across ' +
-        result.targets.length +
-        ' agent targets.'
-    );
-    if (result.updated.length > 0) {
-      console.log('Updated ' + directories(result.updated.length) + ' to the bundled version.');
-    }
-    if (result.unchanged.length > 0) {
-      console.log('Already up to date: ' + directories(result.unchanged.length) + '.');
-    }
-    if (result.preserved.length > 0) {
+    const verb = (installed: string, dry: string): string => (dryRun ? dry : installed);
+
+    for (const targetResult of result.targets) {
+      console.log(`Target ${targetResult.name} (${targetResult.root}):`);
       console.log(
-        'Preserved ' +
-          directories(result.preserved.length) +
-          ' with local edits. Re-run with --force to overwrite them.'
+        '  ' +
+          verb('Installed', '[dry run] Would install') +
+          ' ' +
+          directories(targetResult.installed.length) +
+          '.'
       );
+      if (targetResult.updated.length > 0) {
+        console.log(
+          '  ' +
+            verb('Updated', '[dry run] Would update') +
+            ' ' +
+            directories(targetResult.updated.length) +
+            ' to the bundled version.'
+        );
+      }
+      if (targetResult.unchanged.length > 0) {
+        console.log('  Already up to date: ' + directories(targetResult.unchanged.length) + '.');
+      }
+      if (targetResult.preserved.length > 0) {
+        console.log(
+          '  ' +
+            verb('Preserved', '[dry run] Would preserve') +
+            ' ' +
+            directories(targetResult.preserved.length) +
+            ' with local edits. Re-run with --force to overwrite them.'
+        );
+      }
     }
     return;
   }

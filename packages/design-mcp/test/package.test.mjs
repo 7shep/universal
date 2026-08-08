@@ -13,7 +13,7 @@ import { execFile } from 'node:child_process';
 import { mkdtemp, readFile, readdir, rm, symlink, mkdir, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
-import test from 'node:test';
+import test, { after } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
@@ -181,30 +181,57 @@ test('the packed binary starts and serves tools outside the monorepo', async () 
   }
 });
 
-test('the install-skills command installs and safely updates every bundled skill', async () => {
-  const { staging, tarball } = await packToTemporary();
+// The four install-skills tests below each need their own extracted, dependency-linked copy of
+// the package (they mutate files inside it, e.g. rewriting a bundled SKILL.md to simulate an
+// upgrade), but none of them need their own *pack*: `pnpm pack` produces the same tarball
+// contents regardless of which test asks for it, since nothing in between changes the source.
+// Packing once and extracting per test keeps that isolation (every test still gets a private,
+// independently mutable `installed` directory) while avoiding three redundant `pnpm pack`
+// invocations, which is the slow part.
+let sharedPack;
+async function getSharedTarball() {
+  sharedPack ??= await packToTemporary();
+  return sharedPack.tarball;
+}
+after(async () => {
+  if (sharedPack) await rm(sharedPack.staging, { recursive: true, force: true });
+});
+
+async function stageInstalledPackage(fixture) {
+  const tarball = await getSharedTarball();
+  await extractTarball(tarball, fixture);
+  const installed = join(fixture, 'package');
+  const modules = join(installed, 'node_modules');
+  for (const name of Object.keys(manifest.dependencies ?? {})) {
+    const target = join(packageRoot, 'node_modules', name);
+    const link = join(modules, name);
+    await mkdir(dirname(link), { recursive: true });
+    await symlink(target, link, 'junction');
+  }
+  return installed;
+}
+
+test('the install-skills command installs and safely updates every bundled skill (--target=both)', async () => {
   const fixture = await mkdtemp(join(tmpdir(), 'universal-skills-install-'));
   try {
-    await extractTarball(tarball, fixture);
-    const installed = join(fixture, 'package');
-    const modules = join(installed, 'node_modules');
-    for (const name of Object.keys(manifest.dependencies ?? {})) {
-      const target = join(packageRoot, 'node_modules', name);
-      const link = join(modules, name);
-      await mkdir(dirname(link), { recursive: true });
-      await symlink(target, link, 'junction');
-    }
-
+    const installed = await stageInstalledPackage(fixture);
     const project = join(fixture, 'consumer');
     await mkdir(project);
     const binary = join(installed, 'dist', 'index.js');
-    const expected = skillNames.length * 2;
+    const expectedPerTarget = skillNames.length;
 
-    const first = await run(process.execPath, [binary, 'install-skills'], { cwd: project });
-    assert.match(
-      first.stdout,
-      new RegExp(`Installed ${expected} skill directories across 2 agent targets`)
+    const first = await run(process.execPath, [binary, 'install-skills', '--target=both'], {
+      cwd: project
+    });
+    assert.match(first.stdout, /Target agents \(.*\.agents[\\/]skills\):/);
+    assert.match(first.stdout, /Target claude \(.*\.claude[\\/]skills\):/);
+    const installedMatches = first.stdout.match(/Installed \d+ skill director/g) ?? [];
+    assert.equal(
+      installedMatches.length,
+      2,
+      `expected two "Installed" lines, got:\n${first.stdout}`
     );
+    assert.match(first.stdout, new RegExp(`Installed ${expectedPerTarget} skill directories`, 'g'));
 
     for (const root of ['.agents/skills', '.claude/skills']) {
       for (const name of skillNames) {
@@ -213,15 +240,29 @@ test('the install-skills command installs and safely updates every bundled skill
     }
 
     // A re-run with nothing changed must not claim to have written anything.
-    const second = await run(process.execPath, [binary, 'install-skills'], { cwd: project });
-    assert.match(second.stdout, new RegExp(`Already up to date: ${expected} skill directories`));
+    const second = await run(process.execPath, [binary, 'install-skills', '--target=both'], {
+      cwd: project
+    });
+    const unchangedMatches =
+      second.stdout.match(
+        new RegExp(`Already up to date: ${expectedPerTarget} skill director`, 'g')
+      ) ?? [];
+    assert.equal(
+      unchangedMatches.length,
+      2,
+      `expected two "Already up to date" lines, got:\n${second.stdout}`
+    );
     assert.doesNotMatch(second.stdout, /Updated \d+ skill director/);
     assert.doesNotMatch(second.stdout, /Preserved \d+ skill director/);
 
     // A newer bundled skill must reach an installation the user has not touched.
     await writeFile(join(installed, 'dist', 'skills', 'animate', 'SKILL.md'), 'bundled v2', 'utf8');
-    const third = await run(process.execPath, [binary, 'install-skills'], { cwd: project });
-    assert.match(third.stdout, /Updated 2 skill directories to the bundled version/);
+    const third = await run(process.execPath, [binary, 'install-skills', '--target=both'], {
+      cwd: project
+    });
+    const updatedMatches =
+      third.stdout.match(/Updated 1 skill directory to the bundled version/g) ?? [];
+    assert.equal(updatedMatches.length, 2, `expected two "Updated" lines, got:\n${third.stdout}`);
     for (const root of ['.agents/skills', '.claude/skills']) {
       assert.equal(
         await readFile(join(project, root, 'animate', 'SKILL.md'), 'utf8'),
@@ -232,22 +273,162 @@ test('the install-skills command installs and safely updates every bundled skill
     // A locally edited skill must survive that same upgrade path.
     const sentinel = join(project, '.agents', 'skills', 'color', 'SKILL.md');
     await writeFile(sentinel, 'preserve me', 'utf8');
-    const fourth = await run(process.execPath, [binary, 'install-skills'], { cwd: project });
+    const fourth = await run(process.execPath, [binary, 'install-skills', '--target=both'], {
+      cwd: project
+    });
     assert.match(fourth.stdout, /Preserved 1 skill directory with local edits/);
     assert.equal(await readFile(sentinel, 'utf8'), 'preserve me');
 
     // An incomplete directory is repaired rather than preserved forever.
     const broken = join(project, '.agents', 'skills', 'layout');
     await rm(join(broken, 'SKILL.md'));
-    const fifth = await run(process.execPath, [binary, 'install-skills'], { cwd: project });
+    const fifth = await run(process.execPath, [binary, 'install-skills', '--target=both'], {
+      cwd: project
+    });
     assert.match(fifth.stdout, /Updated 1 skill directory to the bundled version/);
     await readFile(join(broken, 'SKILL.md'), 'utf8');
 
     // --force is the documented escape hatch that discards local edits.
-    await run(process.execPath, [binary, 'install-skills', '--force'], { cwd: project });
+    await run(process.execPath, [binary, 'install-skills', '--target=both', '--force'], {
+      cwd: project
+    });
     assert.notEqual(await readFile(sentinel, 'utf8'), 'preserve me');
   } finally {
-    await rm(staging, { recursive: true, force: true });
+    await rm(fixture, { recursive: true, force: true });
+  }
+});
+
+test('install-skills autodetects the target from existing agent directories', async () => {
+  const fixture = await mkdtemp(join(tmpdir(), 'universal-skills-autodetect-'));
+  try {
+    const installed = await stageInstalledPackage(fixture);
+    const binary = join(installed, 'dist', 'index.js');
+
+    // Neither .agents nor .claude exists yet: there is no signal to narrow on, so both are
+    // written, preserving the pre-target-selection behavior (see the doc comment on
+    // resolveTargetNames). A vacuous check like `assert.rejects(readFile('.claude'))` would pass
+    // whether or not `.claude` was created (a missing path and an existing directory both make
+    // `readFile` reject, the latter with EISDIR), so this asserts the actual directory listing
+    // instead.
+    const freshProject = join(fixture, 'fresh');
+    await mkdir(freshProject);
+    const freshRun = await run(process.execPath, [binary, 'install-skills'], { cwd: freshProject });
+    assert.match(freshRun.stdout, /Target agents \(/);
+    assert.match(freshRun.stdout, /Target claude \(/);
+    await readFile(join(freshProject, '.agents', 'skills', 'accessibility', 'SKILL.md'), 'utf8');
+    await readFile(join(freshProject, '.claude', 'skills', 'accessibility', 'SKILL.md'), 'utf8');
+    assert.deepEqual(
+      (await readdir(freshProject)).sort(),
+      ['.agents', '.claude'],
+      'a project with no existing agent directory must get both, not a guess'
+    );
+
+    // A project that already has a .claude directory (but not .agents) gets only .claude/skills.
+    const claudeOnlyProject = join(fixture, 'claude-only');
+    await mkdir(join(claudeOnlyProject, '.claude'), { recursive: true });
+    const claudeRun = await run(process.execPath, [binary, 'install-skills'], {
+      cwd: claudeOnlyProject
+    });
+    assert.match(claudeRun.stdout, /Target claude \(/);
+    assert.doesNotMatch(claudeRun.stdout, /Target agents \(/);
+    await readFile(
+      join(claudeOnlyProject, '.claude', 'skills', 'accessibility', 'SKILL.md'),
+      'utf8'
+    );
+    assert.deepEqual(
+      (await readdir(claudeOnlyProject)).sort(),
+      ['.claude'],
+      'a .claude-only project must not gain .agents'
+    );
+
+    // A project with both directories already present gets both, matching pre-existing installs.
+    const bothProject = join(fixture, 'both');
+    await mkdir(join(bothProject, '.agents'), { recursive: true });
+    await mkdir(join(bothProject, '.claude'), { recursive: true });
+    const bothRun = await run(process.execPath, [binary, 'install-skills'], { cwd: bothProject });
+    assert.match(bothRun.stdout, /Target agents \(/);
+    assert.match(bothRun.stdout, /Target claude \(/);
+    assert.deepEqual((await readdir(bothProject)).sort(), ['.agents', '.claude']);
+  } finally {
+    await rm(fixture, { recursive: true, force: true });
+  }
+});
+
+test('install-skills --dry-run reports without writing anything', async () => {
+  const fixture = await mkdtemp(join(tmpdir(), 'universal-skills-dryrun-'));
+  try {
+    const installed = await stageInstalledPackage(fixture);
+    const binary = join(installed, 'dist', 'index.js');
+    const project = join(fixture, 'consumer');
+    await mkdir(project);
+
+    const dry = await run(
+      process.execPath,
+      [binary, 'install-skills', '--target=both', '--dry-run'],
+      { cwd: project }
+    );
+    assert.match(dry.stdout, /\[dry run\] Would install \d+ skill director/);
+
+    // Nothing landed: no skill directories, no manifest, not even the target roots.
+    assert.deepEqual(await readdir(project), []);
+
+    // A real run afterwards behaves exactly as if the dry run never happened.
+    const real = await run(process.execPath, [binary, 'install-skills', '--target=both'], {
+      cwd: project
+    });
+    assert.match(real.stdout, /Installed \d+ skill director/);
+    await readFile(join(project, '.agents', 'skills', 'accessibility', 'SKILL.md'), 'utf8');
+  } finally {
+    await rm(fixture, { recursive: true, force: true });
+  }
+});
+
+test('install-skills --cwd installs into the given directory instead of process.cwd()', async () => {
+  const fixture = await mkdtemp(join(tmpdir(), 'universal-skills-cwd-'));
+  try {
+    const installed = await stageInstalledPackage(fixture);
+    const binary = join(installed, 'dist', 'index.js');
+    const project = join(fixture, 'target-project');
+    await mkdir(project);
+
+    // Run from `installed` but point --cwd at `project`.
+    await run(process.execPath, [binary, 'install-skills', '--target=agents', `--cwd=${project}`], {
+      cwd: installed
+    });
+    await readFile(join(project, '.agents', 'skills', 'accessibility', 'SKILL.md'), 'utf8');
+  } finally {
+    await rm(fixture, { recursive: true, force: true });
+  }
+});
+
+// An empty --cwd used to survive parsing and reach resolve(''), which Node resolves to the
+// process's current directory: a malformed command installed into whatever project the shell was
+// sitting in. Both spellings must fail as usage errors and write nothing.
+test('install-skills rejects an empty --cwd instead of falling back to process.cwd()', async () => {
+  const fixture = await mkdtemp(join(tmpdir(), 'universal-skills-empty-cwd-'));
+  try {
+    const installed = await stageInstalledPackage(fixture);
+    const binary = join(installed, 'dist', 'index.js');
+
+    for (const args of [['--cwd='], ['--cwd', ''], ['--cwd', '   ']]) {
+      const failure = await run(process.execPath, [binary, 'install-skills', ...args], {
+        cwd: installed
+      }).then(
+        () => undefined,
+        (error) => error
+      );
+      assert.ok(failure, `expected install-skills ${JSON.stringify(args)} to exit nonzero`);
+      assert.equal(failure.code, 1);
+      assert.match(failure.stderr, /install-skills: --cwd requires a non-empty value\./);
+    }
+
+    // Nothing was installed into the directory the process happened to be running from.
+    const entries = await readdir(installed);
+    assert.ok(
+      !entries.includes('.agents') && !entries.includes('.claude'),
+      `empty --cwd wrote skills into process.cwd(): ${entries.join(', ')}`
+    );
+  } finally {
     await rm(fixture, { recursive: true, force: true });
   }
 });
