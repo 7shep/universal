@@ -29,6 +29,30 @@ const manifest = JSON.parse(await readFile(resolve(packageRoot, 'package.json'),
 const external = Object.keys(manifest.dependencies ?? {});
 const outfile = resolve(distRoot, 'index.js');
 
+// package.json is the single source of truth for the published version
+// (see src/index.ts); server.json duplicates it for the MCP registry and
+// must not be allowed to drift. `pnpm run check:mcp-version` at the repo
+// root enforces this in CI too, but checking it here as well means a stray
+// `pnpm pack`/`publish` fails locally instead of shipping a mismatch.
+const serverJson = JSON.parse(await readFile(resolve(packageRoot, 'server.json'), 'utf8'));
+const versionMismatches = [
+  serverJson.version !== manifest.version
+    ? `server.json version "${serverJson.version}" !== package.json version "${manifest.version}"`
+    : null,
+  ...(serverJson.packages ?? [])
+    .filter((entry) => entry.identifier === manifest.name)
+    .filter((entry) => entry.version !== manifest.version)
+    .map(
+      (entry) =>
+        `server.json packages[] entry "${entry.identifier}" version "${entry.version}" !== package.json version "${manifest.version}"`
+    )
+].filter(Boolean);
+if (versionMismatches.length > 0) {
+  throw new Error(
+    `Version drift between package.json and server.json:\n  - ${versionMismatches.join('\n  - ')}`
+  );
+}
+
 await mkdir(distRoot, { recursive: true });
 const result = await build({
   entryPoints: [resolve(packageRoot, 'src/index.ts')],
@@ -70,11 +94,23 @@ for (const name of providerAssets) {
   await cp(resolve(generationSource, name), resolve(distRoot, name));
 }
 
+const bundledSkills = (await readdir(skillsOut, { withFileTypes: true }))
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => entry.name);
+if (bundledSkills.length === 0) throw new Error('No skill directories were copied.');
+for (const name of bundledSkills) {
+  const skillFile = resolve(skillsOut, name, 'SKILL.md');
+  const contents = await readFile(skillFile, 'utf8').catch(() => {
+    throw new Error(`Bundled skill "${name}" is missing SKILL.md at ${skillFile}`);
+  });
+  if (contents.trim().length === 0) {
+    throw new Error(`Bundled skill "${name}" has an empty SKILL.md at ${skillFile}`);
+  }
+}
+
 const required = [
   resolve(templateOut, 'package.json'),
   resolve(templateOut, 'vite.config.ts'),
-  resolve(skillsOut, 'art-direct/SKILL.md'),
-  resolve(skillsOut, 'final-pass/SKILL.md'),
   ...providerAssets.map((name) => resolve(distRoot, name))
 ];
 for (const path of required) {

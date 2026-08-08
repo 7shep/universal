@@ -6,7 +6,7 @@ else in the monorepo is private and stays private.
 ## Install and connect
 
 ```bash
-npm install -g @7shep/universal-mcp
+npm install -g @7shep/universal-mcp@alpha
 # or, without installing:
 npx -y @7shep/universal-mcp@alpha
 ```
@@ -33,7 +33,7 @@ claude mcp add universal -- npx -y @7shep/universal-mcp@alpha
   "mcpServers": {
     "universal": {
       "command": "npx",
-      "args": ["-y", "@7shep/universal-mcp"]
+      "args": ["-y", "@7shep/universal-mcp@alpha"]
     }
   }
 }
@@ -86,7 +86,11 @@ pnpm --filter @7shep/universal-mcp test
 submitted. Publishing to the registry additionally requires proving namespace ownership with the
 registry CLI; that step is maintainer-triggered and is not automated here.
 
-Keep `server.json`'s `version` and its npm package `version` equal to `package.json`'s `version`.
+`packages/design-mcp/package.json`'s `version` is the single source of truth. The MCP handshake
+version reported by `src/index.ts` is derived from it directly at build time, so it cannot drift.
+`server.json`'s `version` and its npm package `version` are separate files and must be kept equal
+to `package.json`'s `version` by hand; `pnpm check:mcp-version` (run in CI, and also enforced by
+`scripts/bundle.mjs` on every `pack`/`publish`) fails the build if they disagree.
 
 ## Versioning
 

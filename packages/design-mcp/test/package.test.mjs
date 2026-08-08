@@ -19,29 +19,16 @@ import { promisify } from 'node:util';
 
 const run = promisify(execFile);
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const repoRoot = resolve(packageRoot, '../..');
 const manifest = JSON.parse(await readFile(join(packageRoot, 'package.json'), 'utf8'));
-const skillNames = [
-  'accessibility',
-  'animate',
-  'art-direct',
-  'assets',
-  'audit',
-  'cleanup',
-  'color',
-  'compare',
-  'consistency',
-  'copy',
-  'critique',
-  'document',
-  'final-pass',
-  'layout',
-  'performance',
-  'polish',
-  'responsive',
-  'review-ui',
-  'states',
-  'typography'
-];
+const skillNames = (await readdir(join(repoRoot, '.agents/skills'), { withFileTypes: true }))
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => entry.name)
+  .sort();
+assert.ok(
+  skillNames.length > 0,
+  `expected at least one skill directory under .agents/skills, found none in ${join(repoRoot, '.agents/skills')}`
+);
 
 async function packToTemporary() {
   const staging = await mkdtemp(join(tmpdir(), 'universal-mcp-pack-'));

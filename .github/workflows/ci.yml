@@ -61,6 +61,9 @@ jobs:
       - name: Check skill frontmatter parity
         run: pnpm check:skill-parity 2>&1 | tee .ci-logs/skill-parity-check.log
 
+      - name: Check MCP server version parity
+        run: pnpm check:mcp-version 2>&1 | tee .ci-logs/mcp-version-check.log
+
       - name: Lint
         run: pnpm lint 2>&1 | tee .ci-logs/lint.log
 

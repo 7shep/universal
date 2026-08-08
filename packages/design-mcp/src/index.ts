@@ -11,8 +11,16 @@ import { registerArtDirectorTools } from './art-director-mcp.js';
 import { registerRuntimeBuildTools } from './runtime-build-mcp.js';
 import { reviewImplementation } from '@universal/design-linter';
 import { installSkills, type InstallSkillsTarget } from './install-skills.js';
+// `package.json` is the single source of truth for the version this server
+// reports in the MCP handshake. This import resolves at build time: under
+// `tsc` (used by the unit-test build) it stays a relative import that Node
+// resolves against the on-disk file; under the esbuild bundle that ships in
+// the published tarball (see scripts/bundle.mjs), esbuild's JSON loader
+// inlines the value directly into dist/index.js, so no package.json lookup
+// happens at runtime for installed consumers.
+import packageJson from '../package.json' with { type: 'json' };
 
-const server = new McpServer({ name: 'universal', version: '0.3.0' });
+const server = new McpServer({ name: 'universal', version: packageJson.version });
 registerArtDirectorTools(server);
 registerRuntimeBuildTools(server);
 
