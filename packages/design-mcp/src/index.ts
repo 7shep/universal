@@ -211,32 +211,110 @@ server.tool(
   })
 );
 
-function parseTargetFlag(argv: string[]): InstallSkillsTarget | undefined {
-  const flag = argv.find((arg) => arg.startsWith('--target'));
-  if (!flag) return undefined;
-  const value = flag.includes('=')
-    ? flag.slice(flag.indexOf('=') + 1)
-    : argv[argv.indexOf(flag) + 1];
-  if (value === 'agents' || value === 'claude' || value === 'both') return value;
-  throw new Error(
-    `Invalid --target value ${JSON.stringify(value)}. Expected agents, claude, or both.`
+/**
+ * Thrown for a malformed `install-skills` invocation. Kept distinct from any error the
+ * installer itself might throw so `main()` can report it as a CLI usage mistake instead of
+ * letting it fall through to the generic "server failed to start" catch-all — a typo in a flag
+ * has nothing to do with the MCP server failing to boot, and telling the user that sends them
+ * looking in the wrong place.
+ */
+class CliArgumentError extends Error {}
+
+interface ParsedInstallSkillsArgs {
+  force: boolean;
+  dryRun: boolean;
+  target: InstallSkillsTarget | undefined;
+  cwd: string | undefined;
+}
+
+const INSTALL_SKILLS_BOOLEAN_FLAGS = new Set(['--force', '--dry-run']);
+const INSTALL_SKILLS_VALUE_FLAGS = new Set(['--target', '--cwd']);
+
+function parseBooleanFlagValue(flagName: string, rawValue: string | undefined): boolean {
+  if (rawValue === undefined) return true;
+  if (rawValue === 'true') return true;
+  if (rawValue === 'false') return false;
+  throw new CliArgumentError(
+    `Invalid ${flagName} value ${JSON.stringify(rawValue)}. Expected true or false, or omit the value.`
   );
 }
 
-function parseCwdFlag(argv: string[]): string | undefined {
-  const flag = argv.find((arg) => arg.startsWith('--cwd'));
-  if (!flag) return undefined;
-  return flag.includes('=') ? flag.slice(flag.indexOf('=') + 1) : argv[argv.indexOf(flag) + 1];
+/**
+ * A strict parser for `install-skills` CLI flags. Every flag must be spelled exactly
+ * (`--dry-run`, not `--dryrun`; `--target`, not `--targetfoo`) so a typo is reported as a clear
+ * usage error rather than silently ignored (a misspelled `--dry-run` must never fall through to
+ * a real install) or misparsed against the wrong flag. Unrecognized `--` arguments are rejected
+ * rather than ignored, for the same reason.
+ */
+function parseInstallSkillsArgs(argv: string[]): ParsedInstallSkillsArgs {
+  const result: ParsedInstallSkillsArgs = {
+    force: false,
+    dryRun: false,
+    target: undefined,
+    cwd: undefined
+  };
+
+  for (let i = 0; i < argv.length; i++) {
+    const raw = argv[i] as string;
+    if (!raw.startsWith('--')) {
+      throw new CliArgumentError(`Unrecognized argument ${JSON.stringify(raw)}.`);
+    }
+    const equalsIndex = raw.indexOf('=');
+    const name = equalsIndex === -1 ? raw : raw.slice(0, equalsIndex);
+    const inlineValue = equalsIndex === -1 ? undefined : raw.slice(equalsIndex + 1);
+
+    if (INSTALL_SKILLS_BOOLEAN_FLAGS.has(name)) {
+      const value = parseBooleanFlagValue(name, inlineValue);
+      if (name === '--force') result.force = value;
+      else result.dryRun = value;
+      continue;
+    }
+
+    if (INSTALL_SKILLS_VALUE_FLAGS.has(name)) {
+      let value = inlineValue;
+      if (value === undefined) {
+        const next = argv[i + 1];
+        if (next === undefined || next.startsWith('--')) {
+          throw new CliArgumentError(`${name} requires a value.`);
+        }
+        value = next;
+        i++;
+      }
+      if (name === '--target') {
+        if (value !== 'agents' && value !== 'claude' && value !== 'both') {
+          throw new CliArgumentError(
+            `Invalid --target value ${JSON.stringify(value)}. Expected agents, claude, or both.`
+          );
+        }
+        result.target = value;
+      } else {
+        result.cwd = value;
+      }
+      continue;
+    }
+
+    throw new CliArgumentError(`Unrecognized flag ${JSON.stringify(name)}.`);
+  }
+
+  return result;
 }
 
 async function main(): Promise<void> {
   if (process.argv[2] === 'install-skills') {
-    const argv = process.argv.slice(3);
-    const dryRun = argv.includes('--dry-run');
-    const target = parseTargetFlag(argv);
-    const cwd = parseCwdFlag(argv);
+    let parsed: ParsedInstallSkillsArgs;
+    try {
+      parsed = parseInstallSkillsArgs(process.argv.slice(3));
+    } catch (error) {
+      if (error instanceof CliArgumentError) {
+        console.error(`install-skills: ${error.message}`);
+        process.exitCode = 1;
+        return;
+      }
+      throw error;
+    }
+    const { force, dryRun, target, cwd } = parsed;
     const result = await installSkills({
-      force: argv.includes('--force'),
+      force,
       dryRun,
       ...(target !== undefined ? { target } : {}),
       ...(cwd !== undefined ? { cwd } : {})

@@ -17,6 +17,12 @@ Install the twenty workflow skills in the current project for the full experienc
 npx -y @7shep/universal-mcp@alpha install-skills
 ```
 
+By default this writes only to the agent directories already present in the project
+(`.agents/skills`, `.claude/skills`, or both — falling back to `.agents/skills` alone if neither
+exists yet). Pass `--target=<agents|claude|both>` to choose explicitly, `--dry-run` to
+preview what would happen without writing anything, and `--cwd=<path>` to install into a
+directory other than the current one.
+
 The package exposes one binary, `universal-mcp`, which speaks MCP over stdio. Node 22 or newer is
 required.
 

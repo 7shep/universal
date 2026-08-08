@@ -181,7 +181,7 @@ They coordinate MCP tools with source inspection, verification, and design-quali
 
 Install them into the current project with `npx -y @7shep/universal-mcp@alpha install-skills`.
 The installer is safe to re-run after upgrading the package. It compares the content of each
-installed skill against the bundled version and reports what it did:
+installed skill against the bundled version and reports what it did, per target directory:
 
 - **Installed** — the skill was not present yet.
 - **Updated** — your copy matched what a previous run wrote and the bundled version has changed, so
@@ -189,9 +189,21 @@ installed skill against the bundled version and reports what it did:
 - **Already up to date** — your copy matches the bundled version; nothing was written.
 - **Preserved** — you edited the skill locally, so it was left untouched.
 
+By default the installer writes only to the agent directories already present in your project:
+`.agents/skills` if `.agents` exists, `.claude/skills` if `.claude` exists, or both if both exist.
+If neither exists yet, it falls back to `.agents/skills` alone rather than guessing at two
+directories nobody has asked for. Override this with `--target=<agents|claude|both>`. Add
+`--dry-run` to preview exactly what each target would do without writing anything (no skill
+files, no manifest), and `--cwd=<path>` to install into a directory other than the current one,
+e.g.:
+
+```bash
+npx -y @7shep/universal-mcp@alpha install-skills --target=claude --dry-run
+```
+
 Locally edited skills are never overwritten by a normal run. Passing `--force` deletes and replaces
-every skill directory in both targets, discarding any local edits, so reach for it only when you
-want to reset to the bundled versions.
+every skill directory within the selected target(s), discarding any local edits, so reach for it
+only when you want to reset to the bundled versions.
 
 Each target directory carries a `.universal-skills.json` manifest recording what the installer
 wrote. Deleting it makes the installer treat every existing skill as locally authored.
