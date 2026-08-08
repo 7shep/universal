@@ -400,3 +400,35 @@ test('install-skills --cwd installs into the given directory instead of process.
     await rm(fixture, { recursive: true, force: true });
   }
 });
+
+// An empty --cwd used to survive parsing and reach resolve(''), which Node resolves to the
+// process's current directory: a malformed command installed into whatever project the shell was
+// sitting in. Both spellings must fail as usage errors and write nothing.
+test('install-skills rejects an empty --cwd instead of falling back to process.cwd()', async () => {
+  const fixture = await mkdtemp(join(tmpdir(), 'universal-skills-empty-cwd-'));
+  try {
+    const installed = await stageInstalledPackage(fixture);
+    const binary = join(installed, 'dist', 'index.js');
+
+    for (const args of [['--cwd='], ['--cwd', ''], ['--cwd', '   ']]) {
+      const failure = await run(process.execPath, [binary, 'install-skills', ...args], {
+        cwd: installed
+      }).then(
+        () => undefined,
+        (error) => error
+      );
+      assert.ok(failure, `expected install-skills ${JSON.stringify(args)} to exit nonzero`);
+      assert.equal(failure.code, 1);
+      assert.match(failure.stderr, /install-skills: --cwd requires a non-empty value\./);
+    }
+
+    // Nothing was installed into the directory the process happened to be running from.
+    const entries = await readdir(installed);
+    assert.ok(
+      !entries.includes('.agents') && !entries.includes('.claude'),
+      `empty --cwd wrote skills into process.cwd(): ${entries.join(', ')}`
+    );
+  } finally {
+    await rm(fixture, { recursive: true, force: true });
+  }
+});

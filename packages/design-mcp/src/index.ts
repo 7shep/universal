@@ -280,6 +280,13 @@ function parseInstallSkillsArgs(argv: string[]): ParsedInstallSkillsArgs {
         value = next;
         i++;
       }
+      // An empty value reaches here from both `--cwd=` (inline) and `--cwd ""` (separate, since an
+      // empty argument does not start with `--`). Left unchecked it flows into `resolve('')`, which
+      // Node resolves to the process's current directory — so a malformed command would quietly
+      // install into whatever project the shell happens to be in instead of failing.
+      if (value.trim() === '') {
+        throw new CliArgumentError(`${name} requires a non-empty value.`);
+      }
       if (name === '--target') {
         if (value !== 'agents' && value !== 'claude' && value !== 'both') {
           throw new CliArgumentError(
